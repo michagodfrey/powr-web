@@ -1,0 +1,56 @@
+---
+description: Development and AI guidance rules for the Progressive Overload Workout Recorder (POWR) project.
+globs: **/*.js", "**/*.tsx", "**/*.md
+alwaysApply: false
+---
+# POWR Development Rules
+
+## 1. Scope & Feature Alignment
+
+- **Adhere to the PRD.** All features and design decisions must align with the “Product Requirements Document” in the fand its focus on progressive overload tracking.
+- **Minimize Feature Creep.** Avoid adding functionalities beyond those explicitly stated (e.g., no social sharing, advanced analytics, or complex user management) unless approved.
+- **Focus on Core Exercises & Volume Tracking.** Ensure all code or content revolves around the key functionalities: selecting an exercise, entering sets/reps/weight, calculating total volume, and displaying simple progress charts.
+
+## 2. Code Organization & Best Practices
+
+- **Use the Approved Tech Stack:**
+  - **Frontend:** React (web)
+  - **Backend:** Node.js / Express.js
+  - **Database:** PostgreSQL
+  - **Charting:** Chart.js or Recharts
+  - **Hosting:** Vercel
+- **Write Modular, Clean Code.** Keep components small, single-responsibility, and easy to maintain.
+- **Follow Standard Conventions.** Use consistent naming, linting, and formatting in JavaScript/TypeScript.
+- **Security & Privacy.** Do not expose sensitive data in logs or code; follow best practices for storing credentials (e.g., environment variables).
+
+## 3. User Experience & UI Constraints
+
+- **Minimalistic UI.** Maintain a clean interface with a strong emphasis on ease of use over extra functionality.
+- **Clear Workflow.** The flow from exercise selection to data entry to chart visualization must be intuitive and require minimal steps.
+- **Accessibility.** Strive for accessible React components (e.g., proper aria labels, keyboard navigation).
+- **Light/Dark Mode Support.** Provide straightforward toggling between light and dark themes as outlined in the PRD.
+
+## 4. Data Management & Visualization
+
+- **Accurate Volume Calculations.** Ensure total volume (weight × reps × sets) is correct and consistently updated in the UI.
+- **Graph Views.** Implement weekly, monthly, and custom date range charts. Keep visuals clear and uncluttered (no extraneous data points).
+- **Persistent & Portable Data.** Store user data in the database for reliability and allow CSV/PDF export.
+- **Scalability in Mind.** Design database schemas and endpoints to accommodate new exercises or additional metrics later, without over-engineering.
+
+## 5. Collaboration & Iterations
+
+- **Comment & Document.** Provide inline code comments and high-level documentation for major components and endpoints.
+- **Regular Checkpoints.** When generating new features or refactoring, confirm alignment with the PRD in each iteration before merging.
+- **Testing.** Write basic unit and integration tests for critical functions (volume calculation, data retrieval, etc.).
+
+## 6. Future Expansion Awareness
+
+- **Mobile-First Ready.** While the MVP is web-based, keep the code flexible for a future React Native app. Avoid desktop-only libraries that break on mobile.
+- **Modular API.** Organize backend routes so they can be reused in a mobile or wearable integration down the road.
+
+## 7. AI Content & Response Requirements
+
+- **Stay Within the PRD.** If asked for features not in the PRD, respond by referencing these rules and request approval before proceeding.
+- **No Speculative Features.** Avoid generating speculative functionalities that are not described in the document.
+- **Minimal Overhead.** Keep generated code concise, focusing on the solution rather than verbose or tangential snippets.
+- **Prompt Confirmation.** If the AI is unsure about a design decision, it should ask for clarification rather than guessing.
