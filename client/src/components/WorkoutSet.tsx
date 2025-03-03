@@ -5,6 +5,7 @@ interface WorkoutSetProps {
   onSave: (sets: Set[], date: string) => void;
   onCancel: () => void;
   initialSets?: Set[];
+  initialDate?: string;
   preferredUnit?: "kg" | "lb";
 }
 
@@ -19,6 +20,7 @@ const WorkoutSet = ({
   onSave,
   onCancel,
   initialSets = [],
+  initialDate,
   preferredUnit = "kg",
 }: WorkoutSetProps) => {
   const [sets, setSets] = useState<Set[]>(
@@ -27,8 +29,10 @@ const WorkoutSet = ({
       : [{ id: Date.now(), weight: 0, reps: 0, unit: preferredUnit }]
   );
 
-  // Initialize with current date in YYYY-MM-DD format
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  // Initialize with provided date or current date in YYYY-MM-DD format
+  const [date, setDate] = useState(
+    initialDate || new Date().toISOString().split("T")[0]
+  );
 
   // Calculate total volume for all sets
   const calculateTotalVolume = () => {
@@ -81,7 +85,7 @@ const WorkoutSet = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-secondary rounded-lg p-6 w-full max-w-2xl">
         <h2 className="text-2xl font-bold mb-6 text-secondary dark:text-white">
-          Record Sets
+          {initialSets ? "Edit Workout" : "Record Sets"}
         </h2>
 
         {/* Date Selection */}

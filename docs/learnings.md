@@ -593,6 +593,545 @@ This document will capture key observations, challenges, and insights as the pro
 - ✅ Accessible components
 - ✅ Smooth user experience
 
+### 2024-03-03: Enhanced Error Handling & Session Management
+
+**What Happened**:
+
+1. **Comprehensive Error Handling Implementation**:
+
+   - Added structured error handling across authentication flow
+   - Implemented ErrorToast component for user feedback
+   - Enhanced error state management in AuthContext
+   - Added specific error messages for different failure scenarios
+
+2. **Session Management Improvements**:
+   - Implemented dual-token authentication system:
+     - Access tokens (1-hour expiry)
+     - Refresh tokens (7-day expiry)
+   - Added automatic token refresh mechanism
+   - Implemented proper session cleanup on logout
+   - Enhanced token storage and security
+
+**Technical Details**:
+
+1. **Token Management**:
+
+   ```typescript
+   const generateToken = (
+     userId: number,
+     type: "access" | "refresh" = "access"
+   ) => {
+     const secret = process.env.JWT_SECRET || "fallback_secret";
+     const expiresIn = type === "access" ? "1h" : "7d";
+     return jwt.sign({ id: userId, type }, secret, { expiresIn });
+   };
+   ```
+
+2. **Automatic Token Refresh**:
+
+   - Implemented 45-minute refresh cycle (before 1-hour expiry)
+   - Added cleanup on component unmount
+   - Graceful handling of refresh failures
+
+3. **Error Handling Patterns**:
+
+   - Centralized error handling in AuthContext
+   - Consistent error message format
+   - Automatic error clearing
+   - Toast notifications for user feedback
+
+4. **Security Improvements**:
+   - Token type verification
+   - Proper token expiration handling
+   - Secure token storage
+   - Clean session termination
+
+**Why It Matters**:
+
+- Improves user experience with clear error feedback
+- Prevents session interruptions with automatic refresh
+- Enhances security with proper token management
+- Provides robust error recovery mechanisms
+
+**Next Steps**:
+
+1. Consider implementing token blacklisting for additional security
+2. Add analytics for authentication failures
+3. Implement rate limiting for token refresh
+4. Add offline detection and handling
+
+**Challenges & Solutions**:
+
+- **Challenge**: Managing multiple tokens securely
+
+  - **Solution**: Implemented separate storage and validation for access/refresh tokens
+
+- **Challenge**: Timing token refresh correctly
+
+  - **Solution**: Set refresh interval to 45 minutes to prevent token expiration
+
+- **Challenge**: Handling network failures
+  - **Solution**: Added comprehensive error handling and automatic logout on critical failures
+
+**PRD Alignment**:
+
+- ✅ Secure authentication flow
+- ✅ Clear user feedback
+- ✅ Robust error handling
+- ✅ Smooth session management
+
+### 2024-03-04: Workout Data Persistence Implementation
+
+**What Happened**:
+
+1. **Backend Implementation**:
+
+   - Created WorkoutSession model with proper relationships
+   - Implemented CRUD operations for workout sessions
+   - Added automatic volume calculation
+   - Implemented date-based filtering for workout history
+
+2. **Frontend Integration**:
+   - Updated ExerciseDetail component to use real API endpoints
+   - Added error handling and loading states
+   - Implemented workout deletion with confirmation
+   - Enhanced workout history display with proper formatting
+
+**Technical Details**:
+
+1. **Workout Session Model**:
+
+   ```typescript
+   interface WorkoutSetData {
+     weight: number;
+     reps: number;
+     unit: "kg" | "lb";
+   }
+
+   class WorkoutSession extends Model {
+     public calculateTotalVolume(): number {
+       return this.sets.reduce((total, set) => {
+         const weight = set.unit === "lb" ? set.weight * 0.453592 : set.weight;
+         return total + weight * set.reps;
+       }, 0);
+     }
+   }
+   ```
+
+2. **API Endpoints**:
+
+   - POST `/api/workouts` - Create workout session
+   - GET `/api/workouts/exercise/:exerciseId` - Get workout history
+   - PUT `/api/workouts/:id` - Update workout session
+   - DELETE `/api/workouts/:id` - Delete workout session
+
+3. **Data Validation**:
+
+   - Exercise ownership verification
+   - Proper date handling
+   - Unit conversion (lb to kg) for consistent storage
+   - Automatic volume calculation
+
+4. **Frontend Features**:
+   - Real-time data updates
+   - Optimistic UI updates
+   - Error handling with toast notifications
+   - Loading states for better UX
+
+**Why It Matters**:
+
+- Enables persistent workout tracking
+- Provides accurate volume calculations
+- Supports data analysis and progress tracking
+- Maintains data integrity and security
+
+**Next Steps**:
+
+1. Add batch operations for multiple sets
+2. Implement workout templates
+3. Add export functionality
+4. Implement workout statistics and analytics
+
+**Challenges & Solutions**:
+
+- **Challenge**: Consistent volume calculation across units
+
+  - **Solution**: Standardized all calculations to kg with automatic conversion
+
+- **Challenge**: Real-time data updates
+
+  - **Solution**: Implemented proper state management and automatic refetching
+
+- **Challenge**: Data integrity
+  - **Solution**: Added server-side validation and proper error handling
+
+**PRD Alignment**:
+
+- ✅ Persistent workout tracking
+- ✅ Accurate volume calculations
+- ✅ Secure data storage
+- ✅ Clean user interface
+
+### 2024-03-04: Export Functionality Implementation
+
+**What Happened**:
+
+1. **Backend Implementation**:
+
+   - Created export controller with CSV and PDF generation
+   - Implemented secure, authenticated export endpoints
+   - Added support for both full workout history and per-exercise exports
+   - Integrated json2csv and PDFKit libraries for file generation
+
+2. **Frontend Integration**:
+   - Added export buttons to ExerciseDetail page
+   - Implemented client-side file download handling
+   - Added error handling and user feedback
+   - Maintained consistent UI with brutalist design principles
+
+**Technical Details**:
+
+1. **Export Formats**:
+
+   ```typescript
+   // CSV Format
+   {
+     exerciseName: string;
+     date: string;
+     setNumber: number;
+     weight: number;
+     reps: number;
+     unit: "kg" | "lb";
+     totalVolume: number;
+   }
+
+   // PDF Structure
+   - Title: Workout History
+   - Per Exercise:
+     - Exercise Name
+     - Date
+     - Total Volume
+     - Sets Table (Set #, Weight, Reps)
+   ```
+
+2. **API Endpoints**:
+
+   - GET `/api/export/csv?exerciseId=:id` - Export as CSV
+   - GET `/api/export/pdf?exerciseId=:id` - Export as PDF
+
+3. **Security Measures**:
+   - Protected routes with JWT authentication
+   - User data isolation
+   - Proper error handling and validation
+
+**Why It Matters**:
+
+- Enables data portability and backup options
+- Supports data analysis in external tools
+- Provides professional-looking workout reports
+- Enhances user trust with data ownership
+
+**Next Steps**:
+
+1. Add batch export options for multiple exercises
+2. Implement custom date range filtering for exports
+3. Add more export formats (e.g., JSON)
+4. Consider adding workout templates based on exported data
+
+**Challenges & Solutions**:
+
+- **Challenge**: Consistent PDF formatting
+
+  - **Solution**: Used PDFKit's advanced layout features for tables and spacing
+
+- **Challenge**: Large dataset handling
+
+  - **Solution**: Implemented proper streaming for both CSV and PDF generation
+
+- **Challenge**: Cross-browser download handling
+  - **Solution**: Used Blob API and temporary anchor elements for reliable downloads
+
+**PRD Alignment**:
+
+- ✅ CSV and PDF export formats
+- ✅ Secure data handling
+- ✅ User-friendly export process
+- ✅ Consistent with brutalist design
+
+### 2024-03-04: Frontend UX Improvements
+
+**What Happened**:
+
+1. **Authentication Flow Enhancement**:
+
+   - Fixed Google OAuth callback handling
+   - Updated token handling from URL parameters
+   - Improved error handling and user feedback during authentication
+
+2. **User Interface Improvements**:
+   - Created reusable `ConfirmDialog` component for action confirmations
+   - Added logout confirmation to prevent accidental logouts
+   - Implemented back navigation in Settings page
+   - Enhanced overall navigation flow
+
+**Technical Details**:
+
+1. **ConfirmDialog Component**:
+
+   ```typescript
+   interface ConfirmDialogProps {
+     isOpen: boolean;
+     title: string;
+     message: string;
+     onConfirm: () => void;
+     onCancel: () => void;
+   }
+   ```
+
+   - Modal overlay with backdrop click handling
+   - Consistent brutalist design styling
+   - Reusable across the application
+   - Proper keyboard and accessibility support
+
+2. **Navigation Enhancements**:
+
+   - Utilized `useNavigate(-1)` for history-based navigation
+   - Added visual feedback for interactive elements
+   - Maintained consistent styling with the app's design system
+
+3. **State Management**:
+   - Local state for dialog visibility
+   - Proper cleanup of event listeners
+   - Coordinated state between components (menu and dialog)
+
+**Why It Matters**:
+
+- Improves user confidence with action confirmations
+- Prevents accidental data loss or unwanted actions
+- Enhances navigation flow and user orientation
+- Maintains consistent design language
+- Sets up reusable patterns for future confirmations
+
+**Next Steps**:
+
+1. Consider adding confirmation dialogs for:
+   - Deleting exercises
+   - Deleting workout sessions
+   - Discarding unsaved changes
+2. Implement keyboard shortcuts for common actions
+3. Add transition animations for smoother UX
+4. Consider adding breadcrumb navigation for deeper pages
+
+**Challenges & Solutions**:
+
+- **Challenge**: Maintaining consistent design across modals
+
+  - **Solution**: Created a reusable component with brutalist styling
+
+- **Challenge**: Handling outside clicks for modal
+
+  - **Solution**: Implemented ref-based click detection with proper cleanup
+
+- **Challenge**: Navigation history management
+  - **Solution**: Utilized React Router's history API for flexible navigation
+
+**PRD Alignment**:
+
+- ✅ Brutalist design principles maintained
+- ✅ Enhanced user safety with confirmations
+- ✅ Improved navigation patterns
+- ✅ Consistent styling across components
+- ✅ Proper error handling and user feedback
+
+### 2024-03-04: Workout Management UX Improvements
+
+**What Happened**:
+
+1. **Enhanced Workout Management**:
+
+   - Added edit functionality for existing workouts
+   - Implemented consistent confirmation dialogs for:
+     - Workout deletion
+     - Canceling workout entry
+     - Canceling workout edits
+   - Updated WorkoutSet component to support editing mode
+
+2. **Technical Improvements**:
+   - Replaced browser's native confirm with custom ConfirmDialog
+   - Added proper state management for edit/delete operations
+   - Enhanced error handling and user feedback
+   - Maintained consistent UI/UX patterns
+
+**Technical Details**:
+
+1. **Confirmation Dialogs**:
+
+   ```typescript
+   <ConfirmDialog
+     isOpen={boolean}
+     title={string}
+     message={string}
+     onConfirm={() => void}
+     onCancel={() => void}
+   />
+   ```
+
+2. **Edit Mode Support**:
+
+   - Added `initialDate` and `initialSets` props to WorkoutSet
+   - Implemented update API endpoint integration
+   - Added proper state cleanup after operations
+
+3. **UX Patterns**:
+   - Consistent dialog styling
+   - Clear action buttons
+   - Informative messages
+   - Smooth transitions
+
+**Why It Matters**:
+
+- Prevents accidental data loss
+- Provides better user feedback
+- Maintains consistent UX patterns
+- Improves data management capabilities
+- Enhances overall app professionalism
+
+**Next Steps**:
+
+1. Consider adding:
+
+   - Batch operations for multiple workouts
+   - Workout templates
+   - Undo functionality
+   - Keyboard shortcuts
+
+2. Improve UX:
+   - Add loading states during operations
+   - Implement optimistic updates
+   - Add success notifications
+   - Consider animation transitions
+
+**Challenges & Solutions**:
+
+- **Challenge**: Managing multiple modal states
+
+  - **Solution**: Implemented clear state management patterns
+
+- **Challenge**: Consistent UX across operations
+
+  - **Solution**: Created reusable confirmation dialog component
+
+- **Challenge**: Edit mode complexity
+  - **Solution**: Enhanced WorkoutSet component with proper prop handling
+
+**PRD Alignment**:
+
+- ✅ Enhanced data management
+- ✅ Improved user safety
+- ✅ Consistent UX patterns
+- ✅ Professional interface
+- ✅ Clear user feedback
+
+### 2024-03-04: User Preferences Implementation
+
+**What Happened**:
+
+1. **Preferences Management**:
+
+   - Created PreferencesContext for global preferences state
+   - Implemented persistent storage using localStorage
+   - Added support for unit preference (kg/lb)
+   - Implemented dark mode theme switching with system theme detection
+
+2. **Integration**:
+   - Updated Settings component to use PreferencesContext
+   - Applied unit preferences to workout tracking
+   - Implemented automatic theme switching
+   - Added system theme detection for initial state
+
+**Technical Details**:
+
+1. **PreferencesContext Structure**:
+
+   ```typescript
+   interface UserPreferences {
+     preferredUnit: "kg" | "lb";
+     darkMode: boolean;
+   }
+
+   interface PreferencesContextType {
+     preferences: UserPreferences;
+     updatePreferences: (newPreferences: Partial<UserPreferences>) => void;
+   }
+   ```
+
+2. **Theme Management**:
+
+   - Uses Tailwind's dark mode
+   - Automatically detects system preference
+   - Persists user choice across sessions
+   - Applies changes in real-time
+
+3. **Unit System**:
+   - Consistent unit display across components
+   - Automatic unit conversion in calculations
+   - Persisted preference for new workouts
+   - Applied to charts and workout history
+
+**Why It Matters**:
+
+- Improves user experience with persistent settings
+- Provides consistent unit display across the app
+- Supports accessibility with dark mode
+- Maintains user preferences across sessions
+- Follows system preferences by default
+
+**Next Steps**:
+
+1. Theme Improvements:
+
+   - Review system theme override behavior - currently system theme takes precedence over user preference
+   - Consider adding option to "Always use system theme" vs. "Use custom preference"
+   - Add visual indicator when system theme is overriding user preference
+
+2. Unit System Enhancements:
+
+   - Implement proper unit conversion for historical workout data display
+   - Add unit conversion for total volume display to match selected preference
+   - Consider storing both kg/lb values at time of entry for accurate historical records
+   - Add warning when changing units about historical data display
+   - Consider adding unit conversion utilities for consistent calculations
+
+3. Additional Features:
+   - Date format preferences
+   - Time zone settings
+   - Default workout templates
+   - Chart display options
+
+**Challenges & Solutions**:
+
+- **Challenge**: System theme override
+
+  - **Current Behavior**: System theme takes precedence over user preference
+  - **Potential Solution**: Add explicit control over theme source (system vs. user preference)
+
+- **Challenge**: Unit conversion consistency
+
+  - **Current Issue**: Historical workout data and volume calculations don't update with unit preference
+  - **Potential Solution**: Implement real-time conversion for display while maintaining original units in storage
+
+- **Challenge**: Historical data integrity
+  - **Current Issue**: Changing units affects how historical data is interpreted
+  - **Potential Solution**: Store both kg/lb values at entry time for accurate historical records
+
+**PRD Alignment**:
+
+- ✅ User preference persistence
+- ✅ Dark mode support
+- ✅ Unit system flexibility
+- ⚠️ Need to improve unit conversion consistency
+- ⚠️ Need to clarify theme override behavior
+
 ---
 
 ## How to Use This Document

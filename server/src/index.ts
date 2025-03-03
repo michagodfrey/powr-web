@@ -5,6 +5,8 @@ import passport from "passport";
 import { initDatabase } from "./config/database";
 import { errorHandler } from "./middleware/errorHandler";
 import authRoutes from "./routes/authRoutes";
+import exerciseRoutes from "./routes/exerciseRoutes";
+import workoutRoutes from "./routes/workoutRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -30,8 +32,8 @@ app.use(passport.initialize());
 
 // Routes
 app.use("/api/auth", authRoutes);
-// app.use('/api/exercises', exerciseRoutes);
-// app.use('/api/workouts', workoutRoutes);
+app.use("/api/exercises", exerciseRoutes);
+app.use("/api/workouts", workoutRoutes);
 
 // Error handling middleware must be after all routes
 app.use(

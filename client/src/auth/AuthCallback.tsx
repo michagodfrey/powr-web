@@ -1,70 +1,63 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
-import ErrorToast from "../components/ErrorToast";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const { fetchUser } = useAuth();
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { setUser } = useAuth();
 
   useEffect(() => {
     const handleCallback = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const token = params.get("token");
+      try {
+        // Get token from URL search params instead of hash
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get("token");
+        const refreshToken = params.get("refreshToken");
+        const error = params.get("error");
 
-      if (token) {
-        try {
-          // Store the token
-          localStorage.setItem("token", token);
-
-          // Fetch user data
-          await fetchUser(token);
-
-          // Redirect to dashboard after successful authentication
-          navigate("/", { replace: true });
-        } catch (error) {
-          console.error("Authentication error:", error);
-          localStorage.removeItem("token");
-          setError("Failed to authenticate. Please try again.");
-          setTimeout(() => navigate("/login", { replace: true }), 5000);
+        if (error) {
+          throw new Error(decodeURIComponent(error));
         }
-      } else {
-        // Handle error case
-        console.error("No token received");
-        setError("No authentication token received. Please try again.");
-        setTimeout(() => navigate("/login", { replace: true }), 5000);
+
+        if (!token || !refreshToken) {
+          throw new Error("No tokens received");
+        }
+
+        // Store tokens
+        localStorage.setItem("token", token);
+        localStorage.setItem("refreshToken", refreshToken);
+
+        // Fetch user data
+        const response = await fetch("http://localhost:4000/api/auth/me", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch user data");
+        }
+
+        const { data } = await response.json();
+
+        // Store user data
+        localStorage.setItem("user", JSON.stringify(data.user));
+        setUser(data.user);
+
+        // Redirect to dashboard
+        navigate("/");
+      } catch (error) {
+        console.error("Auth callback error:", error);
+        navigate("/login");
       }
-      setIsLoading(false);
     };
 
     handleCallback();
-  }, [navigate, fetchUser]);
+  }, [navigate, setUser]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-light-bg dark:bg-dark-bg">
-      {isLoading ? (
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300">Authenticating...</p>
-        </div>
-      ) : error ? (
-        <div className="text-center">
-          <p className="text-red-500 mb-4">Authentication failed</p>
-          <p className="text-gray-600 dark:text-gray-300">
-            Redirecting to login page...
-          </p>
-        </div>
-      ) : null}
-
-      {error && (
-        <ErrorToast
-          message={error}
-          onClose={() => setError(null)}
-          duration={5000}
-        />
-      )}
+    <div className="flex items-center justify-center min-h-screen bg-light-bg dark:bg-dark-bg">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
     </div>
   );
 };

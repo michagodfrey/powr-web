@@ -15,51 +15,27 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: () => Promise<void>;
+  setUser: (user: User | null) => void;
   logout: () => void;
-  fetchUser: (token: string) => Promise<void>;
+  login: () => Promise<void>;
+  isAuthenticated: boolean;
+  error: string | null;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check for token in localStorage
-    const token = localStorage.getItem("token");
-    if (token) {
-      fetchUser(token);
-    } else {
-      setIsLoading(false);
+    // Check if user data exists in localStorage
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
     }
   }, []);
-
-  const fetchUser = async (token: string) => {
-    try {
-      const response = await fetch("http://localhost:4000/api/auth/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const { data } = await response.json();
-        setUser(data.user);
-      } else {
-        // If token is invalid, clear it
-        localStorage.removeItem("token");
-      }
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      localStorage.removeItem("token");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const login = async () => {
     try {
@@ -67,24 +43,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       window.location.href = "http://localhost:4000/api/auth/google";
     } catch (error) {
       console.error("Login redirect error:", error);
+      setError(
+        "Failed to initiate login. Please check your internet connection and try again."
+      );
       throw error;
     }
   };
 
   const logout = () => {
+    // Clear user data and tokens
+    localStorage.removeItem("user");
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     setUser(null);
+  };
+
+  const clearError = () => {
+    setError(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
-        isLoading,
-        login,
+        setUser,
         logout,
-        fetchUser,
+        login,
+        isAuthenticated: !!user,
+        error,
+        clearError,
       }}
     >
       {children}

@@ -1,25 +1,44 @@
-import { useState } from "react";
-import { UserPreferences } from "../types";
+import { useNavigate } from "react-router-dom";
+import { usePreferences } from "../contexts/PreferencesContext";
 
 const Settings = () => {
-  const [preferences, setPreferences] = useState<UserPreferences>({
-    preferredUnit: "kg",
-    darkMode: false,
-  });
+  const navigate = useNavigate();
+  const { preferences, updatePreferences } = usePreferences();
 
   const handleUnitChange = (unit: "kg" | "lb") => {
-    setPreferences((prev) => ({ ...prev, preferredUnit: unit }));
+    updatePreferences({ preferredUnit: unit });
   };
 
   const handleThemeChange = (isDark: boolean) => {
-    setPreferences((prev) => ({ ...prev, darkMode: isDark }));
+    updatePreferences({ darkMode: isDark });
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-secondary dark:text-white mb-8">
-        Settings
-      </h1>
+      <div className="flex items-center mb-8">
+        <button
+          onClick={() => navigate(-1)}
+          className="mr-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+          aria-label="Go back"
+        >
+          <svg
+            className="w-6 h-6 text-secondary dark:text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+        </button>
+        <h1 className="text-3xl font-bold text-secondary dark:text-white">
+          Settings
+        </h1>
+      </div>
 
       <div className="card max-w-2xl mx-auto">
         <div className="mb-6">

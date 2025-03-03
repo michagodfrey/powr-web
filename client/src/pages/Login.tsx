@@ -1,11 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import ErrorToast from "../components/ErrorToast";
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, isAuthenticated, error: authError, clearError } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+      clearError();
+    }
+  }, [authError, clearError]);
 
   const handleLogin = async () => {
     try {
@@ -14,7 +29,11 @@ const Login = () => {
       await login();
     } catch (error) {
       console.error("Login error:", error);
-      setError("Failed to initiate login. Please try again.");
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to initiate login. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -39,6 +58,7 @@ const Login = () => {
             className={`w-full flex items-center justify-center px-8 py-4 border-4 border-black dark:border-white bg-white hover:bg-gray-50 dark:bg-secondary dark:hover:bg-gray-700 text-secondary dark:text-white font-bold text-lg transition-colors duration-200 ${
               isLoading ? "opacity-50 cursor-not-allowed" : ""
             }`}
+            aria-label="Sign in with Google"
           >
             {isLoading ? (
               <div className="flex items-center">
@@ -49,8 +69,9 @@ const Login = () => {
               <>
                 <img
                   src="https://www.google.com/favicon.ico"
-                  alt="Google"
+                  alt=""
                   className="w-6 h-6 mr-4"
+                  aria-hidden="true"
                 />
                 Sign in with Google
               </>

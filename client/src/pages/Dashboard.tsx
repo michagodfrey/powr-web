@@ -1,30 +1,86 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Exercise } from "../types";
 import ExerciseForm from "../components/ExerciseForm";
 import { useNavigate } from "react-router-dom";
+import ErrorToast from "../components/ErrorToast";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [showExerciseForm, setShowExerciseForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCreateExercise = (
+  const fetchExercises = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch("http://localhost:4000/api/exercises", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch exercises");
+      }
+
+      const data = await response.json();
+      setExercises(data.data.exercises);
+    } catch (error) {
+      console.error("Error fetching exercises:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to load exercises"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchExercises();
+  }, []);
+
+  const handleCreateExercise = async (
     exerciseData: Omit<Exercise, "id" | "workoutHistory">
   ) => {
-    // In a real app, this would be an API call
-    const newExercise: Exercise = {
-      id: Date.now(), // Temporary ID generation
-      workoutHistory: [],
-      ...exerciseData,
-    };
+    try {
+      setError(null);
+      const response = await fetch("http://localhost:4000/api/exercises", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(exerciseData),
+      });
 
-    setExercises((prev) => [...prev, newExercise]);
-    setShowExerciseForm(false);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create exercise");
+      }
+
+      await fetchExercises();
+      setShowExerciseForm(false);
+    } catch (error) {
+      console.error("Error creating exercise:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to create exercise"
+      );
+    }
   };
 
   const handleExerciseClick = (exerciseId: number) => {
     navigate(`/exercise/${exerciseId}`);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -67,7 +123,7 @@ const Dashboard = () => {
                 </p>
               )}
               <div className="text-sm text-gray-500 dark:text-gray-400">
-                {exercise.workoutHistory.length} workout sessions
+                {exercise.workoutHistory?.length || 0} workout sessions
               </div>
             </div>
           ))
@@ -78,6 +134,14 @@ const Dashboard = () => {
         <ExerciseForm
           onSubmit={handleCreateExercise}
           onCancel={() => setShowExerciseForm(false)}
+        />
+      )}
+
+      {error && (
+        <ErrorToast
+          message={error}
+          onClose={() => setError(null)}
+          duration={5000}
         />
       )}
     </div>
