@@ -7,6 +7,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import authRoutes from "./routes/authRoutes";
 import exerciseRoutes from "./routes/exerciseRoutes";
 import workoutRoutes from "./routes/workoutRoutes";
+import exportRoutes from "./routes/exportRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -34,6 +35,7 @@ app.use(passport.initialize());
 app.use("/api/auth", authRoutes);
 app.use("/api/exercises", exerciseRoutes);
 app.use("/api/workouts", workoutRoutes);
+app.use("/api/export", exportRoutes);
 
 // Error handling middleware must be after all routes
 app.use(

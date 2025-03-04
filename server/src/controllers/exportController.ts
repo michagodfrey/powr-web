@@ -22,7 +22,7 @@ const formatWorkoutData = async (userId: number, exerciseId?: number) => {
   });
 
   return workouts.map((workout) => ({
-    exerciseName: workout.exercise.name,
+    exerciseName: workout.exercise?.name || "Unknown Exercise",
     date: workout.date.toISOString().split("T")[0],
     sets: workout.sets,
     totalVolume: workout.totalVolume,

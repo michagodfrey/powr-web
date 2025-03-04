@@ -21,6 +21,11 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
+  // If headers are already sent (e.g., for streaming responses like PDF), just end the response
+  if (res.headersSent) {
+    return next(err);
+  }
+
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
       status: err.status,

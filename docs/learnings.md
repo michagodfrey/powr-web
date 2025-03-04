@@ -472,12 +472,14 @@ This document will capture key observations, challenges, and insights as the pro
    - Configure OAuth consent screen
    - Generate client ID and secret
    - Add authorized redirect URIs:
-     - Development: http://localhost:4000/api/auth/google/callback
-     - Production: https://[your-domain]/api/auth/google/callback
+     - Development: [http://localhost:4000/api/auth/google/callback](http://localhost:4000/api/auth/google/callback)
+     - Production: [https://[your-domain]/api/auth/google/callback](https://[your-domain]/api/auth/google/callback)
 
 3. Environment Configuration:
+
    - Update `.env` with Google OAuth credentials:
-     ```
+
+     ```bash
      GOOGLE_CLIENT_ID=your_client_id_here
      GOOGLE_CLIENT_SECRET=your_client_secret_here
      ```
@@ -1131,6 +1133,171 @@ This document will capture key observations, challenges, and insights as the pro
 - ✅ Unit system flexibility
 - ⚠️ Need to improve unit conversion consistency
 - ⚠️ Need to clarify theme override behavior
+
+### 2024-03-05: Export Functionality Fixes & TypeScript Improvements
+
+**What Happened**:
+
+1. **Export Route Integration**:
+
+   - Fixed missing export routes in server's main app configuration
+   - Added proper route mounting at `/api/export`
+   - Resolved TypeScript compilation issues
+
+2. **Type Safety Improvements**:
+
+   - Enhanced WorkoutSession model with proper Exercise association types
+   - Fixed JWT token expiration type issues
+   - Improved error handling with optional chaining for exercise names
+
+3. **Build Process Clarification**:
+   - Identified proper TypeScript compilation workflow
+   - Clarified relationship between source `.ts` files and compiled `.js` files
+   - Established proper build-run sequence for server
+
+**Technical Details**:
+
+1. **Export Route Configuration**:
+
+   ```typescript
+   // server/src/index.ts
+   import exportRoutes from "./routes/exportRoutes";
+   // ...
+   app.use("/api/export", exportRoutes);
+   ```
+
+2. **Type Safety Solutions**:
+   - Added `exercise?: Exercise` to WorkoutSession interface
+   - Implemented null-safe access with `workout.exercise?.name || "Unknown Exercise"`
+   - Fixed JWT expiration typing with explicit string literal
+
+**Why It Matters**:
+
+- Ensures proper functioning of data export features
+- Maintains type safety throughout the application
+- Provides clear build process documentation
+- Improves code maintainability and reliability
+
+**Challenges & Solutions**:
+
+1. **TypeScript Compilation**:
+
+   - **Challenge**: JWT token expiration type conflicts
+   - **Solution**: Used explicit string literal type for expiration
+
+2. **Model Associations**:
+
+   - **Challenge**: Exercise association type safety in WorkoutSession
+   - **Solution**: Added proper optional Exercise type to model interface
+
+3. **Route Integration**:
+   - **Challenge**: Export routes not being recognized
+   - **Solution**: Properly mounted routes in main app configuration
+
+**Next Steps**:
+
+1. Consider adding:
+
+   - Export format customization options
+   - Batch export functionality
+   - Export progress indicators
+   - Custom date range selection for exports
+
+2. Potential Improvements:
+   - Add export format validation
+   - Implement export rate limiting
+   - Add export job queuing for large datasets
+   - Consider streaming for large PDF/CSV exports
+
+**PRD Alignment**:
+
+- ✅ Secure data export functionality
+- ✅ Multiple export format support (CSV, PDF)
+- ✅ Type-safe implementation
+- ✅ Proper error handling
+- ✅ Consistent with brutalist design principles
+
+### 2024-03-05: Authentication Test Suite Implementation
+
+**What Happened**:
+
+1. **Test Environment Setup**:
+
+   - Created `.env.test` with separate test database configuration
+   - Set up test database `powr_test` for isolated testing
+   - Configured test-specific environment variables
+
+2. **Authentication Tests Implementation**:
+   - Created comprehensive test suite for authentication endpoints
+   - Implemented helper functions for test user creation and token generation
+   - Added tests for Google OAuth redirect and protected routes
+   - Verified token validation and user data retrieval
+
+**Technical Details**:
+
+1. **Test Cases**:
+
+   ```typescript
+   // Google OAuth Test
+   - Verifies redirect to Google authentication
+   - Checks correct redirect status (302)
+
+   // Protected Route Tests
+   - Validates 401 response without token
+   - Confirms successful access with valid token
+   - Verifies rejection of invalid tokens
+   ```
+
+2. **Test Environment**:
+
+   ```env
+   DATABASE_URL=postgresql://michael:password@localhost:5432/powr_test
+   JWT_SECRET=test-secret
+   GOOGLE_CLIENT_ID=test-client-id
+   GOOGLE_CLIENT_SECRET=test-client-secret
+   PORT=4001
+   ```
+
+**Why It Matters**:
+
+- Ensures authentication system works as expected
+- Provides automated verification of security measures
+- Prevents regression in authentication functionality
+- Establishes testing patterns for future features
+- Maintains separation between test and production environments
+
+**Next Steps**:
+
+1. Add more test cases:
+   - Token expiration handling
+   - Refresh token functionality
+   - Edge cases and error scenarios
+2. Implement integration tests for:
+   - Exercise management
+   - Workout tracking
+   - Data export functionality
+3. Add test coverage reporting
+4. Set up continuous integration testing
+
+**Challenges & Solutions**:
+
+- **Challenge**: Test database isolation
+
+  - **Solution**: Created separate test database with unique configuration
+
+- **Challenge**: Google OAuth testing
+
+  - **Solution**: Implemented mock OAuth flow for testing
+
+- **Challenge**: Token generation for tests
+  - **Solution**: Created helper functions for consistent test data
+
+**PRD Alignment**:
+
+- ✅ Secure authentication implementation
+- ✅ Proper test coverage
+- ✅ Isolated test environment
+- ✅ Maintainable test structure
 
 ---
 

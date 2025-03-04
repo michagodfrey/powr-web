@@ -18,6 +18,7 @@ interface WorkoutSessionAttributes {
   totalVolume: number;
   createdAt?: Date;
   updatedAt?: Date;
+  exercise?: Exercise;
 }
 
 interface WorkoutSessionCreationAttributes
@@ -35,6 +36,7 @@ class WorkoutSession
   public totalVolume!: number;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
+  public exercise?: Exercise;
 
   // Calculate total volume for the session
   public calculateTotalVolume(): number {

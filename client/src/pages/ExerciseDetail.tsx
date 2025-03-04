@@ -201,10 +201,19 @@ const ExerciseDetail = () => {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.message || `Failed to export ${format.toUpperCase()}`
-        );
+        // For error responses, try to parse as JSON first
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || `Failed to export ${format.toUpperCase()}`
+          );
+        } else {
+          // If not JSON, use the status text
+          throw new Error(
+            `Failed to export ${format.toUpperCase()}: ${response.statusText}`
+          );
+        }
       }
 
       // Create a blob from the response

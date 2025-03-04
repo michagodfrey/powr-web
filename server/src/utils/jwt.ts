@@ -1,4 +1,5 @@
 import jwt, { SignOptions } from "jsonwebtoken";
+import type { StringValue } from "ms";
 import User from "../models/User";
 
 export const generateToken = (user: User): string => {
@@ -7,7 +8,7 @@ export const generateToken = (user: User): string => {
   }
 
   const options: SignOptions = {
-    expiresIn: process.env.JWT_EXPIRES_IN || "24h",
+    expiresIn: "24h", // Use a fixed value for now
   };
 
   return jwt.sign({ id: user.id }, process.env.JWT_SECRET, options);
