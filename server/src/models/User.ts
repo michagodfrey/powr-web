@@ -1,5 +1,5 @@
 import { Model, DataTypes } from "sequelize";
-import sequelize from "../config/database";
+import { sequelize } from "./index";
 
 interface UserAttributes {
   id: number;
@@ -7,6 +7,7 @@ interface UserAttributes {
   email: string;
   name: string;
   picture?: string;
+  preferredUnit: "kg" | "lb";
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -22,6 +23,7 @@ class User
   public email!: string;
   public name!: string;
   public picture!: string;
+  public preferredUnit!: "kg" | "lb";
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -37,6 +39,7 @@ User.init(
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
+      field: "google_id",
     },
     email: {
       type: DataTypes.STRING(255),
@@ -54,20 +57,32 @@ User.init(
       type: DataTypes.STRING(1024),
       allowNull: true,
     },
+    preferredUnit: {
+      type: DataTypes.STRING(2),
+      allowNull: false,
+      defaultValue: "kg",
+      field: "preferred_unit",
+      validate: {
+        isIn: [["kg", "lb"]],
+      },
+    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: "created_at",
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: "updated_at",
     },
   },
   {
     sequelize,
     tableName: "users",
+    underscored: true,
   }
 );
 

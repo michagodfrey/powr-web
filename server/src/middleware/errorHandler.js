@@ -11,60 +11,51 @@ class AppError extends Error {
     }
 }
 exports.AppError = AppError;
+const handleSequelizeValidationError = (err) => {
+    const message = Object.values(err.errors)
+        .map((item) => item.message)
+        .join(". ");
+    return new AppError(message, 400);
+};
+const handleSequelizeUniqueConstraintError = (err) => {
+    const message = `Duplicate field value: ${err.errors[0].value}. Please use another value.`;
+    return new AppError(message, 400);
+};
 const errorHandler = (err, req, res, next) => {
-    // If headers are already sent (e.g., for streaming responses like PDF), just end the response
-    if (res.headersSent) {
-        return next(err);
-    }
-    if (err instanceof AppError) {
-        return res.status(err.statusCode).json({
-            status: err.status,
-            message: err.message,
-        });
-    }
-    // Handle Sequelize validation errors
-    if (err.name === "SequelizeValidationError") {
-        return res.status(400).json({
-            status: "fail",
-            message: "Validation error",
-            errors: err.errors.map((e) => ({
-                field: e.path,
-                message: e.message,
-            })),
-        });
-    }
-    // Handle unique constraint errors
-    if (err.name === "SequelizeUniqueConstraintError") {
-        return res.status(400).json({
-            status: "fail",
-            message: "Duplicate entry",
-            errors: err.errors.map((e) => ({
-                field: e.path,
-                message: `${e.path} already exists`,
-            })),
-        });
-    }
-    // Handle JWT errors
-    if (err.name === "JsonWebTokenError") {
-        return res.status(401).json({
-            status: "fail",
-            message: "Invalid token. Please log in again.",
-        });
-    }
-    if (err.name === "TokenExpiredError") {
-        return res.status(401).json({
-            status: "fail",
-            message: "Your token has expired. Please log in again.",
-        });
-    }
-    // Log unhandled errors in development
+    err.statusCode = err.statusCode || 500;
+    err.status = err.status || "error";
+    let error = Object.assign({}, err);
+    error.message = err.message;
+    // Sequelize validation error
+    if (err.name === "SequelizeValidationError")
+        error = handleSequelizeValidationError(err);
+    // Sequelize unique constraint error
+    if (err.name === "SequelizeUniqueConstraintError")
+        error = handleSequelizeUniqueConstraintError(err);
     if (process.env.NODE_ENV === "development") {
-        console.error("ERROR 💥", err);
+        res.status(err.statusCode).json({
+            status: err.status,
+            error: err,
+            message: err.message,
+            stack: err.stack,
+        });
     }
-    // Generic error response for unhandled errors
-    return res.status(500).json({
-        status: "error",
-        message: "Something went wrong",
-    });
+    else {
+        // Operational, trusted error: send message to client
+        if (err.isOperational) {
+            res.status(err.statusCode).json({
+                status: err.status,
+                message: err.message,
+            });
+        }
+        else {
+            // Programming or other unknown error: don't leak error details
+            console.error("ERROR 💥", err);
+            res.status(500).json({
+                status: "error",
+                message: "Something went wrong!",
+            });
+        }
+    }
 };
 exports.errorHandler = errorHandler;

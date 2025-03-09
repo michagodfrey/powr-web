@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import ErrorToast from "../components/ErrorToast";
 
@@ -8,12 +8,24 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/");
     }
   }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    // Check for error in URL parameters
+    const params = new URLSearchParams(location.search);
+    const urlError = params.get("error");
+    if (urlError) {
+      setError(decodeURIComponent(urlError));
+      // Clear the error from URL
+      navigate("/login", { replace: true });
+    }
+  }, [location, navigate]);
 
   useEffect(() => {
     if (authError) {

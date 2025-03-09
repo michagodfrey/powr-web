@@ -57,6 +57,7 @@ WorkoutSession.init(
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      field: "user_id",
       references: {
         model: User,
         key: "id",
@@ -65,6 +66,7 @@ WorkoutSession.init(
     exerciseId: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      field: "exercise_id",
       references: {
         model: Exercise,
         key: "id",
@@ -82,16 +84,19 @@ WorkoutSession.init(
     totalVolume: {
       type: DataTypes.FLOAT,
       allowNull: false,
+      field: "total_volume",
       defaultValue: 0,
     },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
+      field: "created_at",
       defaultValue: DataTypes.NOW,
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
+      field: "updated_at",
       defaultValue: DataTypes.NOW,
     },
   },
@@ -100,7 +105,7 @@ WorkoutSession.init(
     tableName: "workout_sessions",
     indexes: [
       {
-        fields: ["userId", "exerciseId", "date"],
+        fields: ["user_id", "exercise_id", "date"],
         name: "workout_sessions_user_exercise_date_idx",
       },
     ],
@@ -113,14 +118,14 @@ WorkoutSession.init(
 );
 
 // Define associations
-WorkoutSession.belongsTo(User, { foreignKey: "userId", as: "user" });
+WorkoutSession.belongsTo(User, { foreignKey: "user_id", as: "user" });
 WorkoutSession.belongsTo(Exercise, {
-  foreignKey: "exerciseId",
+  foreignKey: "exercise_id",
   as: "exercise",
 });
-User.hasMany(WorkoutSession, { foreignKey: "userId", as: "workoutSessions" });
+User.hasMany(WorkoutSession, { foreignKey: "user_id", as: "workoutSessions" });
 Exercise.hasMany(WorkoutSession, {
-  foreignKey: "exerciseId",
+  foreignKey: "exercise_id",
   as: "workoutSessions",
 });
 

@@ -17,6 +17,7 @@ Exercise.init({
     userId: {
         type: sequelize_1.DataTypes.INTEGER,
         allowNull: false,
+        field: "user_id",
         references: {
             model: User_1.default,
             key: "id",
@@ -46,12 +47,12 @@ Exercise.init({
     indexes: [
         {
             unique: true,
-            fields: ["userId", "name"],
+            fields: ["user_id", "name"],
             name: "exercises_user_id_name_unique",
         },
     ],
 });
 // Define associations
-Exercise.belongsTo(User_1.default, { foreignKey: "userId", as: "user" });
-User_1.default.hasMany(Exercise, { foreignKey: "userId", as: "exercises" });
+Exercise.belongsTo(User_1.default, { foreignKey: "user_id", as: "user" });
+User_1.default.hasMany(Exercise, { foreignKey: "user_id", as: "exercises" });
 exports.default = Exercise;

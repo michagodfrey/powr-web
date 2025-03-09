@@ -9,26 +9,23 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCurrentUser = void 0;
+exports.logout = exports.getCurrentUser = void 0;
+const errorHandler_1 = require("../middleware/errorHandler");
 const getCurrentUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const user = req.user;
-        res.status(200).json({
-            status: "success",
-            data: {
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    picture: user.picture,
-                    createdAt: user.createdAt,
-                    updatedAt: user.updatedAt,
-                },
-            },
-        });
+        if (!req.isAuthenticated()) {
+            return next(new errorHandler_1.AppError("Not authenticated", 401));
+        }
+        res.json(req.user);
     }
     catch (error) {
         next(error);
     }
 });
 exports.getCurrentUser = getCurrentUser;
+const logout = (req, res) => {
+    req.logout(() => {
+        res.json({ status: "success" });
+    });
+};
+exports.logout = logout;

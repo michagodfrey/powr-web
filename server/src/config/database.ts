@@ -1,21 +1,26 @@
 import { Sequelize } from "sequelize";
 import dotenv from "dotenv";
 
+// Load environment variables
 dotenv.config();
 
-const sequelize = new Sequelize({
-  dialect: "postgres",
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT || "5432"),
-  database: process.env.DB_NAME,
-  username: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  logging: process.env.NODE_ENV === "development" ? console.log : false,
+const isDev = process.env.NODE_ENV === "development";
+
+const sequelize = new Sequelize(process.env.DATABASE_URL || "", {
+  logging: isDev ? console.log : false,
   pool: {
     max: 5,
     min: 0,
     acquire: 30000,
     idle: 10000,
+  },
+  define: {
+    // Use snake_case for database column names
+    underscored: true,
+    // Don't pluralize table names
+    freezeTableName: true,
+    // Use camelCase for model attributes
+    timestamps: true,
   },
 });
 
@@ -24,9 +29,9 @@ export const initDatabase = async () => {
     await sequelize.authenticate();
     console.log("Database connection has been established successfully.");
 
-    // Sync all models
-    await sequelize.sync({ alter: process.env.NODE_ENV === "development" });
-    console.log("Database models synchronized successfully.");
+    // Auto-sync enabled for development mode
+    await sequelize.sync({ alter: isDev });
+    console.log("Database connection ready.");
   } catch (error) {
     console.error("Unable to connect to the database:", error);
     throw error;

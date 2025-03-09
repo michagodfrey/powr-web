@@ -1223,98 +1223,603 @@ This document will capture key observations, challenges, and insights as the pro
 
 1. **Test Environment Setup**:
 
-   - Created `.env.test` with separate test database configuration
-   - Set up test database `powr_test` for isolated testing
-   - Configured test-specific environment variables
+   - Created comprehensive test suite for authentication
+   - Implemented token expiration and refresh token tests
+   - Added edge case handling for various token scenarios
+   - Set up proper test database configuration
 
-2. **Authentication Tests Implementation**:
-   - Created comprehensive test suite for authentication endpoints
-   - Implemented helper functions for test user creation and token generation
-   - Added tests for Google OAuth redirect and protected routes
-   - Verified token validation and user data retrieval
+2. **Test Coverage**:
+   - Token validation and expiration
+   - Refresh token functionality
+   - Edge cases (malformed tokens, missing headers)
+   - Authentication flow validation
 
 **Technical Details**:
 
-1. **Test Cases**:
+1. **Test Structure**:
 
    ```typescript
-   // Google OAuth Test
-   - Verifies redirect to Google authentication
-   - Checks correct redirect status (302)
-
-   // Protected Route Tests
-   - Validates 401 response without token
-   - Confirms successful access with valid token
-   - Verifies rejection of invalid tokens
+   - Token Validation Tests
+   - Token Refresh Tests
+   - Edge Case Tests
    ```
 
-2. **Test Environment**:
-
-   ```env
-   DATABASE_URL=postgresql://michael:password@localhost:5432/powr_test
-   JWT_SECRET=test-secret
-   GOOGLE_CLIENT_ID=test-client-id
-   GOOGLE_CLIENT_SECRET=test-client-secret
-   PORT=4001
-   ```
+2. **Environment Configuration**:
+   - Separate test database
+   - Automated table cleanup between tests
+   - Proper test isolation
 
 **Why It Matters**:
 
-- Ensures authentication system works as expected
-- Provides automated verification of security measures
-- Prevents regression in authentication functionality
-- Establishes testing patterns for future features
-- Maintains separation between test and production environments
+- Ensures authentication system reliability
+- Prevents regression in security features
+- Provides clear documentation of expected behavior
+- Establishes patterns for future test implementation
 
 **Next Steps**:
 
-1. Add more test cases:
-   - Token expiration handling
-   - Refresh token functionality
-   - Edge cases and error scenarios
-2. Implement integration tests for:
+1. Implement remaining test suites:
+
    - Exercise management
    - Workout tracking
    - Data export functionality
-3. Add test coverage reporting
-4. Set up continuous integration testing
 
-**Challenges & Solutions**:
+2. Add test coverage reporting:
 
-- **Challenge**: Test database isolation
+   - Set up Jest coverage configuration
+   - Establish minimum coverage thresholds
+   - Add coverage reports to CI/CD pipeline
 
-  - **Solution**: Created separate test database with unique configuration
-
-- **Challenge**: Google OAuth testing
-
-  - **Solution**: Implemented mock OAuth flow for testing
-
-- **Challenge**: Token generation for tests
-  - **Solution**: Created helper functions for consistent test data
+3. Set up continuous integration:
+   - Configure GitHub Actions
+   - Add automated test runs
+   - Implement deployment checks
 
 **PRD Alignment**:
 
 - ✅ Secure authentication implementation
 - ✅ Proper test coverage
-- ✅ Isolated test environment
 - ✅ Maintainable test structure
+- ✅ Quality assurance measures
 
----
+### 2024-03-05: Database Permission Resolution for Tests
 
-## How to Use This Document
+**What Happened**:
 
-1. **Add a New Entry**  
-   Whenever a milestone is reached or a significant change is made, create a new heading (e.g., `### [Date or Milestone]`) to detail:
+1. **Test Database Permission Issues**:
 
-   - What was changed or learned.
-   - Why this change or insight matters.
-   - Next steps or action items.
+   - Identified and resolved PostgreSQL permission errors in test environment
+   - Fixed schema ownership and sequence creation issues
+   - Created proper database setup script for test environment
 
-2. **Keep It Concise**  
-   Focus on bullet points and short explanations so the document remains easy to read and update.
+2. **Technical Implementation**:
+   - Created dedicated test database owned by test user
+   - Properly configured schema and sequence permissions
+   - Documented database setup process for development
 
-3. **Document Decisions**  
-   If a design or architectural choice is made, record the reasoning. This will help future contributors understand the project's evolution.
+**Technical Details**:
 
-4. **Reflect Often**  
-   Look back on previous entries to avoid repeating mistakes and to see how the project has progressed over time.
+1. **Database Setup Script**:
+
+   ```sql
+   -- Must be run as superuser (postgres)
+
+   -- 1. Create test user if not exists
+   DO $$
+   BEGIN
+     IF NOT EXISTS (SELECT FROM pg_user WHERE usename = 'michael') THEN
+       CREATE USER michael WITH PASSWORD 'your_password';
+     END IF;
+   END $$;
+
+   -- 2. Drop & recreate test database with proper ownership
+   DROP DATABASE IF EXISTS powr_test;
+   CREATE DATABASE powr_test WITH OWNER michael;
+
+   -- 3. Connect to test database
+   \c powr_test
+
+   -- 4. Drop & recreate public schema with proper ownership
+   DROP SCHEMA IF EXISTS public CASCADE;
+   CREATE SCHEMA public AUTHORIZATION michael;
+
+   -- 5. Grant all necessary permissions
+   GRANT ALL ON SCHEMA public TO michael;
+   ALTER DEFAULT PRIVILEGES FOR USER michael IN SCHEMA public
+   GRANT ALL ON TABLES TO michael;
+   ALTER DEFAULT PRIVILEGES FOR USER michael IN SCHEMA public
+   GRANT ALL ON SEQUENCES TO michael;
+   ```
+
+2. **Key Fixes**:
+   - Made test user the owner of test database
+   - Properly configured schema ownership
+   - Set up default privileges for future objects
+   - Ensured proper sequence creation permissions
+
+**Why It Matters**:
+
+- Ensures reliable test execution
+- Prevents permission-related test failures
+- Provides clear database setup documentation
+- Establishes proper development environment setup
+
+**Next Steps**:
+
+1. Add database setup documentation to README
+2. Consider automating database setup in development scripts
+3. Add CI/CD database configuration
+4. Document database backup/restore procedures
+
+**PRD Alignment**:
+
+- ✅ Proper test environment setup
+- ✅ Clear documentation
+- ✅ Development workflow improvement
+- ✅ Quality assurance measures
+
+### 2024-03-05: Test Suite Challenges & Database Integration
+
+**What Happened**:
+
+- Encountered and investigated persistent test failures in the integration test suite
+- Identified multiple issues with database setup and model configurations
+- Made progress on resolving column naming conventions and schema management
+
+**Technical Details**:
+
+1. **Database Configuration Challenges**:
+
+   - Schema recreation issues in test environment
+   - Column naming inconsistencies between TypeScript models and PostgreSQL
+   - Foreign key constraint violations during table creation/deletion
+
+2. **Model Configuration Updates**:
+
+   ```typescript
+   // Updated model configuration to use consistent naming
+   {
+     userId: {
+       type: DataTypes.INTEGER,
+       field: "user_id",  // Explicit snake_case for DB
+       // ... other config
+     }
+   }
+   ```
+
+3. **Test Setup Improvements**:
+   - Implemented ordered model synchronization based on dependencies
+   - Added explicit schema recreation steps
+   - Updated foreign key references to use snake_case
+
+**Why It Matters**:
+
+- Proper test setup is crucial for maintaining code quality
+- Consistent naming conventions prevent subtle bugs
+- Clear understanding of model dependencies ensures reliable database operations
+
+**Current Challenges**:
+
+1. Authentication test failures:
+   - Token validation issues
+   - Response format mismatches
+2. Database state management:
+   - Table recreation ordering
+   - Foreign key constraints
+3. Test environment setup:
+   - Schema management
+   - User privileges
+
+**Next Steps**:
+
+1. Review and update authentication middleware
+2. Refine test data setup and teardown processes
+3. Consider implementing transaction rollback for tests
+4. Document database naming conventions and test patterns
+
+**PRD Alignment**:
+
+- ⚠️ Need to ensure reliable test coverage
+- ⚠️ Authentication requirements need validation
+- ✅ Database schema matches requirements
+- ✅ Model relationships properly defined
+
+**Key Learnings**:
+
+1. Importance of consistent naming conventions across the stack
+2. Need for careful ordering in database operations
+3. Value of explicit field mapping in models
+4. Significance of proper test environment isolation
+
+### 2024-03-08: Testing Infrastructure Overhaul
+
+**What Happened**:
+
+- Established isolated test environment with separate database
+- Created automated test database setup and cleanup scripts
+- Removed test-specific code from main database configuration
+- Fixed issues with database timestamps and migrations
+- Streamlined authentication testing setup
+
+**Technical Details**:
+
+1. **Test Database Setup**:
+
+   ```typescript
+   // server/scripts/setup-test-db.ts
+   - Created dedicated test database (powr_test)
+   - Automated user creation and permissions
+   - Implemented clean database state for each test run
+   ```
+
+2. **Environment Configuration**:
+
+   - Separated test and development database configurations
+   - Created `.env.example` with comprehensive environment variables
+   - Removed hardcoded test configurations from database.ts
+
+3. **Test Infrastructure**:
+
+   ```bash
+   server/
+   ├── scripts/
+   │   └── setup-test-db.ts    # Test database initialization
+   ├── src/
+   │   └── test/
+   │       └── setup.ts        # Test environment configuration
+   ```
+
+**Why It Matters**:
+
+- Ensures test isolation and reliability
+- Prevents test data from affecting development database
+- Makes tests reproducible with clean state
+- Simplifies the testing process for new developers
+
+**Next Steps**:
+
+1. Implement authentication test suite:
+   - Google OAuth flow testing
+   - Session management tests
+   - Protected route tests
+2. Add integration tests for core features:
+   - Exercise creation and management
+   - Workout tracking
+   - Volume calculations
+3. Set up CI/CD pipeline with automated testing
+
+**Challenges & Solutions**:
+
+- **Challenge**: Test database contaminating development data
+  - **Solution**: Created separate test database with isolated configuration
+- **Challenge**: Complex test setup and teardown
+  - **Solution**: Automated database initialization and cleanup scripts
+- **Challenge**: Timestamp columns in existing tables
+  - **Solution**: Added migration support for adding columns with default values
+
+**PRD Alignment**:
+
+- ✅ Follows testing strategy outlined in PRD
+- ✅ Maintains data isolation between environments
+- ✅ Supports continuous integration goals
+- ✅ Enables thorough testing of authentication
+
+**Database Changes**:
+
+1. Added timestamp columns with proper defaults:
+
+   ```sql
+   ALTER TABLE exercises
+   ADD COLUMN created_at TIMESTAMP WITH TIME ZONE
+   DEFAULT CURRENT_TIMESTAMP NOT NULL;
+   ```
+
+2. Simplified database configuration:
+   - Removed test-specific schema recreation
+   - Implemented proper migrations for schema changes
+   - Added support for development/test environment detection
+
+**Testing Strategy Updates**:
+
+- Each test runs with a clean database state
+- Automated setup and teardown
+- Proper isolation between test cases
+- Support for parallel test execution
+- Clear separation of unit and integration tests
+
+### 2024-03-08: Database Schema and HMR Compatibility Fixes
+
+**What Happened**:
+
+1. **Database Schema Fixes**:
+
+   - Added missing timestamp columns to tables:
+     - `updated_at` to `exercises` table
+     - `created_at` and `updated_at` to `workout_sessions` table
+   - Added missing `preferred_unit` column to `users` table:
+     ```sql
+     ALTER TABLE users ADD COLUMN preferred_unit VARCHAR(2) NOT NULL DEFAULT 'kg' CHECK (preferred_unit IN ('kg', 'lb'));
+     ```
+   - Fixed column name mismatch between Sequelize model and database:
+     - Model used camelCase `preferredUnit`
+     - Database used snake_case `preferred_unit`
+     - Added explicit field mapping in User model
+
+2. **Frontend HMR Fixes**:
+   - Resolved Hot Module Replacement (HMR) compatibility issues in `AuthContext.tsx`
+   - Restructured exports to be compatible with React Fast Refresh:
+     - Moved `useAuth` hook definition before `AuthProvider`
+     - Used proper TypeScript typing for components
+     - Maintained consistent named exports
+
+**Technical Details**:
+
+1. **Database Changes**:
+
+   ```typescript
+   // User model field mapping
+   preferredUnit: {
+     type: DataTypes.STRING(2),
+     allowNull: false,
+     defaultValue: "kg",
+     field: "preferred_unit", // Explicit mapping to database column
+     validate: {
+       isIn: [["kg", "lb"]],
+     },
+   }
+   ```
+
+2. **AuthContext Changes**:
+   - Moved hook definition before provider
+   - Used proper React.FC typing
+   - Maintained consistent export pattern
+
+**Why It Matters**:
+
+- Ensures proper data persistence with timestamp tracking
+- Maintains consistent unit preferences per user
+- Improves development experience with working HMR
+- Prevents future column naming mismatches
+- Follows best practices for React hooks and TypeScript
+
+**Challenges & Solutions**:
+
+1. **Database Schema**:
+
+   - **Challenge**: Column name mismatch between ORM and database
+   - **Solution**: Added explicit field mapping in model definition
+
+2. **HMR Compatibility**:
+   - **Challenge**: Fast Refresh incompatibility with hook exports
+   - **Solution**: Restructured exports and component definitions
+
+**PRD Alignment**:
+
+- ✅ Proper timestamp tracking for data changes
+- ✅ User preferences support
+- ✅ Consistent naming conventions
+- ✅ Development workflow improvements
+
+**Next Steps**:
+
+1. Consider adding database migration scripts for future schema changes
+2. Document column naming conventions in development guidelines
+3. Add validation for unit conversions
+4. Consider adding unit preference to user profile settings UI
+
+### 2024-03-08: OAuth Callback Integration Issues
+
+**What Happened**:
+
+1. **OAuth Callback Issues Identified**:
+
+   - Server returns 500 error on OAuth callback
+   - Frontend receives raw JSON instead of proper redirect
+   - CORS headers present but potential configuration issues
+   - Callback URL mismatch between expected and actual
+
+2. **Current State**:
+   - Server no longer crashes on login attempt
+   - CORS headers being set (`Access-Control-Allow-Origin: http://localhost:5173`)
+   - Callback receiving proper OAuth code but failing to process
+
+**Technical Analysis**:
+
+1. **Request Details**:
+
+   ```
+   Endpoint: /api/auth/google/callback
+   Method: GET
+   Status: 500 (Internal Server Error)
+   Origin: http://localhost:5173
+   Callback URL: http://localhost:4000/api/auth/google/callback
+   ```
+
+2. **Identified Issues**:
+   - Potential mismatch in callback URL configuration
+   - Session handling may not be properly configured
+   - Frontend routing not properly handling the OAuth flow
+   - Cross-origin resource sharing (CORS) needs refinement
+
+**Why It Matters**:
+
+- Authentication is a critical path feature
+- Current issues prevent user login
+- Proper error handling needed for production readiness
+- Security implications need to be addressed
+
+**Next Steps**:
+
+1. **Immediate Actions**:
+
+   - Review and align callback URLs in Google OAuth configuration
+   - Implement proper error handling in callback route
+   - Add logging to identify specific failure point
+   - Verify session configuration
+
+2. **Configuration Updates Needed**:
+
+   ```typescript
+   // server/src/config/auth.ts
+   const authConfig = {
+     callbackURL:
+       process.env.NODE_ENV === "production"
+         ? "https://[production-url]/api/auth/google/callback"
+         : "http://localhost:4000/api/auth/google/callback",
+     clientID: process.env.GOOGLE_CLIENT_ID,
+     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+   };
+   ```
+
+3. **Frontend Updates**:
+   - Implement proper callback handling
+   - Add error boundary for authentication failures
+   - Consider implementing retry mechanism
+   - Add user feedback for authentication status
+
+**Challenges & Solutions**:
+
+1. **Cross-Origin Issues**:
+
+   - **Challenge**: Frontend and backend on different ports
+   - **Solution**: Review and update CORS configuration
+
+2. **Callback Processing**:
+
+   - **Challenge**: 500 error on callback processing
+   - **Solution**: Add proper error handling and logging
+
+3. **Session Management**:
+   - **Challenge**: Potential session configuration issues
+   - **Solution**: Review session middleware setup
+
+**PRD Alignment**:
+
+- ⚠️ Authentication flow needs improvement
+- ⚠️ Error handling needs enhancement
+- ✅ Basic CORS configuration in place
+- ✅ Security headers being set
+
+**Required Changes**:
+
+1. **Backend Updates**:
+
+   - Add detailed error logging
+   - Implement proper error handling
+   - Review session configuration
+   - Verify callback URL configuration
+
+2. **Frontend Updates**:
+
+   - Add authentication error handling
+   - Implement proper redirect after successful login
+   - Add loading states during authentication
+   - Improve user feedback
+
+3. **Documentation**:
+   - Document OAuth configuration requirements
+   - Add troubleshooting guide
+   - Update development setup instructions
+
+**Learning Points**:
+
+1. Importance of proper OAuth configuration
+2. Need for comprehensive error handling
+3. Critical nature of proper CORS setup
+4. Value of detailed logging in auth flows
+
+### 2024-03-08: Session Management & Authentication Flow Fixes
+
+**What Happened**:
+
+1. **Session Configuration Updates**:
+
+   - Added proper cookie configuration for cross-origin requests
+   - Set custom session cookie name for better tracking
+   - Added domain and path settings for cookie handling
+   - Updated session store configuration
+
+2. **Passport Configuration Improvements**:
+   - Fixed user serialization/deserialization
+   - Added proper type handling for user objects
+   - Improved error handling in auth flow
+   - Added proper session cleanup on logout
+
+**Technical Details**:
+
+1. **Cookie Configuration**:
+
+   ```typescript
+   cookie: {
+     secure: process.env.NODE_ENV === "production",
+     httpOnly: true,
+     maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
+     sameSite: "lax",
+     path: "/",
+     domain: process.env.NODE_ENV === "production"
+       ? process.env.COOKIE_DOMAIN
+       : "localhost"
+   }
+   ```
+
+2. **Session Handling**:
+   - Custom session cookie name: `powr.sid`
+   - Proper session cleanup on logout
+   - Improved error messages in auth flow
+   - Better type safety in passport configuration
+
+**Why It Matters**:
+
+- Ensures proper session persistence across requests
+- Improves security with proper cookie settings
+- Provides better error handling and user feedback
+- Maintains session state correctly between frontend and backend
+
+**Next Steps**:
+
+1. Monitor session handling in production environment
+2. Consider implementing session refresh mechanism
+3. Add session analytics and monitoring
+4. Consider implementing remember-me functionality
+
+**Challenges & Solutions**:
+
+1. **Cross-Origin Session Handling**:
+
+   - **Challenge**: Session not persisting across origins
+   - **Solution**: Updated cookie configuration with proper domain and path
+
+2. **Type Safety**:
+
+   - **Challenge**: TypeScript errors in passport configuration
+   - **Solution**: Added proper type definitions and assertions
+
+3. **Error Handling**:
+   - **Challenge**: Generic error messages not helpful
+   - **Solution**: Added specific error cases and improved error messages
+
+**PRD Alignment**:
+
+- ✅ Secure session management
+- ✅ Proper error handling
+- ✅ Cross-origin support
+- ✅ Type safety improvements
+
+**Required Changes**:
+
+1. **Environment Variables**:
+
+   - Add `COOKIE_DOMAIN` for production
+   - Consider adding `SESSION_NAME` for configuration
+   - Add proper session secret configuration
+
+2. **Documentation**:
+
+   - Update session configuration docs
+   - Add troubleshooting guide
+   - Document cookie settings
+
+3. **Monitoring**:
+   - Add session-related logging
+   - Monitor session duration and expiry
+   - Track authentication failures

@@ -35,6 +35,7 @@ Exercise.init(
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      field: "user_id",
       references: {
         model: User,
         key: "id",
@@ -65,7 +66,7 @@ Exercise.init(
     indexes: [
       {
         unique: true,
-        fields: ["userId", "name"],
+        fields: ["user_id", "name"],
         name: "exercises_user_id_name_unique",
       },
     ],
@@ -73,7 +74,7 @@ Exercise.init(
 );
 
 // Define associations
-Exercise.belongsTo(User, { foreignKey: "userId", as: "user" });
-User.hasMany(Exercise, { foreignKey: "userId", as: "exercises" });
+Exercise.belongsTo(User, { foreignKey: "user_id", as: "user" });
+User.hasMany(Exercise, { foreignKey: "user_id", as: "exercises" });
 
 export default Exercise;

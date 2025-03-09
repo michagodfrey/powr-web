@@ -1,40 +1,43 @@
+import { sequelize } from "../config/database";
 import { Sequelize } from "sequelize";
-import dotenv from "dotenv";
-import path from "path";
 
-// Load test environment variables
-dotenv.config({ path: path.join(__dirname, "../../.env.test") });
+let testSequelize: Sequelize;
 
-// Import models
-import User from "../models/User";
-import Exercise from "../models/Exercise";
-import WorkoutSession from "../models/WorkoutSession";
-
-// Global test setup
 beforeAll(async () => {
-  // Ensure we're using test database
-  if (!process.env.DATABASE_URL?.includes("test")) {
-    throw new Error("Must use test database for testing!");
+  // Use test database URL from environment
+  testSequelize = new Sequelize(process.env.TEST_DATABASE_URL!, {
+    logging: false, // Disable logging in tests
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+    },
+  });
+
+  try {
+    // Test database connection
+    await testSequelize.authenticate();
+    console.log("✅ Connected to test database");
+
+    // Sync models with database
+    await testSequelize.sync({ force: true });
+    console.log("✅ Test database synced");
+  } catch (error) {
+    console.error("❌ Unable to connect to test database:", error);
+    throw error;
   }
-
-  // Sync database - this will create tables if they don't exist
-  await User.sync({ force: true });
-  await Exercise.sync({ force: true });
-  await WorkoutSession.sync({ force: true });
 });
 
-// Global test teardown
 afterAll(async () => {
-  // Clean up database
-  await WorkoutSession.destroy({ where: {} });
-  await Exercise.destroy({ where: {} });
-  await User.destroy({ where: {} });
+  // Close database connection
+  await testSequelize.close();
 });
 
-// Reset database between tests if needed
-afterEach(async () => {
-  // Clean up after each test
-  await WorkoutSession.destroy({ where: {} });
-  await Exercise.destroy({ where: {} });
-  await User.destroy({ where: {} });
+beforeEach(async () => {
+  // Clear all tables before each test
+  const models = Object.values(testSequelize.models);
+  for (const model of models) {
+    await model.destroy({ truncate: true, cascade: true });
+  }
 });

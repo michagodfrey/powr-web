@@ -1,31 +1,25 @@
 import express from "express";
-import passport from "passport";
-import {
-  createExercise,
-  getExercises,
-  getExercise,
-  updateExercise,
-  deleteExercise,
-} from "../controllers/exerciseController";
+import { isAuthenticated } from "../middleware/auth";
+import * as exerciseController from "../controllers/exerciseController";
 
 const router = express.Router();
 
-// Protect all routes
-router.use(passport.authenticate("jwt", { session: false }));
+// Protect all routes in this router
+router.use(isAuthenticated);
 
 // Create a new exercise
-router.post("/", createExercise);
+router.post("/", exerciseController.createExercise);
 
 // Get all exercises for the user
-router.get("/", getExercises);
+router.get("/", exerciseController.getExercises);
 
 // Get a specific exercise
-router.get("/:id", getExercise);
+router.get("/:id", exerciseController.getExercise);
 
 // Update an exercise
-router.put("/:id", updateExercise);
+router.put("/:id", exerciseController.updateExercise);
 
 // Delete an exercise
-router.delete("/:id", deleteExercise);
+router.delete("/:id", exerciseController.deleteExercise);
 
 export default router;

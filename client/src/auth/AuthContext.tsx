@@ -16,31 +16,65 @@ interface User {
 interface AuthContextType {
   user: User | null;
   setUser: (user: User | null) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   login: () => Promise<void>;
   isAuthenticated: boolean;
   error: string | null;
   clearError: () => void;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
+
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/me`, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setUser(null);
+          return;
+        }
+        throw new Error("Failed to fetch user data");
+      }
+
+      const userData = await response.json();
+      setUser(userData);
+    } catch (error) {
+      console.error("Auth status check error:", error);
+      setUser(null);
+      setError("Something broke!");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Check if user data exists in localStorage
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    checkAuthStatus();
   }, []);
 
   const login = async () => {
     try {
-      // Redirect to Google OAuth login
-      window.location.href = "http://localhost:4000/api/auth/google";
+      window.location.href = `${API_URL}/api/auth/google`;
     } catch (error) {
       console.error("Login redirect error:", error);
       setError(
@@ -50,12 +84,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
-    // Clear user data and tokens
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    setUser(null);
+  const logout = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Logout failed");
+      }
+
+      setUser(null);
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout error:", error);
+      setError("Failed to logout. Please try again.");
+    }
   };
 
   const clearError = () => {
@@ -72,17 +117,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated: !!user,
         error,
         clearError,
+        isLoading,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
 };

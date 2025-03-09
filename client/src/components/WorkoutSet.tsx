@@ -82,130 +82,145 @@ const WorkoutSet = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-secondary rounded-lg p-6 w-full max-w-2xl">
-        <h2 className="text-2xl font-bold mb-6 text-secondary dark:text-white">
-          {initialSets ? "Edit Workout" : "Record Sets"}
-        </h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center overflow-y-auto p-4">
+      <div
+        className="my-auto bg-white dark:bg-secondary rounded-lg w-full max-w-2xl flex flex-col"
+        style={{ maxHeight: "calc(100vh - 2rem)" }}
+      >
+        {/* Fixed Header */}
+        <div className="shrink-0 p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-2xl font-bold text-secondary dark:text-white">
+            {initialSets ? "Edit Workout" : "Record Sets"}
+          </h2>
 
-        {/* Date Selection */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Workout Date
-          </label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="input-field"
-            max={new Date().toISOString().split("T")[0]}
-            aria-label="Workout date"
-          />
+          {/* Date Selection */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Workout Date
+            </label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="input-field"
+              max={new Date().toISOString().split("T")[0]}
+              aria-label="Workout date"
+            />
+          </div>
+
+          {/* Quick scheme selection */}
+          <div className="mt-4">
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Quick Schemes
+            </h3>
+            <div className="flex gap-2">
+              {COMMON_SCHEMES.map((scheme) => (
+                <button
+                  key={scheme.name}
+                  onClick={() => applyScheme(scheme)}
+                  className="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                  {scheme.name}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Quick scheme selection */}
-        <div className="mb-6">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Quick Schemes
-          </h3>
-          <div className="flex gap-2">
-            {COMMON_SCHEMES.map((scheme) => (
-              <button
-                key={scheme.name}
-                onClick={() => applyScheme(scheme)}
-                className="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6 min-h-0">
+          <div className="space-y-4">
+            {sets.map((set, index) => (
+              <div
+                key={set.id}
+                className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
               >
-                {scheme.name}
-              </button>
+                <span className="font-mono text-lg">{index + 1}</span>
+                <div className="flex-1 grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Weight ({preferredUnit})
+                    </label>
+                    <input
+                      type="number"
+                      value={set.weight}
+                      onChange={(e) =>
+                        handleSetUpdate(
+                          set.id,
+                          "weight",
+                          Number(e.target.value)
+                        )
+                      }
+                      className="input-field"
+                      min="0"
+                      step="0.5"
+                      aria-label={`Weight for set ${index + 1}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Reps
+                    </label>
+                    <input
+                      type="number"
+                      value={set.reps}
+                      onChange={(e) =>
+                        handleSetUpdate(set.id, "reps", Number(e.target.value))
+                      }
+                      className="input-field"
+                      min="0"
+                      aria-label={`Reps for set ${index + 1}`}
+                    />
+                  </div>
+                </div>
+                {sets.length > 1 && (
+                  <button
+                    onClick={() => handleRemoveSet(set.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Sets input */}
-        <div className="space-y-4 mb-6">
-          {sets.map((set, index) => (
-            <div
-              key={set.id}
-              className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
-            >
-              <span className="font-mono text-lg">{index + 1}</span>
-              <div className="flex-1 grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Weight ({preferredUnit})
-                  </label>
-                  <input
-                    type="number"
-                    value={set.weight}
-                    onChange={(e) =>
-                      handleSetUpdate(set.id, "weight", Number(e.target.value))
-                    }
-                    className="input-field"
-                    min="0"
-                    step="0.5"
-                    aria-label={`Weight for set ${index + 1}`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Reps
-                  </label>
-                  <input
-                    type="number"
-                    value={set.reps}
-                    onChange={(e) =>
-                      handleSetUpdate(set.id, "reps", Number(e.target.value))
-                    }
-                    className="input-field"
-                    min="0"
-                    aria-label={`Reps for set ${index + 1}`}
-                  />
-                </div>
-              </div>
-              {sets.length > 1 && (
-                <button
-                  onClick={() => handleRemoveSet(set.id)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  ✕
-                </button>
-              )}
+        {/* Fixed Footer */}
+        <div className="shrink-0 p-6 border-t border-gray-200 dark:border-gray-700">
+          {/* Total volume */}
+          <div className="mb-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Total Volume
             </div>
-          ))}
-        </div>
-
-        {/* Total volume */}
-        <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Total Volume
+            <div className="text-2xl font-bold text-primary">
+              {calculateTotalVolume()} {preferredUnit}
+            </div>
           </div>
-          <div className="text-2xl font-bold text-primary">
-            {calculateTotalVolume()} {preferredUnit}
-          </div>
-        </div>
 
-        {/* Actions */}
-        <div className="flex justify-between">
-          <button
-            onClick={handleAddSet}
-            className="px-4 py-2 text-primary border-2 border-primary rounded hover:bg-primary hover:text-white transition-colors"
-          >
-            Add Set
-          </button>
-          <div className="space-x-3">
+          {/* Actions */}
+          <div className="flex justify-between">
             <button
-              onClick={onCancel}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+              onClick={handleAddSet}
+              className="px-4 py-2 text-primary border-2 border-primary rounded hover:bg-primary hover:text-white transition-colors"
             >
-              Cancel
+              Add Set
             </button>
-            <button
-              onClick={() => onSave(sets, date)}
-              className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
-              disabled={sets.length === 0}
-            >
-              Save
-            </button>
+            <div className="space-x-3">
+              <button
+                onClick={onCancel}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => onSave(sets, date)}
+                className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
+                disabled={sets.length === 0}
+              >
+                Save
+              </button>
+            </div>
           </div>
         </div>
       </div>

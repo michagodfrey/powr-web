@@ -9,46 +9,57 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Get token from URL search params instead of hash
+        // Get error from URL search params
         const params = new URLSearchParams(window.location.search);
-        const token = params.get("token");
-        const refreshToken = params.get("refreshToken");
         const error = params.get("error");
 
         if (error) {
-          throw new Error(decodeURIComponent(error));
+          let errorMessage = "Authentication failed";
+          switch (error) {
+            case "auth_failed":
+              errorMessage = "Google authentication failed. Please try again.";
+              break;
+            case "no_user":
+              errorMessage = "Failed to create or find user account.";
+              break;
+            case "login_failed":
+              errorMessage = "Failed to complete login. Please try again.";
+              break;
+            default:
+              errorMessage = decodeURIComponent(error);
+          }
+          throw new Error(errorMessage);
         }
-
-        if (!token || !refreshToken) {
-          throw new Error("No tokens received");
-        }
-
-        // Store tokens
-        localStorage.setItem("token", token);
-        localStorage.setItem("refreshToken", refreshToken);
 
         // Fetch user data
-        const response = await fetch("http://localhost:4000/api/auth/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await fetch(
+          `${
+            import.meta.env.VITE_API_URL || "http://localhost:4000"
+          }/api/auth/me`,
+          {
+            credentials: "include",
+          }
+        );
 
         if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error(
+              "Authentication failed. Please try logging in again."
+            );
+          }
           throw new Error("Failed to fetch user data");
         }
 
-        const { data } = await response.json();
-
-        // Store user data
-        localStorage.setItem("user", JSON.stringify(data.user));
-        setUser(data.user);
+        const userData = await response.json();
+        setUser(userData);
 
         // Redirect to dashboard
         navigate("/");
       } catch (error) {
         console.error("Auth callback error:", error);
-        navigate("/login");
+        const errorMessage =
+          error instanceof Error ? error.message : "Authentication failed";
+        navigate(`/login?error=${encodeURIComponent(errorMessage)}`);
       }
     };
 

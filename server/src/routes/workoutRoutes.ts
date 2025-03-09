@@ -1,27 +1,22 @@
 import express from "express";
-import passport from "passport";
-import {
-  createWorkoutSession,
-  getWorkoutSessions,
-  updateWorkoutSession,
-  deleteWorkoutSession,
-} from "../controllers/workoutController";
+import * as workoutController from "../controllers/workoutController";
+import { isAuthenticated } from "../middleware/auth";
 
 const router = express.Router();
 
-// Protect all routes
-router.use(passport.authenticate("jwt", { session: false }));
+// Apply authentication middleware to all routes
+router.use(isAuthenticated);
 
 // Create a new workout session
-router.post("/", createWorkoutSession);
+router.post("/", workoutController.createWorkoutSession);
 
 // Get workout sessions for an exercise
-router.get("/exercise/:exerciseId", getWorkoutSessions);
+router.get("/:exerciseId", workoutController.getWorkoutSessions);
 
 // Update a workout session
-router.put("/:id", updateWorkoutSession);
+router.put("/:id", workoutController.updateWorkoutSession);
 
 // Delete a workout session
-router.delete("/:id", deleteWorkoutSession);
+router.delete("/:id", workoutController.deleteWorkoutSession);
 
 export default router;

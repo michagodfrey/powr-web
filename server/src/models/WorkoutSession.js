@@ -34,6 +34,7 @@ WorkoutSession.init({
     userId: {
         type: sequelize_1.DataTypes.INTEGER,
         allowNull: false,
+        field: "user_id",
         references: {
             model: User_1.default,
             key: "id",
@@ -42,6 +43,7 @@ WorkoutSession.init({
     exerciseId: {
         type: sequelize_1.DataTypes.INTEGER,
         allowNull: false,
+        field: "exercise_id",
         references: {
             model: Exercise_1.default,
             key: "id",
@@ -59,16 +61,19 @@ WorkoutSession.init({
     totalVolume: {
         type: sequelize_1.DataTypes.FLOAT,
         allowNull: false,
+        field: "total_volume",
         defaultValue: 0,
     },
     createdAt: {
         type: sequelize_1.DataTypes.DATE,
         allowNull: false,
+        field: "created_at",
         defaultValue: sequelize_1.DataTypes.NOW,
     },
     updatedAt: {
         type: sequelize_1.DataTypes.DATE,
         allowNull: false,
+        field: "updated_at",
         defaultValue: sequelize_1.DataTypes.NOW,
     },
 }, {
@@ -76,7 +81,7 @@ WorkoutSession.init({
     tableName: "workout_sessions",
     indexes: [
         {
-            fields: ["userId", "exerciseId", "date"],
+            fields: ["user_id", "exercise_id", "date"],
             name: "workout_sessions_user_exercise_date_idx",
         },
     ],
@@ -87,14 +92,14 @@ WorkoutSession.init({
     },
 });
 // Define associations
-WorkoutSession.belongsTo(User_1.default, { foreignKey: "userId", as: "user" });
+WorkoutSession.belongsTo(User_1.default, { foreignKey: "user_id", as: "user" });
 WorkoutSession.belongsTo(Exercise_1.default, {
-    foreignKey: "exerciseId",
+    foreignKey: "exercise_id",
     as: "exercise",
 });
-User_1.default.hasMany(WorkoutSession, { foreignKey: "userId", as: "workoutSessions" });
+User_1.default.hasMany(WorkoutSession, { foreignKey: "user_id", as: "workoutSessions" });
 Exercise_1.default.hasMany(WorkoutSession, {
-    foreignKey: "exerciseId",
+    foreignKey: "exercise_id",
     as: "workoutSessions",
 });
 exports.default = WorkoutSession;

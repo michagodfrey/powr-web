@@ -2,7 +2,7 @@
 
 ## Project Name
 
-**Progressive Overload Workout Recorder (POWR)**  
+**Progressive Overload Workout Recorder (POWR)**
 
 ## Description
 
@@ -47,3 +47,20 @@ Rather than a full workout tracker, POWR focuses on **monitoring weight volume t
 - **Performance**: Fast load times and responsive UI.
 - **User Adoption**: Frequency of returning users and positive feedback on ease of use.
 - **Visual Appeal**: High satisfaction ratings for chart clarity and design aesthetics.
+
+## Development Timeline
+
+1. **Phase 1: Web Application**
+
+   - Focus on core web application development
+   - Implement all essential features
+   - Ensure stability and performance
+   - Validate user experience and gather feedback
+
+2. **Phase 2: Mobile Application**
+   - Begin mobile development after web app is stable and fully functional
+   - Follow mobile-roadmap.md for detailed implementation steps
+   - Leverage existing backend infrastructure
+   - Focus on native mobile experience
+
+Note: Mobile development will commence only after the web application is working as expected and has been validated with users.

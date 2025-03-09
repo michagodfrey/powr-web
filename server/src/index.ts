@@ -8,6 +8,8 @@ import authRoutes from "./routes/authRoutes";
 import exerciseRoutes from "./routes/exerciseRoutes";
 import workoutRoutes from "./routes/workoutRoutes";
 import exportRoutes from "./routes/exportRoutes";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 
 // Load environment variables
 dotenv.config();
@@ -23,13 +25,39 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: process.env.CLIENT_URL,
     credentials: true,
   })
 );
 
-// Initialize Passport
+// Session configuration
+const PgSession = connectPgSimple(session);
+app.use(
+  session({
+    store: new PgSession({
+      conObject: {
+        connectionString: process.env.DATABASE_URL,
+        ssl:
+          process.env.NODE_ENV === "production"
+            ? { rejectUnauthorized: false }
+            : false,
+      },
+    }),
+    secret: process.env.SESSION_SECRET!,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      sameSite: "lax",
+    },
+  })
+);
+
+// Initialize passport
 app.use(passport.initialize());
+app.use(passport.session());
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -45,26 +73,21 @@ app.use(
     res: express.Response,
     next: express.NextFunction
   ) => {
-    errorHandler(err, req, res, next);
+    console.error(err.stack);
+    res.status(500).json({ error: "Something broke!" });
   }
 );
 
 // Start server
 const PORT = process.env.PORT || 4000;
 
-const startServer = async () => {
-  try {
-    // Initialize database connection
-    await initDatabase();
-
-    // Start listening
+initDatabase()
+  .then(() => {
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
-  } catch (error) {
-    console.error("Failed to start server:", error);
+  })
+  .catch((error) => {
+    console.error("Failed to initialize database:", error);
     process.exit(1);
-  }
-};
-
-startServer();
+  });

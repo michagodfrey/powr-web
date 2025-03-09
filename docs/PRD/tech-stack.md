@@ -3,7 +3,7 @@
 ## Frontend
 
 - **React**: Chosen for its component-based architecture and large ecosystem.
-- **Charting Library**: Either **Chart.js** or **Recharts** for creating interactive data visualizations.
+- **Chart.js**: Selected for creating interactive data visualizations, offering a good balance of features and performance.
 - **Styling**: CSS-in-JS (Styled Components) or a modern CSS framework (e.g., Tailwind, Material UI).
 
 ## Backend
@@ -12,7 +12,7 @@
 
 ## Database
 
-- **PostgreSQL**: A reliable relational database well-suited for structured data.  
+- **PostgreSQL**: A reliable relational database well-suited for structured data.
   - Alternatively, MySQL could also be used, but PostgreSQL is often preferred for advanced features.
 
 ## Hosting & Deployment

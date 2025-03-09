@@ -1,38 +1,14 @@
 import express from "express";
-import passport from "passport";
+import { isAuthenticated } from "../middleware/auth";
 import {
   exportWorkoutsCSV,
   exportWorkoutsPDF,
 } from "../controllers/exportController";
-import { AppError } from "../middleware/errorHandler";
-import User from "../models/User";
 
 const router = express.Router();
 
-// Protect all routes with error handling
-router.use(async (req, res, next) => {
-  try {
-    await new Promise((resolve, reject) => {
-      passport.authenticate(
-        "jwt",
-        { session: false },
-        (err: Error | null, user: User | false) => {
-          if (err) {
-            return reject(err);
-          }
-          if (!user) {
-            return reject(new AppError("Authentication failed", 401));
-          }
-          req.user = user;
-          resolve(user);
-        }
-      )(req, res, next);
-    });
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
+// Protect all routes in this router
+router.use(isAuthenticated);
 
 // Export workout data as CSV
 router.get("/csv", exportWorkoutsCSV);
