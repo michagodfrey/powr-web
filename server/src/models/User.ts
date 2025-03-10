@@ -1,10 +1,9 @@
-import { Model, DataTypes } from "sequelize";
-import { sequelize } from "./index";
+import { Model, DataTypes, Sequelize } from "sequelize";
 
 interface UserAttributes {
   id: number;
-  googleId: string;
   email: string;
+  googleId?: string;
   name: string;
   picture?: string;
   preferredUnit: "kg" | "lb";
@@ -19,71 +18,71 @@ class User
   implements UserAttributes
 {
   public id!: number;
-  public googleId!: string;
   public email!: string;
+  public googleId!: string;
   public name!: string;
   public picture!: string;
   public preferredUnit!: "kg" | "lb";
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
+
+  static initModel(sequelize: Sequelize): typeof User {
+    User.init(
+      {
+        id: {
+          type: DataTypes.INTEGER,
+          autoIncrement: true,
+          primaryKey: true,
+        },
+        email: {
+          type: DataTypes.STRING(255),
+          allowNull: false,
+          unique: true,
+        },
+        googleId: {
+          type: DataTypes.STRING(255),
+          allowNull: true,
+          unique: true,
+          field: "google_id",
+        },
+        name: {
+          type: DataTypes.STRING(255),
+          allowNull: false,
+        },
+        picture: {
+          type: DataTypes.STRING(1024),
+          allowNull: true,
+        },
+        preferredUnit: {
+          type: DataTypes.STRING(2),
+          allowNull: false,
+          defaultValue: "kg",
+          field: "preferred_unit",
+          validate: {
+            isIn: [["kg", "lb"]],
+          },
+        },
+        createdAt: {
+          type: DataTypes.DATE,
+          allowNull: false,
+          defaultValue: DataTypes.NOW,
+          field: "created_at",
+        },
+        updatedAt: {
+          type: DataTypes.DATE,
+          allowNull: false,
+          defaultValue: DataTypes.NOW,
+          field: "updated_at",
+        },
+      },
+      {
+        sequelize,
+        tableName: "users",
+        underscored: true,
+      }
+    );
+    return User;
+  }
 }
 
-User.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    googleId: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-      field: "google_id",
-    },
-    email: {
-      type: DataTypes.STRING(255),
-      allowNull: false,
-      unique: true,
-      validate: {
-        isEmail: true,
-      },
-    },
-    name: {
-      type: DataTypes.STRING(255),
-      allowNull: false,
-    },
-    picture: {
-      type: DataTypes.STRING(1024),
-      allowNull: true,
-    },
-    preferredUnit: {
-      type: DataTypes.STRING(2),
-      allowNull: false,
-      defaultValue: "kg",
-      field: "preferred_unit",
-      validate: {
-        isIn: [["kg", "lb"]],
-      },
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-      field: "created_at",
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-      field: "updated_at",
-    },
-  },
-  {
-    sequelize,
-    tableName: "users",
-    underscored: true,
-  }
-);
-
-export default User;
+export { User };

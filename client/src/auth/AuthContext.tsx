@@ -5,6 +5,7 @@ import {
   useEffect,
   ReactNode,
 } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface User {
   id: number;
@@ -42,6 +43,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   const checkAuthStatus = async () => {
     try {
@@ -52,6 +54,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       if (!response.ok) {
         if (response.status === 401) {
           setUser(null);
+          // If we were authenticated before but now we're not, session expired
+          if (user !== null) {
+            navigate("/login?error=Session expired. Please log in again.");
+          }
           return;
         }
         throw new Error("Failed to fetch user data");
@@ -68,6 +74,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
+  // Check auth status periodically to handle session expiration
+  useEffect(() => {
+    const interval = setInterval(checkAuthStatus, 5 * 60 * 1000); // Check every 5 minutes
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Initial auth check
   useEffect(() => {
     checkAuthStatus();
   }, []);

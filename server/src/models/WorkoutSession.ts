@@ -1,7 +1,5 @@
 import { Model, DataTypes } from "sequelize";
 import sequelize from "../config/database";
-import Exercise from "./Exercise";
-import User from "./User";
 
 interface WorkoutSetData {
   weight: number;
@@ -14,11 +12,12 @@ interface WorkoutSessionAttributes {
   userId: number;
   exerciseId: number;
   date: Date;
+  notes?: string;
   sets: WorkoutSetData[];
   totalVolume: number;
+  unit: "kg" | "lb";
   createdAt?: Date;
   updatedAt?: Date;
-  exercise?: Exercise;
 }
 
 interface WorkoutSessionCreationAttributes
@@ -32,11 +31,12 @@ class WorkoutSession
   public userId!: number;
   public exerciseId!: number;
   public date!: Date;
+  public notes!: string;
   public sets!: WorkoutSetData[];
   public totalVolume!: number;
+  public unit!: "kg" | "lb";
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
-  public exercise?: Exercise;
 
   // Calculate total volume for the session
   public calculateTotalVolume(): number {
@@ -59,7 +59,7 @@ WorkoutSession.init(
       allowNull: false,
       field: "user_id",
       references: {
-        model: User,
+        model: "users",
         key: "id",
       },
     },
@@ -68,7 +68,7 @@ WorkoutSession.init(
       allowNull: false,
       field: "exercise_id",
       references: {
-        model: Exercise,
+        model: "exercises",
         key: "id",
       },
     },
@@ -76,16 +76,27 @@ WorkoutSession.init(
       type: DataTypes.DATE,
       allowNull: false,
     },
+    notes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     sets: {
       type: DataTypes.JSONB,
       allowNull: false,
       defaultValue: [],
     },
     totalVolume: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       field: "total_volume",
       defaultValue: 0,
+    },
+    unit: {
+      type: DataTypes.STRING(2),
+      allowNull: false,
+      validate: {
+        isIn: [["kg", "lb"]],
+      },
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -103,6 +114,7 @@ WorkoutSession.init(
   {
     sequelize,
     tableName: "workout_sessions",
+    underscored: true,
     indexes: [
       {
         fields: ["user_id", "exercise_id", "date"],
@@ -116,17 +128,5 @@ WorkoutSession.init(
     },
   }
 );
-
-// Define associations
-WorkoutSession.belongsTo(User, { foreignKey: "user_id", as: "user" });
-WorkoutSession.belongsTo(Exercise, {
-  foreignKey: "exercise_id",
-  as: "exercise",
-});
-User.hasMany(WorkoutSession, { foreignKey: "user_id", as: "workoutSessions" });
-Exercise.hasMany(WorkoutSession, {
-  foreignKey: "exercise_id",
-  as: "workoutSessions",
-});
 
 export default WorkoutSession;

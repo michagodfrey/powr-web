@@ -3,11 +3,47 @@ import passport from "passport";
 import { Request, Response, NextFunction } from "express";
 import { getCurrentUser } from "../controllers/authController";
 
+// Extend Express types to include our custom session properties
+declare module "express-session" {
+  interface SessionData {
+    returnTo?: string;
+  }
+}
+
+// Define our User type
+interface UserType {
+  id: number;
+  email: string;
+  googleId: string;
+  name: string;
+  picture?: string;
+  preferredUnit: "kg" | "lb";
+}
+
+// Extend Express types to include our user type
+declare global {
+  namespace Express {
+    interface User extends UserType {}
+  }
+}
+
+// Validate required environment variables
+if (!process.env.CLIENT_URL) {
+  throw new Error("CLIENT_URL environment variable is required");
+}
+
 const router = Router();
 
 // Google OAuth routes
 router.get(
   "/google",
+  (req: Request, res: Response, next: NextFunction) => {
+    // Store the intended destination in the session
+    if (req.query.redirect) {
+      req.session.returnTo = req.query.redirect as string;
+    }
+    next();
+  },
   passport.authenticate("google", {
     scope: ["profile", "email"],
   })
@@ -16,7 +52,7 @@ router.get(
 router.get(
   "/google/callback",
   (req: Request, res: Response, next: NextFunction) => {
-    passport.authenticate("google", (err: any, user: any, info: any) => {
+    passport.authenticate("google", (err: any, user: UserType, info: any) => {
       if (err) {
         console.error("Google OAuth Error:", err);
         return res.redirect(
@@ -40,8 +76,18 @@ router.get(
             )}`
           );
         }
-        // Successful authentication, redirect home
-        return res.redirect(process.env.CLIENT_URL as string);
+
+        // Get the stored return URL from session
+        const returnTo = req.session.returnTo || "/";
+        delete req.session.returnTo;
+
+        // Log successful authentication
+        console.log(
+          `User ${user.id} (${user.email}) successfully authenticated`
+        );
+
+        // Successful authentication, redirect to return URL or home
+        return res.redirect(`${process.env.CLIENT_URL}${returnTo}`);
       });
     })(req, res, next);
   }
@@ -61,8 +107,31 @@ router.get("/me", getCurrentUser);
 
 // Logout route
 router.post("/logout", (req: Request, res: Response) => {
-  req.logout(() => {
-    res.json({ status: "success" });
+  if (!req.user) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userId = req.user.id;
+  const userEmail = req.user.email;
+
+  req.logout((err) => {
+    if (err) {
+      console.error("Logout Error:", err);
+      return res.status(500).json({ error: "Logout failed" });
+    }
+
+    // Destroy the session
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Session destruction error:", err);
+        return res.status(500).json({ error: "Session destruction failed" });
+      }
+
+      // Log successful logout
+      console.log(`User ${userId} (${userEmail}) logged out successfully`);
+
+      res.json({ status: "success" });
+    });
   });
 });
 

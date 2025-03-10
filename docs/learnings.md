@@ -1823,3 +1823,163 @@ This document will capture key observations, challenges, and insights as the pro
    - Add session-related logging
    - Monitor session duration and expiry
    - Track authentication failures
+
+### 2024-03-10: Database Schema Audit & Fixes
+
+**What Happened**:
+
+1. **Model Standardization**:
+
+   - Updated all models to use consistent snake_case for database fields
+   - Added proper field mappings in Sequelize models:
+     - Exercise model: `isArchived` → `is_archived`
+     - WorkoutSession model: `totalVolume` → `total_volume`
+     - All models: `createdAt` → `created_at`, `updatedAt` → `updated_at`
+
+2. **Database Configuration**:
+
+   - Centralized column naming convention in database.ts
+   - Added global Sequelize configuration:
+     ```typescript
+     define: {
+       underscored: true,
+       freezeTableName: true,
+       timestamps: true,
+       createdAt: "created_at",
+       updatedAt: "updated_at"
+     }
+     ```
+
+3. **Model Associations**:
+   - Properly defined all relationships between models
+   - Added correct foreign key references
+   - Implemented proper indexes for performance
+   - Set up cascading deletes where appropriate
+
+**Why It Matters**:
+
+- Ensures consistency between ORM and database schema
+- Prevents subtle bugs from column name mismatches
+- Improves code maintainability
+- Sets foundation for reliable data relationships
+
+**Technical Details**:
+
+1. **Model Structure**:
+
+   - User → Exercise (one-to-many)
+   - User → WorkoutSession (one-to-many)
+   - Exercise → WorkoutSession (one-to-many)
+   - WorkoutSession → Set (one-to-many)
+   - User → Session (one-to-many)
+
+2. **Key Improvements**:
+   - Consistent naming conventions across all models
+   - Proper foreign key constraints
+   - Appropriate indexes for common queries
+   - Type-safe model definitions
+
+**Next Steps**:
+
+1. **Authentication Flow**:
+
+   - Review OAuth callback handling
+   - Check session configuration
+   - Verify token generation and storage
+   - Test complete authentication flow
+
+2. **Data Integrity**:
+   - Consider implementing database migrations
+   - Add data validation at model level
+   - Implement proper error handling for constraints
+   - Add logging for schema-related issues
+
+**PRD Alignment**:
+
+- ✅ Consistent database schema
+- ✅ Proper data relationships
+- ✅ Type-safe implementation
+- ✅ Performance considerations with indexes
+
+### 2024-03-10: JWT Authentication Issues & OAuth Transition
+
+**What Happened**:
+
+1. **Authentication Strategy Conflict**:
+
+   - Initially implemented JWT-based email/password authentication
+   - Later discovered this conflicted with PRD requirements for Google OAuth
+   - JWT implementation was deeply embedded in multiple components:
+     - User model with password fields
+     - Authentication middleware
+     - Token refresh logic
+     - Session management
+
+2. **Transition Challenges**:
+   - Removing JWT-specific code caused cascading issues
+   - Session management needed complete restructuring
+   - User model required significant changes
+   - Frontend auth flow needed reimplementation
+
+**Technical Details**:
+
+1. **Original JWT Implementation Issues**:
+
+   ```typescript
+   // Previous approach (problematic)
+   const generateToken = (userId: number) => {
+     return jwt.sign({ id: userId }, process.env.JWT_SECRET!, {
+       expiresIn: "1h",
+     });
+   };
+   ```
+
+2. **OAuth-Specific Requirements**:
+   - Session-based authentication instead of JWT
+   - Google profile data storage
+   - Different token lifecycle management
+   - Cookie-based session handling
+
+**Why It Matters**:
+
+- Demonstrates importance of thorough PRD review before implementation
+- Highlights cost of deviating from specified architecture
+- Shows impact of authentication strategy on entire application
+- Emphasizes need for clear technical requirements
+
+**Key Learnings**:
+
+1. **Process Improvements**:
+
+   - Always review PRD thoroughly before implementation
+   - Question any deviation from specified architecture
+   - Document technical decisions and their rationale
+   - Consider authentication impact on all components
+
+2. **Technical Insights**:
+   - Authentication strategy affects entire application architecture
+   - Session-based auth has different security considerations
+   - OAuth requires specific session handling
+   - Cookie configuration crucial for cross-origin requests
+
+**Next Steps**:
+
+1. Complete transition to Google OAuth:
+
+   - Remove remaining JWT code
+   - Implement proper session management
+   - Update user model
+   - Add OAuth-specific error handling
+
+2. Documentation Updates:
+   - Document OAuth configuration requirements
+   - Update development setup guide
+   - Add troubleshooting information
+   - Document session management approach
+
+**PRD Alignment**:
+
+- ✅ Google OAuth as primary authentication
+- ✅ No email/password authentication
+- ✅ Session-based user management
+- ✅ Secure cookie handling

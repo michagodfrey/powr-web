@@ -4,10 +4,25 @@ import dotenv from "dotenv";
 // Load environment variables
 dotenv.config();
 
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is not set");
+}
+
 const isDev = process.env.NODE_ENV === "development";
 
-const sequelize = new Sequelize(process.env.DATABASE_URL || "", {
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: "postgres",
   logging: isDev ? console.log : false,
+  ssl: process.env.NODE_ENV === "production",
+  dialectOptions:
+    process.env.NODE_ENV === "production"
+      ? {
+          ssl: {
+            require: true,
+            rejectUnauthorized: false,
+          },
+        }
+      : {},
   pool: {
     max: 5,
     min: 0,
@@ -19,8 +34,11 @@ const sequelize = new Sequelize(process.env.DATABASE_URL || "", {
     underscored: true,
     // Don't pluralize table names
     freezeTableName: true,
-    // Use camelCase for model attributes
+    // Add timestamps by default
     timestamps: true,
+    // Use snake_case for timestamps
+    createdAt: "created_at",
+    updatedAt: "updated_at",
   },
 });
 
@@ -29,9 +47,13 @@ export const initDatabase = async () => {
     await sequelize.authenticate();
     console.log("Database connection has been established successfully.");
 
-    // Auto-sync enabled for development mode
-    await sequelize.sync({ alter: isDev });
-    console.log("Database connection ready.");
+    // Sync database in development
+    if (isDev) {
+      await sequelize.sync({ alter: true });
+      console.log("Database synchronized");
+    }
+
+    return sequelize;
   } catch (error) {
     console.error("Unable to connect to the database:", error);
     throw error;

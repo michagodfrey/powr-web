@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "../middleware/errorHandler";
-import User from "../models/User";
+import { User } from "../models/User";
 
 export const getCurrentUser = async (
   req: Request,

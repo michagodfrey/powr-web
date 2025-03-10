@@ -2,30 +2,47 @@ import { Request, Response, NextFunction } from "express";
 import { Parser } from "json2csv";
 import PDFDocument from "pdfkit";
 import { AppError } from "../middleware/errorHandler";
-import Exercise from "../models/Exercise";
-import WorkoutSession from "../models/WorkoutSession";
+import { Exercise } from "../models/Exercise";
+import { Workout } from "../models/Workout";
+import { WorkoutExercise } from "../models/WorkoutExercise";
+import { Set } from "../models/Set";
 
 // Helper function to format workout data for export
 const formatWorkoutData = async (userId: number, exerciseId?: number) => {
-  const where = exerciseId ? { userId, exerciseId } : { userId };
-
-  const workouts = await WorkoutSession.findAll({
-    where,
+  const workouts = await Workout.findAll({
+    where: { userId },
     include: [
       {
         model: Exercise,
-        attributes: ["name"],
-        as: "exercise",
+        as: "exercises",
+        ...(exerciseId ? { where: { id: exerciseId } } : {}),
+        through: {
+          model: WorkoutExercise,
+          as: "workoutExercise",
+          include: [
+            {
+              model: Set,
+              as: "sets",
+            },
+          ],
+        },
       },
     ],
-    order: [["date", "DESC"]],
+    order: [["startTime", "DESC"]],
   });
 
   return workouts.map((workout) => ({
-    exerciseName: workout.exercise?.name || "Unknown Exercise",
-    date: workout.date.toISOString().split("T")[0],
-    sets: workout.sets,
-    totalVolume: workout.totalVolume,
+    name: workout.name || "Unnamed Workout",
+    startTime: workout.startTime.toISOString().split("T")[0],
+    endTime: workout.endTime?.toISOString().split("T")[0] || "In Progress",
+    exercises: workout.exercises?.map((exercise) => ({
+      name: exercise.name,
+      sets: (exercise.workoutExercise as any).sets.map((set: Set) => ({
+        weight: set.weight,
+        reps: set.reps,
+        notes: set.notes,
+      })),
+    })),
   }));
 };
 
@@ -44,27 +61,32 @@ export const exportWorkoutsCSV = async (
       exerciseId ? Number(exerciseId) : undefined
     );
 
-    // Flatten the sets array for CSV format
-    const flattenedData = workoutData.flatMap((workout) =>
-      workout.sets.map((set, index) => ({
-        exerciseName: workout.exerciseName,
-        date: workout.date,
-        setNumber: index + 1,
-        weight: set.weight,
-        reps: set.reps,
-        unit: set.unit,
-        totalVolume: workout.totalVolume,
-      }))
+    // Flatten the data for CSV format
+    const flattenedData = workoutData.flatMap(
+      (workout) =>
+        workout.exercises?.flatMap((exercise) =>
+          exercise.sets.map((set, index) => ({
+            workoutName: workout.name,
+            date: workout.startTime,
+            endTime: workout.endTime,
+            exerciseName: exercise.name,
+            setNumber: index + 1,
+            weight: set.weight,
+            reps: set.reps,
+            notes: set.notes || "",
+          }))
+        ) || []
     );
 
     const fields = [
-      "exerciseName",
+      "workoutName",
       "date",
+      "endTime",
+      "exerciseName",
       "setNumber",
       "weight",
       "reps",
-      "unit",
-      "totalVolume",
+      "notes",
     ];
 
     const json2csvParser = new Parser({ fields });
@@ -117,36 +139,44 @@ export const exportWorkoutsPDF = async (
     workoutData.forEach((workout) => {
       doc
         .fontSize(16)
-        .text(workout.exerciseName)
+        .text(workout.name)
         .fontSize(12)
-        .text(`Date: ${workout.date}`)
-        .text(`Total Volume: ${workout.totalVolume.toFixed(2)} kg`)
+        .text(`Date: ${workout.startTime}`)
+        .text(`End Time: ${workout.endTime}`)
         .moveDown(0.5);
 
-      // Add sets table
-      const setRows = workout.sets.map((set, index) => [
-        `Set ${index + 1}`,
-        `${set.weight} ${set.unit}`,
-        `${set.reps} reps`,
-      ]);
+      // Add exercises
+      workout.exercises?.forEach((exercise) => {
+        doc.fontSize(14).text(exercise.name).moveDown(0.5);
 
-      // Calculate column widths
-      const colWidths = [100, 100, 100];
-      const tableTop = doc.y;
-      let tableHeight = 0;
+        // Add sets table
+        const setRows = exercise.sets.map((set, index) => [
+          `Set ${index + 1}`,
+          `${set.weight} kg`,
+          `${set.reps} reps`,
+          set.notes || "",
+        ]);
 
-      // Draw headers
-      ["Set", "Weight", "Reps"].forEach((header, i) => {
-        doc.text(header, doc.x + i * colWidths[i], tableTop);
-      });
+        // Calculate column widths
+        const colWidths = [60, 80, 80, 200];
+        const tableTop = doc.y;
+        let tableHeight = 0;
 
-      // Draw rows
-      setRows.forEach((row, i) => {
-        const rowTop = tableTop + 20 + i * 20;
-        row.forEach((cell, j) => {
-          doc.text(cell, doc.x + j * colWidths[j], rowTop);
+        // Draw headers
+        ["Set", "Weight", "Reps", "Notes"].forEach((header, i) => {
+          doc.text(header, doc.x + i * colWidths[i], tableTop);
         });
-        tableHeight = Math.max(tableHeight, rowTop - tableTop + 20);
+
+        // Draw rows
+        setRows.forEach((row, i) => {
+          const rowTop = tableTop + 20 + i * 20;
+          row.forEach((cell, j) => {
+            doc.text(cell, doc.x + j * colWidths[j], rowTop);
+          });
+          tableHeight = Math.max(tableHeight, rowTop - tableTop + 20);
+        });
+
+        doc.moveDown(2);
       });
 
       doc.moveDown(2);

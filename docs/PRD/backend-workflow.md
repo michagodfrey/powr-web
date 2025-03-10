@@ -389,3 +389,4 @@ export function calculateVolume(sets: WorkoutSet[]): number {
 - Monitor query performance
 
 This backend workflow document should be reviewed and updated regularly as development practices evolve and new tools are adopted.
+

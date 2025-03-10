@@ -11,20 +11,50 @@ import exportRoutes from "./routes/exportRoutes";
 import { errorHandler } from "./middleware/errorHandler";
 import { Pool } from "pg";
 
+// Validate required environment variables
+if (!process.env.CLIENT_URL) {
+  throw new Error("CLIENT_URL environment variable is required");
+}
+
+if (!process.env.SESSION_SECRET) {
+  throw new Error("SESSION_SECRET environment variable is required");
+}
+
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
+
 const app = express();
+
+// Security headers middleware
+app.use((req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self'"
+  );
+  res.setHeader(
+    "Strict-Transport-Security",
+    "max-age=31536000; includeSubDomains"
+  );
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
+
+// Middleware
+app.use(express.json());
 
 // CORS configuration
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: process.env.CORS_ORIGIN || process.env.CLIENT_URL,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-
-// Middleware
-app.use(express.json());
 
 // PostgreSQL session store setup
 const pool = new Pool({
@@ -38,15 +68,16 @@ const pool = new Pool({
 const PostgresqlStore = pgSession(session);
 const sessionStore = new PostgresqlStore({
   pool,
-  tableName: "session", // This matches our database schema
+  tableName: "user_sessions", // More descriptive table name
   createTableIfMissing: true,
+  pruneSessionInterval: 24 * 60 * 60, // Prune expired sessions every 24 hours
 });
 
 // Session configuration
 app.use(
   session({
     store: sessionStore,
-    secret: process.env.SESSION_SECRET!,
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -54,6 +85,10 @@ app.use(
       httpOnly: true,
       maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days as per PRD
       sameSite: "lax",
+      domain:
+        process.env.NODE_ENV === "production"
+          ? process.env.COOKIE_DOMAIN
+          : undefined, // undefined for localhost
     },
     name: "powr.sid", // Custom session cookie name for better security
   })

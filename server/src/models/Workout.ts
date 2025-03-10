@@ -1,31 +1,33 @@
 import { Model, DataTypes, Sequelize } from "sequelize";
 
-interface ExerciseAttributes {
+interface WorkoutAttributes {
   id: number;
   userId: number;
-  name: string;
-  description?: string;
-  isArchived: boolean;
+  name?: string;
+  notes?: string;
+  startTime: Date;
+  endTime?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface ExerciseCreationAttributes extends Omit<ExerciseAttributes, "id"> {}
+interface WorkoutCreationAttributes extends Omit<WorkoutAttributes, "id"> {}
 
-class Exercise
-  extends Model<ExerciseAttributes, ExerciseCreationAttributes>
-  implements ExerciseAttributes
+class Workout
+  extends Model<WorkoutAttributes, WorkoutCreationAttributes>
+  implements WorkoutAttributes
 {
   public id!: number;
   public userId!: number;
   public name!: string;
-  public description!: string;
-  public isArchived!: boolean;
+  public notes!: string;
+  public startTime!: Date;
+  public endTime!: Date;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
-  static initModel(sequelize: Sequelize): typeof Exercise {
-    Exercise.init(
+  static initModel(sequelize: Sequelize): typeof Workout {
+    Workout.init(
       {
         id: {
           type: DataTypes.INTEGER,
@@ -43,17 +45,21 @@ class Exercise
         },
         name: {
           type: DataTypes.STRING(255),
-          allowNull: false,
+          allowNull: true,
         },
-        description: {
+        notes: {
           type: DataTypes.TEXT,
           allowNull: true,
         },
-        isArchived: {
-          type: DataTypes.BOOLEAN,
+        startTime: {
+          type: DataTypes.DATE,
           allowNull: false,
-          defaultValue: false,
-          field: "is_archived",
+          field: "start_time",
+        },
+        endTime: {
+          type: DataTypes.DATE,
+          allowNull: true,
+          field: "end_time",
         },
         createdAt: {
           type: DataTypes.DATE,
@@ -70,19 +76,12 @@ class Exercise
       },
       {
         sequelize,
-        tableName: "exercises",
+        tableName: "workouts",
         underscored: true,
-        indexes: [
-          {
-            unique: true,
-            fields: ["user_id", "name"],
-            name: "exercises_user_id_name_unique",
-          },
-        ],
       }
     );
-    return Exercise;
+    return Workout;
   }
 }
 
-export { Exercise };
+export { Workout };

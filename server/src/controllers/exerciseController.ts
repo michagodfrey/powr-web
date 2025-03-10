@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
+import { Exercise } from "../models/Exercise";
 import { AppError } from "../middleware/errorHandler";
-import Exercise from "../models/Exercise";
 
 // Create a new exercise
 export const createExercise = async (

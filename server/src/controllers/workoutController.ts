@@ -1,56 +1,104 @@
 import { Request, Response, NextFunction } from "express";
 import { Op } from "sequelize";
 import { AppError } from "../middleware/errorHandler";
-import WorkoutSession from "../models/WorkoutSession";
-import Exercise from "../models/Exercise";
+import { Workout } from "../models/Workout";
+import { Exercise } from "../models/Exercise";
+import { WorkoutExercise } from "../models/WorkoutExercise";
+import { Set } from "../models/Set";
 
-interface WorkoutSetData {
+interface SetData {
   weight: number;
   reps: number;
-  unit: "kg" | "lb";
+  notes?: string;
 }
 
-// Calculate total volume for a set of exercises
-const calculateTotalVolume = (sets: WorkoutSetData[]): number => {
-  return sets.reduce((total, set) => {
-    const weight = set.unit === "lb" ? set.weight * 0.453592 : set.weight; // Convert to kg if needed
-    return total + weight * set.reps;
-  }, 0);
-};
+interface WorkoutExerciseData {
+  exerciseId: number;
+  notes?: string;
+  sets: SetData[];
+}
 
-// Create a new workout session
-export const createWorkoutSession = async (
+// Create a new workout
+export const createWorkout = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { exerciseId, date, sets } = req.body;
+    const { name, notes, exercises } = req.body as {
+      name?: string;
+      notes?: string;
+      exercises: WorkoutExerciseData[];
+    };
     const userId = (req.user as any).id;
 
-    // Verify exercise belongs to user
-    const exercise = await Exercise.findOne({
-      where: { id: exerciseId, userId },
+    // Create workout
+    const workout = await Workout.create({
+      userId,
+      name,
+      notes,
+      startTime: new Date(),
     });
 
-    if (!exercise) {
-      throw new AppError("Exercise not found", 404);
+    // Add exercises and sets
+    for (let i = 0; i < exercises.length; i++) {
+      const exerciseData = exercises[i];
+
+      // Verify exercise belongs to user
+      const exercise = await Exercise.findOne({
+        where: { id: exerciseData.exerciseId, userId },
+      });
+
+      if (!exercise) {
+        throw new AppError(
+          `Exercise ${exerciseData.exerciseId} not found`,
+          404
+        );
+      }
+
+      // Create workout exercise
+      const workoutExercise = await WorkoutExercise.create({
+        workoutId: workout.id,
+        exerciseId: exercise.id,
+        notes: exerciseData.notes,
+        order: i,
+      });
+
+      // Create sets
+      await Promise.all(
+        exerciseData.sets.map((setData) =>
+          Set.create({
+            workoutExerciseId: workoutExercise.id,
+            ...setData,
+          })
+        )
+      );
     }
 
-    const totalVolume = calculateTotalVolume(sets);
-
-    const workoutSession = await WorkoutSession.create({
-      userId,
-      exerciseId,
-      date: new Date(date),
-      sets,
-      totalVolume,
+    // Fetch complete workout with exercises and sets
+    const completeWorkout = await Workout.findByPk(workout.id, {
+      include: [
+        {
+          model: Exercise,
+          as: "exercises",
+          through: {
+            model: WorkoutExercise,
+            as: "workoutExercise",
+            include: [
+              {
+                model: Set,
+                as: "sets",
+              },
+            ],
+          },
+        },
+      ],
     });
 
     res.status(201).json({
       status: "success",
       data: {
-        workoutSession,
+        workout: completeWorkout,
       },
     });
   } catch (error) {
@@ -58,31 +106,21 @@ export const createWorkoutSession = async (
   }
 };
 
-// Get workout sessions for an exercise
-export const getWorkoutSessions = async (
+// Get all workouts for the user
+export const getWorkouts = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { exerciseId } = req.params;
     const userId = (req.user as any).id;
     const { startDate, endDate } = req.query;
-
-    // Verify exercise belongs to user
-    const exercise = await Exercise.findOne({
-      where: { id: exerciseId, userId },
-    });
-
-    if (!exercise) {
-      throw new AppError("Exercise not found", 404);
-    }
 
     // Build date filter if provided
     const dateFilter = {};
     if (startDate && endDate) {
       Object.assign(dateFilter, {
-        date: {
+        startTime: {
           [Op.between]: [
             new Date(startDate as string),
             new Date(endDate as string),
@@ -91,19 +129,34 @@ export const getWorkoutSessions = async (
       });
     }
 
-    const workoutSessions = await WorkoutSession.findAll({
+    const workouts = await Workout.findAll({
       where: {
         userId,
-        exerciseId,
         ...dateFilter,
       },
-      order: [["date", "DESC"]],
+      include: [
+        {
+          model: Exercise,
+          as: "exercises",
+          through: {
+            model: WorkoutExercise,
+            as: "workoutExercise",
+            include: [
+              {
+                model: Set,
+                as: "sets",
+              },
+            ],
+          },
+        },
+      ],
+      order: [["startTime", "DESC"]],
     });
 
     res.json({
       status: "success",
       data: {
-        workoutSessions,
+        workouts,
       },
     });
   } catch (error) {
@@ -111,43 +164,8 @@ export const getWorkoutSessions = async (
   }
 };
 
-// Update a workout session
-export const updateWorkoutSession = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { date, sets } = req.body;
-    const userId = (req.user as any).id;
-
-    const workoutSession = await WorkoutSession.findOne({
-      where: { id, userId },
-    });
-
-    if (!workoutSession) {
-      throw new AppError("Workout session not found", 404);
-    }
-
-    await workoutSession.update({
-      date: date ? new Date(date) : workoutSession.date,
-      sets: sets || workoutSession.sets,
-    });
-
-    res.json({
-      status: "success",
-      data: {
-        workoutSession,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Delete a workout session
-export const deleteWorkoutSession = async (
+// Get a specific workout
+export const getWorkout = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -156,15 +174,116 @@ export const deleteWorkoutSession = async (
     const { id } = req.params;
     const userId = (req.user as any).id;
 
-    const workoutSession = await WorkoutSession.findOne({
+    const workout = await Workout.findOne({
+      where: { id, userId },
+      include: [
+        {
+          model: Exercise,
+          as: "exercises",
+          through: {
+            model: WorkoutExercise,
+            as: "workoutExercise",
+            include: [
+              {
+                model: Set,
+                as: "sets",
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    if (!workout) {
+      throw new AppError("Workout not found", 404);
+    }
+
+    res.json({
+      status: "success",
+      data: {
+        workout,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Update a workout
+export const updateWorkout = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { name, notes, endTime } = req.body;
+    const userId = (req.user as any).id;
+
+    const workout = await Workout.findOne({
       where: { id, userId },
     });
 
-    if (!workoutSession) {
-      throw new AppError("Workout session not found", 404);
+    if (!workout) {
+      throw new AppError("Workout not found", 404);
     }
 
-    await workoutSession.destroy();
+    await workout.update({
+      name: name || workout.name,
+      notes: notes || workout.notes,
+      endTime: endTime ? new Date(endTime) : workout.endTime,
+    });
+
+    // Fetch updated workout with all relations
+    const updatedWorkout = await Workout.findByPk(workout.id, {
+      include: [
+        {
+          model: Exercise,
+          as: "exercises",
+          through: {
+            model: WorkoutExercise,
+            as: "workoutExercise",
+            include: [
+              {
+                model: Set,
+                as: "sets",
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    res.json({
+      status: "success",
+      data: {
+        workout: updatedWorkout,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Delete a workout
+export const deleteWorkout = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const userId = (req.user as any).id;
+
+    const workout = await Workout.findOne({
+      where: { id, userId },
+    });
+
+    if (!workout) {
+      throw new AppError("Workout not found", 404);
+    }
+
+    await workout.destroy();
 
     res.json({
       status: "success",
