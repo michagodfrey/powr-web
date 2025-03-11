@@ -82,15 +82,20 @@ export const createWorkout = async (
           model: Exercise,
           as: "exercises",
           through: {
-            model: WorkoutExercise,
             as: "workoutExercise",
-            include: [
-              {
-                model: Set,
-                as: "sets",
-              },
-            ],
           },
+          include: [
+            {
+              model: WorkoutExercise,
+              as: "workoutExercise",
+              include: [
+                {
+                  model: Set,
+                  as: "sets",
+                },
+              ],
+            },
+          ],
         },
       ],
     });
@@ -139,15 +144,20 @@ export const getWorkouts = async (
           model: Exercise,
           as: "exercises",
           through: {
-            model: WorkoutExercise,
             as: "workoutExercise",
-            include: [
-              {
-                model: Set,
-                as: "sets",
-              },
-            ],
           },
+          include: [
+            {
+              model: WorkoutExercise,
+              as: "workoutExercise",
+              include: [
+                {
+                  model: Set,
+                  as: "sets",
+                },
+              ],
+            },
+          ],
         },
       ],
       order: [["startTime", "DESC"]],
@@ -181,15 +191,20 @@ export const getWorkout = async (
           model: Exercise,
           as: "exercises",
           through: {
-            model: WorkoutExercise,
             as: "workoutExercise",
-            include: [
-              {
-                model: Set,
-                as: "sets",
-              },
-            ],
           },
+          include: [
+            {
+              model: WorkoutExercise,
+              as: "workoutExercise",
+              include: [
+                {
+                  model: Set,
+                  as: "sets",
+                },
+              ],
+            },
+          ],
         },
       ],
     });
@@ -241,15 +256,20 @@ export const updateWorkout = async (
           model: Exercise,
           as: "exercises",
           through: {
-            model: WorkoutExercise,
             as: "workoutExercise",
-            include: [
-              {
-                model: Set,
-                as: "sets",
-              },
-            ],
           },
+          include: [
+            {
+              model: WorkoutExercise,
+              as: "workoutExercise",
+              include: [
+                {
+                  model: Set,
+                  as: "sets",
+                },
+              ],
+            },
+          ],
         },
       ],
     });

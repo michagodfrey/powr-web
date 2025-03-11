@@ -10,23 +10,6 @@ declare module "express-session" {
   }
 }
 
-// Define our User type
-interface UserType {
-  id: number;
-  email: string;
-  googleId: string;
-  name: string;
-  picture?: string;
-  preferredUnit: "kg" | "lb";
-}
-
-// Extend Express types to include our user type
-declare global {
-  namespace Express {
-    interface User extends UserType {}
-  }
-}
-
 // Validate required environment variables
 if (!process.env.CLIENT_URL) {
   throw new Error("CLIENT_URL environment variable is required");
@@ -52,44 +35,47 @@ router.get(
 router.get(
   "/google/callback",
   (req: Request, res: Response, next: NextFunction) => {
-    passport.authenticate("google", (err: any, user: UserType, info: any) => {
-      if (err) {
-        console.error("Google OAuth Error:", err);
-        return res.redirect(
-          `${process.env.CLIENT_URL}/login?error=${encodeURIComponent(
-            err.message || "Authentication failed"
-          )}`
-        );
-      }
-
-      if (!user) {
-        console.error("Authentication failed:", info);
-        return res.redirect(`${process.env.CLIENT_URL}/login?error=no_user`);
-      }
-
-      req.logIn(user, (err) => {
+    passport.authenticate(
+      "google",
+      (err: any, user: Express.User | false, info: any) => {
         if (err) {
-          console.error("Login Error:", err);
+          console.error("Google OAuth Error:", err);
           return res.redirect(
             `${process.env.CLIENT_URL}/login?error=${encodeURIComponent(
-              err.message || "Login failed"
+              err.message || "Authentication failed"
             )}`
           );
         }
 
-        // Get the stored return URL from session
-        const returnTo = req.session.returnTo || "/";
-        delete req.session.returnTo;
+        if (!user) {
+          console.error("Authentication failed:", info);
+          return res.redirect(`${process.env.CLIENT_URL}/login?error=no_user`);
+        }
 
-        // Log successful authentication
-        console.log(
-          `User ${user.id} (${user.email}) successfully authenticated`
-        );
+        req.logIn(user, (err) => {
+          if (err) {
+            console.error("Login Error:", err);
+            return res.redirect(
+              `${process.env.CLIENT_URL}/login?error=${encodeURIComponent(
+                err.message || "Login failed"
+              )}`
+            );
+          }
 
-        // Successful authentication, redirect to return URL or home
-        return res.redirect(`${process.env.CLIENT_URL}${returnTo}`);
-      });
-    })(req, res, next);
+          // Get the stored return URL from session
+          const returnTo = req.session.returnTo || "/";
+          delete req.session.returnTo;
+
+          // Log successful authentication
+          console.log(
+            `User ${user.id} (${user.email}) successfully authenticated`
+          );
+
+          // Successful authentication, redirect to return URL or home
+          return res.redirect(`${process.env.CLIENT_URL}${returnTo}`);
+        });
+      }
+    )(req, res, next);
   }
 );
 

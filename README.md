@@ -41,3 +41,13 @@ Below is an output from the Agent when aksed about this:
 4. Precise Line Numbers and Content: Attached files come with exact line numbers and current content, making it easier to provide precise fixes and understand error messages.
 
 ### Ask the agent what it needs
+
+### Be Proactive
+
+Point out all the problems and add relant files and lines to the chat. The AI won't read anything unless it thinks it has to and will often have a stab at things where you have left an instructions gap.
+
+### The Agent can go crazy
+
+After a lot of debugging, there was one file import that was flagging an error, even though it should be working. It looked unfixable, so brought it the attention of the agent who was baffled and wanted to go on a rampage of changes when a simple retyping of the import fixed it.
+
+Control it or it will control you!

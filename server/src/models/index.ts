@@ -4,6 +4,7 @@ import { User } from "./User";
 import { Set } from "./Set";
 import { Workout } from "./Workout";
 import { WorkoutExercise } from "./WorkoutExercise";
+import { WorkoutSession } from "./WorkoutSession";
 
 export const initializeModels = (sequelize: Sequelize) => {
   // Initialize all models
@@ -12,6 +13,7 @@ export const initializeModels = (sequelize: Sequelize) => {
   Set.initModel(sequelize);
   Workout.initModel(sequelize);
   WorkoutExercise.initModel(sequelize);
+  WorkoutSession.initModel(sequelize);
 
   // Define associations
   User.hasMany(Exercise, {
@@ -28,6 +30,22 @@ export const initializeModels = (sequelize: Sequelize) => {
   });
   Workout.belongsTo(User, {
     foreignKey: "userId",
+  });
+
+  User.hasMany(WorkoutSession, {
+    foreignKey: "userId",
+    as: "workoutSessions",
+  });
+  WorkoutSession.belongsTo(User, {
+    foreignKey: "userId",
+  });
+
+  Exercise.hasMany(WorkoutSession, {
+    foreignKey: "exerciseId",
+    as: "workoutSessions",
+  });
+  WorkoutSession.belongsTo(Exercise, {
+    foreignKey: "exerciseId",
   });
 
   Workout.belongsToMany(Exercise, {
@@ -55,7 +73,8 @@ export const initializeModels = (sequelize: Sequelize) => {
     Set,
     Workout,
     WorkoutExercise,
+    WorkoutSession,
   };
 };
 
-export { Exercise, User, Set, Workout, WorkoutExercise };
+export { Exercise, User, Set, Workout, WorkoutExercise, WorkoutSession };

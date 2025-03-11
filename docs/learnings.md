@@ -1718,8 +1718,9 @@ This document will capture key observations, challenges, and insights as the pro
 
 3. **Documentation**:
    - Document OAuth configuration requirements
-   - Add troubleshooting guide
    - Update development setup instructions
+   - Add troubleshooting information
+   - Document session management approach
 
 **Learning Points**:
 
@@ -1983,3 +1984,296 @@ This document will capture key observations, challenges, and insights as the pro
 - ✅ No email/password authentication
 - ✅ Session-based user management
 - ✅ Secure cookie handling
+
+### 2024-03-10: Server Configuration & Session Handling Improvements
+
+**What Happened**:
+
+1. **Server Structure Reorganization**:
+
+   - Separated server initialization (`index.ts`) from app configuration (`app.ts`)
+   - Centralized environment variable validation in `validateEnv.ts`
+   - Improved error handling across the application
+
+2. **Session Management Improvements**:
+
+   - Fixed session table name mismatch
+   - Added proper error handling for session store
+   - Implemented session cleanup
+   - Added rolling sessions for better user experience
+
+3. **Configuration Management**:
+   - Created comprehensive `.env.example` template
+   - Centralized environment validation
+   - Added production configuration examples
+   - Improved documentation of required variables
+
+**Technical Details**:
+
+1. **Environment Configuration**:
+
+   ```typescript
+   interface EnvConfig {
+     NODE_ENV: "development" | "production" | "test";
+     PORT: number;
+     DATABASE_URL: string;
+     // ... other config options
+   }
+   ```
+
+2. **Session Store Configuration**:
+
+   ```typescript
+   const sessionStore = new PostgresqlStore({
+     pool,
+     tableName: "sessions",
+     createTableIfMissing: true,
+     pruneSessionInterval: 24 * 60 * 60,
+   });
+   ```
+
+3. **Error Handling Improvements**:
+   - Added pool error handling
+   - Implemented session store error handling
+   - Enhanced authentication error messages
+   - Added development request logging
+
+**Why It Matters**:
+
+- Prevents server crashes from configuration issues
+- Improves session reliability and security
+- Makes setup easier for new developers
+- Provides better error feedback
+- Follows security best practices from PRD
+
+**Next Steps**:
+
+1. **Monitoring**:
+
+   - Add session analytics
+   - Implement error tracking
+   - Monitor session cleanup effectiveness
+
+2. **Security**:
+
+   - Consider implementing rate limiting
+   - Add session blacklisting for logged-out users
+   - Implement security headers monitoring
+
+3. **Development Experience**:
+   - Add development setup documentation
+   - Create database setup scripts
+   - Add configuration validation tests
+
+**Challenges & Solutions**:
+
+1. **Session Table Mismatch**:
+
+   - **Challenge**: Session table name didn't match schema
+   - **Solution**: Aligned table name and added validation
+
+2. **Error Handling**:
+
+   - **Challenge**: Unhandled errors causing crashes
+   - **Solution**: Added comprehensive error handling
+
+3. **Configuration Management**:
+   - **Challenge**: Scattered environment validation
+   - **Solution**: Centralized in `validateEnv.ts`
+
+**PRD Alignment**:
+
+- ✅ Secure session management
+- ✅ Google OAuth implementation
+- ✅ Error handling requirements
+- ✅ Development workflow improvements
+- ✅ Security best practices
+
+**Key Learnings**:
+
+1. Importance of centralized configuration
+2. Need for comprehensive error handling
+3. Value of proper session management
+4. Benefits of clear documentation
+5. Significance of type-safe configuration
+
+### 2024-03-12: Model Architecture & Authentication Overhaul
+
+**What Happened**:
+
+1. **Model Import & Structure Improvements**:
+
+   - Fixed circular dependencies between models
+   - Standardized model initialization patterns
+   - Corrected import paths for all models
+   - Implemented consistent export patterns
+
+2. **Database Schema Alignment**:
+
+   - Standardized column naming conventions (snake_case)
+   - Fixed model associations and relationships
+   - Aligned Sequelize model fields with database columns
+   - Improved type safety across model definitions
+
+3. **Authentication Strategy Cleanup**:
+   - Removed JWT-based authentication remnants
+   - Properly structured Google OAuth implementation
+   - Fixed session management configuration
+   - Aligned authentication with PRD requirements
+
+**Technical Details**:
+
+1. **Model Structure Changes**:
+
+   ```typescript
+   // Standardized model initialization pattern
+   static initModel(sequelize: Sequelize): typeof Model {
+     Model.init({
+       // ... model fields
+     }, {
+       sequelize,
+       tableName: "table_name",
+       underscored: true
+     });
+     return Model;
+   }
+
+   // Consistent association pattern
+   static associateModels(): void {
+     // Define relationships
+   }
+   ```
+
+2. **Key Model Relationships**:
+
+   - User → Exercise (one-to-many)
+   - Exercise ↔ Workout (many-to-many through WorkoutExercise)
+   - WorkoutExercise → Set (one-to-many)
+   - User → WorkoutSession (one-to-many)
+   - Exercise → WorkoutSession (one-to-many)
+
+3. **Authentication Updates**:
+   ```typescript
+   // Session configuration
+   app.use(
+     session({
+       store: new PostgresqlStore({
+         pool,
+         tableName: "sessions",
+         createTableIfMissing: true,
+       }),
+       secret: process.env.SESSION_SECRET!,
+       resave: false,
+       saveUninitialized: false,
+       cookie: {
+         secure: process.env.NODE_ENV === "production",
+         httpOnly: true,
+         sameSite: "lax",
+       },
+     })
+   );
+   ```
+
+**Why It Matters**:
+
+- Ensures type safety throughout the application
+- Prevents subtle bugs from naming mismatches
+- Maintains consistent data relationships
+- Aligns implementation with PRD requirements
+- Improves code maintainability and reliability
+- Sets foundation for future feature development
+
+**Next Steps**:
+
+1. **Testing Infrastructure**:
+
+   - Implement comprehensive test suite
+   - Add model relationship tests
+   - Test authentication flow
+   - Add integration tests for core features
+
+2. **Documentation**:
+
+   - Document model relationships
+   - Update development setup guide
+   - Add troubleshooting information
+   - Document authentication flow
+
+3. **Feature Development**:
+   - Implement remaining workout tracking features
+   - Add data visualization components
+   - Enhance error handling
+   - Add user preferences management
+
+**Challenges & Solutions**:
+
+1. **Circular Dependencies**:
+
+   - **Challenge**: Models importing each other causing TypeScript errors
+   - **Solution**: Restructured imports and used proper initialization patterns
+
+2. **Model Naming Conventions**:
+
+   - **Challenge**: Inconsistent field names between models and database
+   - **Solution**: Standardized on snake_case for database columns with proper field mapping
+
+3. **Authentication Strategy**:
+
+   - **Challenge**: Mixed JWT and OAuth implementations
+   - **Solution**: Removed JWT code and properly implemented Google OAuth
+
+4. **Type Safety**:
+   - **Challenge**: TypeScript errors in model associations
+   - **Solution**: Added proper type definitions and fixed import/export patterns
+
+**PRD Alignment**:
+
+- ✅ Proper model relationships as specified
+- ✅ Google OAuth as primary authentication
+- ✅ Type-safe implementation
+- ✅ Consistent naming conventions
+- ✅ Secure session management
+
+**Key Learnings**:
+
+1. **Architecture**:
+
+   - Importance of reviewing PRD before implementation
+   - Value of consistent naming conventions
+   - Need for proper type definitions
+   - Benefits of standardized patterns
+
+2. **Development Process**:
+
+   - Early detection of architectural issues saves time
+   - Clear documentation helps maintain consistency
+   - Type safety catches potential issues early
+   - Proper planning prevents technical debt
+
+3. **Authentication**:
+   - OAuth implementation requires careful session management
+   - Removing unused authentication code prevents confusion
+   - Session configuration crucial for security
+   - Clear authentication strategy important for maintenance
+
+**Documentation Updates Required**:
+
+1. **Model Documentation**:
+
+   - Relationship diagrams
+   - Field naming conventions
+   - Association patterns
+   - Type definitions
+
+2. **Authentication Guide**:
+
+   - OAuth setup instructions
+   - Session configuration
+   - Security considerations
+   - Development workflow
+
+3. **Development Setup**:
+   - Environment configuration
+   - Database setup
+   - Testing infrastructure
+   - Common troubleshooting steps

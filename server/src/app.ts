@@ -3,30 +3,18 @@ import cors from "cors";
 import session from "express-session";
 import passport from "passport";
 import pgSession from "connect-pg-simple";
-import "./config/passport"; // Import passport config
+import { Pool } from "pg";
+import { config } from "./config/validateEnv";
+import "./config/passport";
 import authRoutes from "./routes/authRoutes";
 import exerciseRoutes from "./routes/exerciseRoutes";
 import workoutRoutes from "./routes/workoutRoutes";
 import exportRoutes from "./routes/exportRoutes";
 import { errorHandler } from "./middleware/errorHandler";
-import { Pool } from "pg";
-
-// Validate required environment variables
-if (!process.env.CLIENT_URL) {
-  throw new Error("CLIENT_URL environment variable is required");
-}
-
-if (!process.env.SESSION_SECRET) {
-  throw new Error("SESSION_SECRET environment variable is required");
-}
-
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is required");
-}
 
 const app = express();
 
-// Security headers middleware
+// Security headers middleware as per security-requirements.md
 app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
@@ -45,50 +33,59 @@ app.use((req, res, next) => {
 
 // Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // CORS configuration
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || process.env.CLIENT_URL,
+    origin: config.CORS_ORIGIN,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// PostgreSQL session store setup
+// PostgreSQL session store setup with error handling
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? { rejectUnauthorized: false }
-      : false,
+  connectionString: config.DATABASE_URL,
+  ssl: config.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+});
+
+// Handle pool errors
+pool.on("error", (err) => {
+  console.error("Unexpected error on idle client", err);
+  process.exit(-1);
 });
 
 const PostgresqlStore = pgSession(session);
 const sessionStore = new PostgresqlStore({
   pool,
-  tableName: "user_sessions", // More descriptive table name
+  tableName: "sessions", // Match the table name from our schema
   createTableIfMissing: true,
   pruneSessionInterval: 24 * 60 * 60, // Prune expired sessions every 24 hours
 });
 
-// Session configuration
+// Handle session store errors
+sessionStore.on("error", (error: Error) => {
+  console.error("Session store error:", error);
+  // Don't exit process, but log the error
+});
+
+// Session configuration as per security-requirements.md
 app.use(
   session({
     store: sessionStore,
-    secret: process.env.SESSION_SECRET,
+    secret: config.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Refresh session with each request
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: config.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days as per PRD
       sameSite: "lax",
       domain:
-        process.env.NODE_ENV === "production"
-          ? process.env.COOKIE_DOMAIN
-          : undefined, // undefined for localhost
+        config.NODE_ENV === "production" ? config.COOKIE_DOMAIN : undefined,
     },
     name: "powr.sid", // Custom session cookie name for better security
   })
@@ -97,6 +94,14 @@ app.use(
 // Initialize Passport and restore authentication state from session
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Add request logging in development
+if (config.NODE_ENV === "development") {
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.path}`);
+    next();
+  });
+}
 
 // Routes
 app.use("/api/auth", authRoutes);

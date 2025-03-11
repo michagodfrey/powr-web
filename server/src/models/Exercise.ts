@@ -1,4 +1,7 @@
 import { Model, DataTypes, Sequelize } from "sequelize";
+import { Workout } from "./Workout";
+import { WorkoutExercise } from "./WorkoutExercise";
+import { Set } from "./Set";
 
 interface ExerciseAttributes {
   id: number;
@@ -8,6 +11,8 @@ interface ExerciseAttributes {
   isArchived: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  workouts?: Workout[];
+  workoutExercise?: WorkoutExercise;
 }
 
 interface ExerciseCreationAttributes extends Omit<ExerciseAttributes, "id"> {}
@@ -23,6 +28,8 @@ class Exercise
   public isArchived!: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
+  public workouts?: Workout[];
+  public workoutExercise?: WorkoutExercise;
 
   static initModel(sequelize: Sequelize): typeof Exercise {
     Exercise.init(
@@ -82,6 +89,19 @@ class Exercise
       }
     );
     return Exercise;
+  }
+
+  static associateModels(): void {
+    Exercise.belongsToMany(Workout, {
+      through: WorkoutExercise,
+      as: "workouts",
+      foreignKey: "exerciseId",
+    });
+
+    Exercise.hasOne(WorkoutExercise, {
+      as: "workoutExercise",
+      foreignKey: "exerciseId",
+    });
   }
 }
 

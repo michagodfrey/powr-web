@@ -7,8 +7,42 @@ import { Workout } from "../models/Workout";
 import { WorkoutExercise } from "../models/WorkoutExercise";
 import { Set } from "../models/Set";
 
+interface FormattedSet {
+  weight: number;
+  reps: number;
+  notes?: string;
+}
+
+interface FormattedExercise {
+  name: string;
+  sets: FormattedSet[];
+}
+
+// For the initial workout format (before flattening)
+interface FormattedWorkoutData {
+  name: string;
+  startTime: string;
+  endTime: string;
+  exercises?: FormattedExercise[];
+}
+
+// For the flattened data (CSV format)
+interface FlattenedWorkoutData {
+  workoutName: string;
+  date: string;
+  endTime: string;
+  exerciseName: string;
+  setNumber: number;
+  weight: number;
+  reps: number;
+  notes: string;
+}
+
 // Helper function to format workout data for export
-const formatWorkoutData = async (userId: number, exerciseId?: number) => {
+const formatWorkoutData = async (
+  userId: number,
+  exerciseId?: number
+): Promise<FormattedWorkoutData[]> => {
   const workouts = await Workout.findAll({
     where: { userId },
     include: [
@@ -17,33 +51,43 @@ const formatWorkoutData = async (userId: number, exerciseId?: number) => {
         as: "exercises",
         ...(exerciseId ? { where: { id: exerciseId } } : {}),
         through: {
-          model: WorkoutExercise,
           as: "workoutExercise",
-          include: [
-            {
-              model: Set,
-              as: "sets",
-            },
-          ],
         },
+        include: [
+          {
+            model: WorkoutExercise,
+            as: "workoutExercise",
+            include: [
+              {
+                model: Set,
+                as: "sets",
+              },
+            ],
+          },
+        ],
       },
     ],
     order: [["startTime", "DESC"]],
   });
 
-  return workouts.map((workout) => ({
-    name: workout.name || "Unnamed Workout",
-    startTime: workout.startTime.toISOString().split("T")[0],
-    endTime: workout.endTime?.toISOString().split("T")[0] || "In Progress",
-    exercises: workout.exercises?.map((exercise) => ({
-      name: exercise.name,
-      sets: (exercise.workoutExercise as any).sets.map((set: Set) => ({
-        weight: set.weight,
-        reps: set.reps,
-        notes: set.notes,
+  return workouts.map(
+    (workout): FormattedWorkoutData => ({
+      name: workout.name || "Unnamed Workout",
+      startTime: workout.startTime.toISOString().split("T")[0],
+      endTime: workout.endTime?.toISOString().split("T")[0] || "In Progress",
+      exercises: workout.exercises?.map((exercise) => ({
+        name: exercise.name,
+        sets:
+          exercise.workoutExercise?.sets?.map(
+            (set: Set): FormattedSet => ({
+              weight: set.weight,
+              reps: set.reps,
+              notes: set.notes,
+            })
+          ) || [],
       })),
-    })),
-  }));
+    })
+  );
 };
 
 // Export workout data as CSV
@@ -62,19 +106,21 @@ export const exportWorkoutsCSV = async (
     );
 
     // Flatten the data for CSV format
-    const flattenedData = workoutData.flatMap(
-      (workout) =>
-        workout.exercises?.flatMap((exercise) =>
-          exercise.sets.map((set, index) => ({
-            workoutName: workout.name,
-            date: workout.startTime,
-            endTime: workout.endTime,
-            exerciseName: exercise.name,
-            setNumber: index + 1,
-            weight: set.weight,
-            reps: set.reps,
-            notes: set.notes || "",
-          }))
+    const flattenedData: FlattenedWorkoutData[] = workoutData.flatMap(
+      (workout: FormattedWorkoutData) =>
+        workout.exercises?.flatMap((exercise: FormattedExercise) =>
+          exercise.sets.map(
+            (set: FormattedSet, index: number): FlattenedWorkoutData => ({
+              workoutName: workout.name,
+              date: workout.startTime,
+              endTime: workout.endTime,
+              exerciseName: exercise.name,
+              setNumber: index + 1,
+              weight: set.weight,
+              reps: set.reps,
+              notes: set.notes || "",
+            })
+          )
         ) || []
     );
 
@@ -136,7 +182,7 @@ export const exportWorkoutsPDF = async (
     doc.fontSize(20).text("Workout History", { align: "center" }).moveDown();
 
     // Add workout data
-    workoutData.forEach((workout) => {
+    workoutData.forEach((workout: FormattedWorkoutData) => {
       doc
         .fontSize(16)
         .text(workout.name)
@@ -146,16 +192,18 @@ export const exportWorkoutsPDF = async (
         .moveDown(0.5);
 
       // Add exercises
-      workout.exercises?.forEach((exercise) => {
+      workout.exercises?.forEach((exercise: FormattedExercise) => {
         doc.fontSize(14).text(exercise.name).moveDown(0.5);
 
         // Add sets table
-        const setRows = exercise.sets.map((set, index) => [
-          `Set ${index + 1}`,
-          `${set.weight} kg`,
-          `${set.reps} reps`,
-          set.notes || "",
-        ]);
+        const setRows = exercise.sets.map(
+          (set: FormattedSet, index: number) => [
+            `Set ${index + 1}`,
+            `${set.weight} kg`,
+            `${set.reps} reps`,
+            set.notes || "",
+          ]
+        );
 
         // Calculate column widths
         const colWidths = [60, 80, 80, 200];
@@ -168,9 +216,9 @@ export const exportWorkoutsPDF = async (
         });
 
         // Draw rows
-        setRows.forEach((row, i) => {
+        setRows.forEach((row: string[], i: number) => {
           const rowTop = tableTop + 20 + i * 20;
-          row.forEach((cell, j) => {
+          row.forEach((cell: string, j: number) => {
             doc.text(cell, doc.x + j * colWidths[j], rowTop);
           });
           tableHeight = Math.max(tableHeight, rowTop - tableTop + 20);

@@ -1,5 +1,6 @@
-import { Model, DataTypes } from "sequelize";
-import sequelize from "../config/database";
+import { Model, DataTypes, Sequelize } from "sequelize";
+import { User } from "./User";
+import { Exercise } from "./Exercise";
 
 interface WorkoutSetData {
   weight: number;
@@ -45,88 +46,91 @@ class WorkoutSession
       return total + weight * set.reps;
     }, 0);
   }
+
+  static initModel(sequelize: Sequelize): typeof WorkoutSession {
+    WorkoutSession.init(
+      {
+        id: {
+          type: DataTypes.INTEGER,
+          autoIncrement: true,
+          primaryKey: true,
+        },
+        userId: {
+          type: DataTypes.INTEGER,
+          allowNull: false,
+          field: "user_id",
+          references: {
+            model: "users",
+            key: "id",
+          },
+        },
+        exerciseId: {
+          type: DataTypes.INTEGER,
+          allowNull: false,
+          field: "exercise_id",
+          references: {
+            model: "exercises",
+            key: "id",
+          },
+        },
+        date: {
+          type: DataTypes.DATE,
+          allowNull: false,
+        },
+        notes: {
+          type: DataTypes.TEXT,
+          allowNull: true,
+        },
+        sets: {
+          type: DataTypes.JSONB,
+          allowNull: false,
+          defaultValue: [],
+        },
+        totalVolume: {
+          type: DataTypes.DECIMAL(10, 2),
+          allowNull: false,
+          field: "total_volume",
+          defaultValue: 0,
+        },
+        unit: {
+          type: DataTypes.STRING(2),
+          allowNull: false,
+          validate: {
+            isIn: [["kg", "lb"]],
+          },
+        },
+        createdAt: {
+          type: DataTypes.DATE,
+          allowNull: false,
+          field: "created_at",
+          defaultValue: DataTypes.NOW,
+        },
+        updatedAt: {
+          type: DataTypes.DATE,
+          allowNull: false,
+          field: "updated_at",
+          defaultValue: DataTypes.NOW,
+        },
+      },
+      {
+        sequelize,
+        tableName: "workout_sessions",
+        underscored: true,
+        indexes: [
+          {
+            fields: ["user_id", "exercise_id", "date"],
+            name: "workout_sessions_user_exercise_date_idx",
+          },
+        ],
+        hooks: {
+          beforeSave: async (session: WorkoutSession) => {
+            session.totalVolume = session.calculateTotalVolume();
+          },
+        },
+      }
+    );
+    return WorkoutSession;
+  }
 }
 
-WorkoutSession.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    userId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      field: "user_id",
-      references: {
-        model: "users",
-        key: "id",
-      },
-    },
-    exerciseId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      field: "exercise_id",
-      references: {
-        model: "exercises",
-        key: "id",
-      },
-    },
-    date: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
-    notes: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-    sets: {
-      type: DataTypes.JSONB,
-      allowNull: false,
-      defaultValue: [],
-    },
-    totalVolume: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
-      field: "total_volume",
-      defaultValue: 0,
-    },
-    unit: {
-      type: DataTypes.STRING(2),
-      allowNull: false,
-      validate: {
-        isIn: [["kg", "lb"]],
-      },
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      field: "created_at",
-      defaultValue: DataTypes.NOW,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      field: "updated_at",
-      defaultValue: DataTypes.NOW,
-    },
-  },
-  {
-    sequelize,
-    tableName: "workout_sessions",
-    underscored: true,
-    indexes: [
-      {
-        fields: ["user_id", "exercise_id", "date"],
-        name: "workout_sessions_user_exercise_date_idx",
-      },
-    ],
-    hooks: {
-      beforeSave: async (session: WorkoutSession) => {
-        session.totalVolume = session.calculateTotalVolume();
-      },
-    },
-  }
-);
-
-export default WorkoutSession;
+export { WorkoutSession };

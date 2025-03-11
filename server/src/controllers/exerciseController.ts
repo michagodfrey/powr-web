@@ -16,6 +16,7 @@ export const createExercise = async (
       name,
       description,
       userId,
+      isArchived: false,
     });
 
     res.status(201).json({

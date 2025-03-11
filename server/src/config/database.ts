@@ -1,5 +1,8 @@
 import { Sequelize } from "sequelize";
 import dotenv from "dotenv";
+import { Workout } from "../models/Workout";
+import { Exercise } from "../models/Exercise";
+import { WorkoutExercise } from "../models/WorkoutExercise";
 
 // Load environment variables
 dotenv.config();
@@ -46,6 +49,10 @@ export const initDatabase = async () => {
   try {
     await sequelize.authenticate();
     console.log("Database connection has been established successfully.");
+
+    Workout.associateModels();
+    Exercise.associateModels();
+    WorkoutExercise.associateModels();
 
     // Sync database in development
     if (isDev) {
