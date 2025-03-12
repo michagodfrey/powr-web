@@ -3,13 +3,14 @@ import cors from "cors";
 import session from "express-session";
 import passport from "./config/passport";
 import pgSession from "connect-pg-simple";
-import { Pool } from "pg";
 import { config } from "./config/validateEnv";
+import { pool } from "./config/database";
 import authRoutes from "./routes/authRoutes";
 import exerciseRoutes from "./routes/exerciseRoutes";
 import workoutRoutes from "./routes/workoutRoutes";
 import exportRoutes from "./routes/exportRoutes";
 import { errorHandler } from "./middleware/errorHandler";
+import cookieParser from "cookie-parser";
 
 export const createApp = (configuredPassport: typeof passport) => {
   const app = express();
@@ -33,7 +34,8 @@ export const createApp = (configuredPassport: typeof passport) => {
     });
   }
 
-  // Middleware
+  // Essential middleware
+  app.use(cookieParser(config.SESSION_SECRET));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -43,27 +45,15 @@ export const createApp = (configuredPassport: typeof passport) => {
       origin: config.CORS_ORIGIN,
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
+      allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+      exposedHeaders: ["Set-Cookie"],
     })
   );
-
-  // PostgreSQL session store setup with error handling
-  const pool = new Pool({
-    connectionString: config.DATABASE_URL,
-    ssl:
-      config.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
-  });
-
-  // Handle pool errors
-  pool.on("error", (err) => {
-    console.error("Unexpected error on idle client", err);
-    process.exit(-1);
-  });
 
   const PostgresqlStore = pgSession(session);
   const sessionStore = new PostgresqlStore({
     pool,
-    tableName: "sessions", // Match the table name from our schema
+    tableName: "session",
     createTableIfMissing: true,
     pruneSessionInterval: 24 * 60 * 60, // Prune expired sessions every 24 hours
   });
@@ -82,6 +72,7 @@ export const createApp = (configuredPassport: typeof passport) => {
       resave: false,
       saveUninitialized: false,
       rolling: true, // Refresh session with each request
+      proxy: config.NODE_ENV === "production", // Trust proxy in production
       cookie: {
         secure: config.NODE_ENV === "production",
         httpOnly: true,
@@ -89,6 +80,7 @@ export const createApp = (configuredPassport: typeof passport) => {
         sameSite: "lax",
         domain:
           config.NODE_ENV === "production" ? config.COOKIE_DOMAIN : undefined,
+        path: "/",
       },
       name: "powr.sid", // Custom session cookie name for better security
     })
@@ -108,7 +100,6 @@ export const createApp = (configuredPassport: typeof passport) => {
         sessionID: req.sessionID,
         user: req.user,
         cookies: req.cookies,
-        sessionCookie: req.cookies["powr.sid"],
       });
       next();
     });

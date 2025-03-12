@@ -55,7 +55,7 @@ class Session
       },
       {
         sequelize,
-        tableName: "sessions",
+        tableName: "user_sessions",
         underscored: true,
         timestamps: true,
         freezeTableName: true,
@@ -63,7 +63,7 @@ class Session
         indexes: [
           {
             fields: ["expires"],
-            name: "idx_sessions_expires",
+            name: "idx_user_sessions_expires",
           },
         ],
       }

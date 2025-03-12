@@ -1,24 +1,31 @@
 import { Sequelize } from "sequelize";
-import dotenv from "dotenv";
+import { config } from "./validateEnv";
 import { initializeModels } from "../models";
 import fs from "fs";
 import path from "path";
+import { Pool } from "pg";
 
-// Load environment variables
-dotenv.config();
+// Create a single pool instance to be shared
+export const pool = new Pool({
+  connectionString: config.DATABASE_URL,
+  ssl: config.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+  max: 20, // Maximum number of clients in the pool
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
+});
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is not set");
-}
-
-const isDev = process.env.NODE_ENV === "development";
-
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
+// Create Sequelize instance using the same connection config
+export const sequelize = new Sequelize(config.DATABASE_URL, {
   dialect: "postgres",
-  logging: isDev ? console.log : false,
-  ssl: process.env.NODE_ENV === "production",
+  logging: config.NODE_ENV === "development" ? console.log : false,
+  pool: {
+    max: 20,
+    min: 0,
+    acquire: 30000,
+    idle: 10000,
+  },
   dialectOptions:
-    process.env.NODE_ENV === "production"
+    config.NODE_ENV === "production"
       ? {
           ssl: {
             require: true,
@@ -26,24 +33,15 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
           },
         }
       : {},
-  pool: {
-    max: 5,
-    min: 0,
-    acquire: 30000,
-    idle: 10000,
-  },
-  define: {
-    // Use snake_case for database column names
-    underscored: true,
-    // Don't pluralize table names
-    freezeTableName: true,
-    // Add timestamps by default
-    timestamps: true,
-    // Use snake_case for timestamps
-    createdAt: "created_at",
-    updatedAt: "updated_at",
-  },
 });
+
+// Handle pool errors
+pool.on("error", (err) => {
+  console.error("Unexpected error on idle client", err);
+  process.exit(-1);
+});
+
+export const isDev = config.NODE_ENV === "development";
 
 export const initDatabase = async () => {
   try {
@@ -53,31 +51,20 @@ export const initDatabase = async () => {
     // Initialize all models using the centralized initialization function
     const models = initializeModels(sequelize);
 
-    // Create session table and index in separate queries
-    const createTableSQL = `
-      CREATE TABLE IF NOT EXISTS "sessions" (
-        "sid" varchar NOT NULL COLLATE "default",
-        "sess" json NOT NULL,
-        "expire" timestamp(6) NOT NULL,
-        CONSTRAINT "sessions_pkey" PRIMARY KEY ("sid")
-      )
-    `;
-
-    const createIndexSQL = `
-      CREATE INDEX IF NOT EXISTS "IDX_sessions_expire" ON "sessions" ("expire")
-    `;
-
-    // Execute queries in sequence
-    await sequelize.query(createTableSQL);
-    console.log("Session table created");
-
-    await sequelize.query(createIndexSQL);
-    console.log("Session index created");
-
-    // Sync database in development
+    // In development, we'll use the init-database.sql script instead of sync
     if (isDev) {
-      await sequelize.sync({ alter: true });
-      console.log("Database synchronized");
+      try {
+        // Read and execute the init-database.sql script
+        const initScript = fs.readFileSync(
+          path.join(__dirname, "../../scripts/init-database.sql"),
+          "utf8"
+        );
+        await sequelize.query(initScript);
+        console.log("Database initialized using init-database.sql");
+      } catch (error) {
+        console.error("Error executing init-database.sql:", error);
+        throw error;
+      }
     }
 
     return sequelize;
@@ -86,5 +73,3 @@ export const initDatabase = async () => {
     throw error;
   }
 };
-
-export default sequelize;

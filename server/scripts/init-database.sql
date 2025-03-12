@@ -12,7 +12,8 @@ END
 $$;
 
 -- Drop existing tables if they exist
-DROP TABLE IF EXISTS sessions CASCADE;
+DROP TABLE IF EXISTS session CASCADE;
+DROP TABLE IF EXISTS user_sessions CASCADE;
 DROP TABLE IF EXISTS sets CASCADE;
 DROP TABLE IF EXISTS workout_sessions CASCADE;
 DROP TABLE IF EXISTS exercises CASCADE;
@@ -85,8 +86,18 @@ CREATE TABLE sets (
     CONSTRAINT chk_reps_positive CHECK (reps > 0)
 );
 
--- Create sessions table
-CREATE TABLE sessions (
+-- Create session table for connect-pg-simple
+CREATE TABLE session (
+    sid varchar NOT NULL COLLATE "default",
+    sess json NOT NULL,
+    expire timestamp(6) NOT NULL,
+    CONSTRAINT session_pkey PRIMARY KEY (sid)
+);
+
+CREATE INDEX IF NOT EXISTS IDX_session_expire ON session(expire);
+
+-- Create user_sessions table for application use
+CREATE TABLE user_sessions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     expires TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -94,13 +105,14 @@ CREATE TABLE sessions (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX idx_user_sessions_expires ON user_sessions(expires);
+
 -- Create indexes
 CREATE INDEX idx_exercises_user ON exercises(user_id);
 CREATE INDEX idx_workout_sessions_user ON workout_sessions(user_id);
 CREATE INDEX idx_workout_sessions_exercise ON workout_sessions(exercise_id);
 CREATE INDEX idx_workout_sessions_date ON workout_sessions(date DESC);
 CREATE INDEX idx_sets_session ON sets(session_id);
-CREATE INDEX idx_sessions_expires ON sessions(expires);
 
 -- Create triggers for updated_at
 CREATE TRIGGER update_users_updated_at
