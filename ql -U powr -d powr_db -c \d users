@@ -1,0 +1,10 @@
+             List of relations
+ Schema |       Name       | Type  | Owner 
+--------+------------------+-------+-------
+ public | exercises        | table | powr
+ public | sessions         | table | powr
+ public | sets             | table | powr
+ public | users            | table | powr
+ public | workout_sessions | table | powr
+(5 rows)
+

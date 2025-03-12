@@ -5,6 +5,7 @@ import { Set } from "./Set";
 import { Workout } from "./Workout";
 import { WorkoutExercise } from "./WorkoutExercise";
 import { WorkoutSession } from "./WorkoutSession";
+import { Session } from "./Session";
 
 export const initializeModels = (sequelize: Sequelize) => {
   // Initialize all models
@@ -14,6 +15,7 @@ export const initializeModels = (sequelize: Sequelize) => {
   Workout.initModel(sequelize);
   WorkoutExercise.initModel(sequelize);
   WorkoutSession.initModel(sequelize);
+  Session.initModel(sequelize);
 
   // Define associations
   User.hasMany(Exercise, {
@@ -67,6 +69,9 @@ export const initializeModels = (sequelize: Sequelize) => {
     foreignKey: "workoutExerciseId",
   });
 
+  // Initialize Session associations
+  Session.associateModels();
+
   return {
     Exercise,
     User,
@@ -74,7 +79,16 @@ export const initializeModels = (sequelize: Sequelize) => {
     Workout,
     WorkoutExercise,
     WorkoutSession,
+    Session,
   };
 };
 
-export { Exercise, User, Set, Workout, WorkoutExercise, WorkoutSession };
+export {
+  Exercise,
+  User,
+  Set,
+  Workout,
+  WorkoutExercise,
+  WorkoutSession,
+  Session,
+};

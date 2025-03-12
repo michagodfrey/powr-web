@@ -2,7 +2,7 @@
 
 ## Project Name
 
-**Progressive Overload Workout Recorder (POWR)**
+Progressive Overload Workout Recorder (POWR)
 
 ## Description
 

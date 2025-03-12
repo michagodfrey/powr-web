@@ -1,8 +1,8 @@
 import { Sequelize } from "sequelize";
 import dotenv from "dotenv";
-import { Workout } from "../models/Workout";
-import { Exercise } from "../models/Exercise";
-import { WorkoutExercise } from "../models/WorkoutExercise";
+import { initializeModels } from "../models";
+import fs from "fs";
+import path from "path";
 
 // Load environment variables
 dotenv.config();
@@ -50,9 +50,29 @@ export const initDatabase = async () => {
     await sequelize.authenticate();
     console.log("Database connection has been established successfully.");
 
-    Workout.associateModels();
-    Exercise.associateModels();
-    WorkoutExercise.associateModels();
+    // Initialize all models using the centralized initialization function
+    const models = initializeModels(sequelize);
+
+    // Create session table and index in separate queries
+    const createTableSQL = `
+      CREATE TABLE IF NOT EXISTS "sessions" (
+        "sid" varchar NOT NULL COLLATE "default",
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "sessions_pkey" PRIMARY KEY ("sid")
+      )
+    `;
+
+    const createIndexSQL = `
+      CREATE INDEX IF NOT EXISTS "IDX_sessions_expire" ON "sessions" ("expire")
+    `;
+
+    // Execute queries in sequence
+    await sequelize.query(createTableSQL);
+    console.log("Session table created");
+
+    await sequelize.query(createIndexSQL);
+    console.log("Session index created");
 
     // Sync database in development
     if (isDev) {

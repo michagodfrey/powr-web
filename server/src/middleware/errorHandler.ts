@@ -33,6 +33,19 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
+  // Log detailed error information
+  console.error("Error Details:", {
+    path: req.path,
+    method: req.method,
+    errorName: err.name,
+    errorMessage: err.message,
+    statusCode: err.statusCode,
+    stack: err.stack,
+    isAuthenticated: req.isAuthenticated?.(),
+    sessionID: req.sessionID,
+    user: req.user,
+  });
+
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
 

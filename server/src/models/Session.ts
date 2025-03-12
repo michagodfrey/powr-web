@@ -1,6 +1,5 @@
-import { Model, DataTypes } from "sequelize";
-import sequelize from "../config/database";
-import { User }from "./User";
+import { Model, DataTypes, Sequelize } from "sequelize";
+import { User } from "./User";
 
 interface SessionAttributes {
   id: number;
@@ -21,57 +20,61 @@ class Session
   public expires!: Date;
   public data!: string;
   public readonly createdAt!: Date;
+
+  static initModel(sequelize: Sequelize): typeof Session {
+    Session.init(
+      {
+        id: {
+          type: DataTypes.INTEGER,
+          autoIncrement: true,
+          primaryKey: true,
+        },
+        userId: {
+          type: DataTypes.INTEGER,
+          allowNull: false,
+          field: "user_id",
+          references: {
+            model: "users",
+            key: "id",
+          },
+        },
+        expires: {
+          type: DataTypes.DATE,
+          allowNull: false,
+        },
+        data: {
+          type: DataTypes.TEXT,
+          allowNull: false,
+        },
+        createdAt: {
+          type: DataTypes.DATE,
+          allowNull: false,
+          field: "created_at",
+          defaultValue: DataTypes.NOW,
+        },
+      },
+      {
+        sequelize,
+        tableName: "sessions",
+        underscored: true,
+        timestamps: true,
+        freezeTableName: true,
+        updatedAt: false, // This table doesn't use updated_at
+        indexes: [
+          {
+            fields: ["expires"],
+            name: "idx_sessions_expires",
+          },
+        ],
+      }
+    );
+    return Session;
+  }
+
+  static associateModels(): void {
+    Session.belongsTo(User, { foreignKey: "user_id", as: "user" });
+    User.hasMany(Session, { foreignKey: "user_id", as: "sessions" });
+  }
 }
 
-Session.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    userId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      field: "user_id",
-      references: {
-        model: User,
-        key: "id",
-      },
-    },
-    expires: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
-    data: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      field: "created_at",
-      defaultValue: DataTypes.NOW,
-    },
-  },
-  {
-    sequelize,
-    tableName: "sessions",
-    underscored: true,
-    timestamps: true,
-    freezeTableName: true,
-    updatedAt: false, // This table doesn't use updated_at
-    indexes: [
-      {
-        fields: ["expires"],
-        name: "idx_sessions_expires",
-      },
-    ],
-  }
-);
-
-// Define associations
-Session.belongsTo(User, { foreignKey: "user_id", as: "user" });
-User.hasMany(Session, { foreignKey: "user_id", as: "sessions" });
-
-export default Session;
+export { Session };

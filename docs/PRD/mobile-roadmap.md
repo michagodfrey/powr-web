@@ -386,21 +386,3 @@ interface MobileMetrics {
 - [ ] Widgets
 
 This mobile roadmap should be reviewed and updated regularly as development progresses and new requirements emerge.
-
-# Mobile Development Roadmap
-
-## Timeline Overview
-
-The mobile development phase will begin after the web application has achieved:
-
-- Full functionality of core features
-- Stable production deployment
-- Positive user feedback and validation
-- Performance metrics meeting or exceeding targets
-
-This approach ensures:
-
-1. Core functionality is thoroughly tested
-2. User needs are well understood
-3. Backend infrastructure is production-ready
-4. Data models and API endpoints are battle-tested

@@ -1,5 +1,6 @@
-import app from "./app";
+import { createApp } from "./app";
 import { initDatabase } from "./config/database";
+import { configurePassport } from "./config/passport";
 
 const PORT = process.env.PORT || 4000;
 
@@ -9,7 +10,13 @@ async function startServer() {
     // Initialize database first
     await initDatabase();
 
-    // Start server after database is ready
+    // Configure passport after database is initialized
+    const configuredPassport = configurePassport();
+
+    // Create the Express app with the configured passport
+    const app = createApp(configuredPassport);
+
+    // Start server after all initialization is complete
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });

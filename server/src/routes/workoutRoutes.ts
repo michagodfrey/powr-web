@@ -7,16 +7,19 @@ const router = express.Router();
 // Apply authentication middleware to all routes
 router.use(isAuthenticated);
 
-// Create a new workout session
-router.post("/", workoutController.createWorkoutSession);
+// Create a new workout
+router.post("/", workoutController.createWorkout);
 
-// Get workout sessions for an exercise
-router.get("/:exerciseId", workoutController.getWorkoutSessions);
+// Get workouts (with optional exercise filter)
+router.get("/:exerciseId?", workoutController.getWorkouts);
 
-// Update a workout session
-router.put("/:id", workoutController.updateWorkoutSession);
+// Get a specific workout
+router.get("/workout/:id", workoutController.getWorkout);
 
-// Delete a workout session
-router.delete("/:id", workoutController.deleteWorkoutSession);
+// Update a workout
+router.put("/:id", workoutController.updateWorkout);
+
+// Delete a workout
+router.delete("/:id", workoutController.deleteWorkout);
 
 export default router;

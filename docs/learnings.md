@@ -1537,9 +1537,11 @@ This document will capture key observations, challenges, and insights as the pro
      - `updated_at` to `exercises` table
      - `created_at` and `updated_at` to `workout_sessions` table
    - Added missing `preferred_unit` column to `users` table:
+
      ```sql
      ALTER TABLE users ADD COLUMN preferred_unit VARCHAR(2) NOT NULL DEFAULT 'kg' CHECK (preferred_unit IN ('kg', 'lb'));
      ```
+
    - Fixed column name mismatch between Sequelize model and database:
      - Model used camelCase `preferredUnit`
      - Database used snake_case `preferred_unit`
@@ -1627,7 +1629,7 @@ This document will capture key observations, challenges, and insights as the pro
 
 1. **Request Details**:
 
-   ```
+   ```bash
    Endpoint: /api/auth/google/callback
    Method: GET
    Status: 500 (Internal Server Error)
@@ -1841,6 +1843,7 @@ This document will capture key observations, challenges, and insights as the pro
 
    - Centralized column naming convention in database.ts
    - Added global Sequelize configuration:
+
      ```typescript
      define: {
        underscored: true,
@@ -2153,6 +2156,7 @@ This document will capture key observations, challenges, and insights as the pro
    - Exercise → WorkoutSession (one-to-many)
 
 3. **Authentication Updates**:
+
    ```typescript
    // Session configuration
    app.use(
@@ -2277,3 +2281,106 @@ This document will capture key observations, challenges, and insights as the pro
    - Database setup
    - Testing infrastructure
    - Common troubleshooting steps
+
+### 2024-03-12: Authentication & Security Headers Refinement
+
+**What Happened**:
+
+- Identified and fixed HTTPS redirection issue in development environment
+- Moved security headers behind production environment check
+- Fixed Google OAuth callback URL handling
+- Aligned implementation with security requirements from PRD
+
+**Technical Details**:
+
+1. **Security Headers Configuration**:
+
+   ```typescript
+   // Production-only security headers
+   if (config.NODE_ENV === "production") {
+     app.use((req, res, next) => {
+       res.setHeader(
+         "Content-Security-Policy",
+         "default-src 'self'; script-src 'self'"
+       );
+       res.setHeader(
+         "Strict-Transport-Security",
+         "max-age=31536000; includeSubDomains"
+       );
+       res.setHeader("X-Content-Type-Options", "nosniff");
+       res.setHeader("X-Frame-Options", "DENY");
+       res.setHeader("X-XSS-Protection", "1; mode=block");
+       res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+       next();
+     });
+   }
+   ```
+
+2. **OAuth Configuration**:
+   - Development callback URL: `http://localhost:4000/api/auth/google/callback`
+   - Production callback URL: `https://api.your-domain.com/api/auth/google/callback`
+   - Proper environment-based URL selection in passport config
+
+**Why It Matters**:
+
+- Fixes critical authentication flow in development environment
+- Maintains security best practices in production
+- Aligns with PRD security requirements
+- Improves development workflow
+
+**Next Steps**:
+
+1. Monitor authentication flow in development:
+
+   - Watch for any callback URL issues
+   - Verify session persistence
+   - Check error handling
+
+2. Security considerations:
+   - Review remaining security headers
+   - Consider implementing rate limiting
+   - Add session monitoring
+   - Implement proper logging
+
+**Challenges & Solutions**:
+
+- **Challenge**: HTTPS forcing in development
+
+  - **Solution**: Moved security headers to production-only configuration
+
+- **Challenge**: OAuth callback URL mismatch
+  - **Solution**: Properly configured environment-specific URLs
+
+**PRD Alignment**:
+
+- ✅ Google OAuth as primary authentication
+- ✅ Secure headers in production
+- ✅ Development environment considerations
+- ✅ Proper session management
+
+**Key Learnings**:
+
+1. Security headers can interfere with local development
+2. OAuth configuration needs environment-specific handling
+3. Clear separation needed between development and production security measures
+4. Importance of following PRD security requirements while maintaining development efficiency
+
+---
+
+## How to Use This Document (do not delete)
+
+1. **Add a New Entry**  
+   Whenever a milestone is reached or a significant change is made, create a new heading (e.g., `### [YYYY-MM-DD]: Heading Text`) to detail:
+
+   - What was changed or learned.
+   - Why this change or insight matters.
+   - Next steps or action items.
+
+2. **Keep It Concise**  
+   Focus on bullet points and short explanations so the document remains easy to read and update.
+
+3. **Document Decisions**  
+   If a design or architectural choice is made, record the reasoning. This will help future contributors understand the project's evolution.
+
+4. **Reflect Often**  
+   Look back on previous entries to avoid repeating mistakes and to see how the project has progressed over time.
