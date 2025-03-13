@@ -1,12 +1,7 @@
 import { Model, DataTypes, Sequelize } from "sequelize";
 import { User } from "./User";
 import { Exercise } from "./Exercise";
-
-interface WorkoutSetData {
-  weight: number;
-  reps: number;
-  unit: "kg" | "lb";
-}
+import { Set } from "./Set";
 
 interface WorkoutSessionAttributes {
   id: number;
@@ -14,7 +9,6 @@ interface WorkoutSessionAttributes {
   exerciseId: number;
   date: Date;
   notes?: string;
-  sets: WorkoutSetData[];
   totalVolume: number;
   unit: "kg" | "lb";
   createdAt?: Date;
@@ -33,19 +27,10 @@ class WorkoutSession
   public exerciseId!: number;
   public date!: Date;
   public notes!: string;
-  public sets!: WorkoutSetData[];
   public totalVolume!: number;
   public unit!: "kg" | "lb";
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
-
-  // Calculate total volume for the session
-  public calculateTotalVolume(): number {
-    return this.sets.reduce((total, set) => {
-      const weight = set.unit === "lb" ? set.weight * 0.453592 : set.weight; // Convert to kg if needed
-      return total + weight * set.reps;
-    }, 0);
-  }
 
   static initModel(sequelize: Sequelize): typeof WorkoutSession {
     WorkoutSession.init(
@@ -80,11 +65,6 @@ class WorkoutSession
         notes: {
           type: DataTypes.TEXT,
           allowNull: true,
-        },
-        sets: {
-          type: DataTypes.JSONB,
-          allowNull: false,
-          defaultValue: [],
         },
         totalVolume: {
           type: DataTypes.DECIMAL(10, 2),
@@ -122,14 +102,26 @@ class WorkoutSession
             name: "workout_sessions_user_exercise_date_idx",
           },
         ],
-        hooks: {
-          beforeSave: async (session: WorkoutSession) => {
-            session.totalVolume = session.calculateTotalVolume();
-          },
-        },
       }
     );
     return WorkoutSession;
+  }
+
+  static associateModels(): void {
+    WorkoutSession.belongsTo(User, {
+      foreignKey: "user_id",
+      as: "user",
+    });
+
+    WorkoutSession.belongsTo(Exercise, {
+      foreignKey: "exercise_id",
+      as: "exercise",
+    });
+
+    WorkoutSession.hasMany(Set, {
+      foreignKey: "session_id",
+      as: "sets",
+    });
   }
 }
 

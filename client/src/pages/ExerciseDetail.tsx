@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Exercise, WorkoutSession, Set, DateRange } from "../types";
-import { useAuth } from "../auth/AuthContext";
 import { usePreferences } from "../contexts/PreferencesContext";
+import { useAuth } from "../auth/AuthContext";
 import WorkoutSet from "../components/WorkoutSet";
 import VolumeChart from "../components/VolumeChart";
 import ErrorToast from "../components/ErrorToast";
@@ -25,46 +25,67 @@ const ExerciseDetail = () => {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showEditConfirm, setShowEditConfirm] = useState(false);
 
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+
   const fetchExerciseData = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      // Fetch exercise details
-      const exerciseResponse = await fetch(
-        `http://localhost:4000/api/exercises/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
+      console.log(
+        "ExerciseDetail: Fetching exercise",
+        id,
+        "for user:",
+        user?.id
       );
 
+      // Fetch exercise details
+      const exerciseResponse = await fetch(`${API_URL}/api/exercises/${id}`, {
+        credentials: "include",
+      });
+
       if (!exerciseResponse.ok) {
+        console.error(
+          "ExerciseDetail: Failed to fetch exercise:",
+          await exerciseResponse.text()
+        );
         throw new Error("Failed to fetch exercise details");
       }
 
       const exerciseData = await exerciseResponse.json();
+      console.log("ExerciseDetail: Received exercise data:", exerciseData);
 
       // Fetch workout sessions
-      const workoutsResponse = await fetch(
-        `http://localhost:4000/api/workouts/exercise/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+      let workoutHistory = [];
+      try {
+        const workoutsResponse = await fetch(
+          `${API_URL}/api/workouts/exercise/${id}`,
+          {
+            credentials: "include",
+          }
+        );
+
+        if (!workoutsResponse.ok) {
+          console.warn(
+            "Failed to fetch workout sessions:",
+            await workoutsResponse.text()
+          );
+          setError(
+            "Unable to load workout history. The exercise data was loaded successfully."
+          );
+        } else {
+          const workoutsData = await workoutsResponse.json();
+          workoutHistory = workoutsData.data.workoutSessions;
         }
-      );
-
-      if (!workoutsResponse.ok) {
-        throw new Error("Failed to fetch workout sessions");
+      } catch (workoutError) {
+        console.error("Error fetching workout sessions:", workoutError);
+        setError(
+          "Unable to load workout history. The exercise data was loaded successfully."
+        );
       }
-
-      const workoutsData = await workoutsResponse.json();
 
       setExercise({
         ...exerciseData.data.exercise,
-        workoutHistory: workoutsData.data.workoutSessions,
+        workoutHistory,
       });
     } catch (error) {
       console.error("Error fetching exercise data:", error);
@@ -85,29 +106,56 @@ const ExerciseDetail = () => {
 
     try {
       setError(null);
-      const response = await fetch("http://localhost:4000/api/workouts", {
+      const payload = {
+        exerciseId: exercise.id,
+        date,
+        sets: sets.map((set) => ({
+          weight: set.weight,
+          reps: set.reps,
+          notes: set.notes,
+          unit: set.unit,
+        })),
+      };
+      console.log("[Workout] Saving workout with payload:", payload);
+
+      const response = await fetch(`${API_URL}/api/workouts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({
-          exerciseId: exercise.id,
-          date,
-          sets,
-        }),
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      console.log("[Workout] Server response status:", {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to save workout");
+        const errorData = await response.json().catch(() => null);
+        console.error("[Workout] Server error response:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+          headers: Object.fromEntries(response.headers.entries()),
+        });
+        throw new Error(
+          errorData?.message || `Failed to save workout: ${response.statusText}`
+        );
       }
 
-      // Refresh exercise data to get the updated workout history
+      const responseData = await response.json();
+      console.log("[Workout] Server success response:", responseData);
+
       await fetchExerciseData();
       setShowWorkoutModal(false);
     } catch (error) {
-      console.error("Error saving workout:", error);
+      console.error("[Workout] Error saving workout:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       setError(
         error instanceof Error ? error.message : "Failed to save workout"
       );
@@ -117,22 +165,16 @@ const ExerciseDetail = () => {
   const handleDeleteWorkout = async (workoutId: number) => {
     try {
       setError(null);
-      const response = await fetch(
-        `http://localhost:4000/api/workouts/${workoutId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      const response = await fetch(`${API_URL}/api/workouts/${workoutId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to delete workout");
       }
 
-      // Refresh exercise data to get the updated workout history
       await fetchExerciseData();
       setWorkoutToDelete(null);
     } catch (error) {
@@ -149,13 +191,13 @@ const ExerciseDetail = () => {
     try {
       setError(null);
       const response = await fetch(
-        `http://localhost:4000/api/workouts/${workoutToEdit.id}`,
+        `${API_URL}/api/workouts/${workoutToEdit.id}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
+          credentials: "include",
           body: JSON.stringify({
             date,
             sets,
@@ -168,7 +210,6 @@ const ExerciseDetail = () => {
         throw new Error(errorData.message || "Failed to update workout");
       }
 
-      // Refresh exercise data to get the updated workout history
       await fetchExerciseData();
       setWorkoutToEdit(null);
       setShowEditConfirm(false);
@@ -192,11 +233,9 @@ const ExerciseDetail = () => {
     try {
       setError(null);
       const response = await fetch(
-        `http://localhost:4000/api/export/${format}?exerciseId=${id}`,
+        `${API_URL}/api/export/${format}?exerciseId=${id}`,
         {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          credentials: "include",
         }
       );
 
@@ -258,7 +297,20 @@ const ExerciseDetail = () => {
   if (!exercise) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl text-red-500">Exercise not found</h1>
+        <button
+          onClick={() => navigate("/")}
+          className="text-gray-600 dark:text-gray-400 mb-4 hover:text-primary"
+        >
+          ← Back to Exercises
+        </button>
+        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+          <h1 className="text-2xl text-red-600 dark:text-red-400 mb-2">
+            Exercise not found
+          </h1>
+          <p className="text-red-600/80 dark:text-red-400/80">
+            This exercise doesn't exist or you don't have permission to view it.
+          </p>
+        </div>
       </div>
     );
   }
@@ -282,6 +334,9 @@ const ExerciseDetail = () => {
               {exercise.description}
             </p>
           )}
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Logged in as: {user?.email}
+          </p>
         </div>
         <div className="flex gap-2">
           <div className="flex gap-2">

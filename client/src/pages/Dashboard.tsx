@@ -3,9 +3,11 @@ import { Exercise } from "../types";
 import ExerciseForm from "../components/ExerciseForm";
 import { useNavigate } from "react-router-dom";
 import ErrorToast from "../components/ErrorToast";
+import { useAuth } from "../auth/AuthContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [showExerciseForm, setShowExerciseForm] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -15,17 +17,22 @@ const Dashboard = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("http://localhost:4000/api/exercises", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      console.log("Dashboard: Fetching exercises for user:", user?.id);
+      const response = await fetch(
+        `${
+          import.meta.env.VITE_API_URL || "http://localhost:4000"
+        }/api/exercises`,
+        {
+          credentials: "include",
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch exercises");
       }
 
       const data = await response.json();
+      console.log("Dashboard: Received exercises:", data.data.exercises);
       setExercises(data.data.exercises);
     } catch (error) {
       console.error("Error fetching exercises:", error);
@@ -46,14 +53,19 @@ const Dashboard = () => {
   ) => {
     try {
       setError(null);
-      const response = await fetch("http://localhost:4000/api/exercises", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify(exerciseData),
-      });
+      const response = await fetch(
+        `${
+          import.meta.env.VITE_API_URL || "http://localhost:4000"
+        }/api/exercises`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(exerciseData),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -85,9 +97,14 @@ const Dashboard = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-secondary dark:text-white">
-          My Exercises
-        </h1>
+        <div>
+          <h1 className="text-3xl font-bold text-secondary dark:text-white">
+            My Exercises
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Logged in as: {user?.email}
+          </p>
+        </div>
         <button
           onClick={() => setShowExerciseForm(true)}
           className="btn-primary"

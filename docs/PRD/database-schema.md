@@ -56,6 +56,7 @@ This document defines the database schema for the Progressive Overload Workout R
 | reps       | INTEGER       | NOT NULL                                  | Number of repetitions                 |
 | unit       | VARCHAR(2)    | NOT NULL                                  | Weight unit (kg/lb)                   |
 | volume     | DECIMAL(10,2) | NOT NULL                                  | Set volume (weight × reps)            |
+| notes      | TEXT          |                                           | Optional notes for the set            |
 | created_at | TIMESTAMP     | NOT NULL, DEFAULT CURRENT_TIMESTAMP       | Record creation timestamp             |
 | updated_at | TIMESTAMP     | NOT NULL, DEFAULT CURRENT_TIMESTAMP       | Record update timestamp               |
 
@@ -119,6 +120,7 @@ CREATE TABLE sets (
     reps INTEGER NOT NULL,
     unit VARCHAR(2) NOT NULL,
     volume DECIMAL(10,2) NOT NULL,
+    notes TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_unit CHECK (unit IN ('kg', 'lb')),

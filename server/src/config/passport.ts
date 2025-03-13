@@ -25,9 +25,18 @@ export const configurePassport = () => {
   // Serialize user for the session
   passport.serializeUser((user: Express.User, done) => {
     try {
+      console.log("[Auth] Serializing user:", {
+        userId: user.id,
+        email: user.email,
+        timestamp: new Date().toISOString(),
+      });
       done(null, user.id);
     } catch (error) {
-      console.error("Error serializing user:", error);
+      console.error("[Auth] Serialization error:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       done(new AppError("Authentication failed", 500), null);
     }
   });
@@ -35,14 +44,34 @@ export const configurePassport = () => {
   // Deserialize user from the session
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log("[Auth] Deserializing user:", {
+        userId: id,
+        timestamp: new Date().toISOString(),
+      });
+
       const user = await User.findByPk(id);
       if (!user) {
-        console.error(`User not found for id: ${id}`);
+        console.error("[Auth] User not found during deserialization:", {
+          userId: id,
+          timestamp: new Date().toISOString(),
+        });
         return done(new AppError("User not found", 401), undefined);
       }
+
+      console.log("[Auth] User deserialized successfully:", {
+        userId: id,
+        email: user.email,
+        timestamp: new Date().toISOString(),
+      });
+
       done(null, user.toJSON() as Express.User);
     } catch (error) {
-      console.error("Error deserializing user:", error);
+      console.error("[Auth] Deserialization error:", {
+        userId: id,
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       done(new AppError("Session validation failed", 500), undefined);
     }
   });
@@ -57,19 +86,30 @@ export const configurePassport = () => {
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
+          console.log("[Auth] Google OAuth callback received:", {
+            profileId: profile.id,
+            email: profile.emails?.[0]?.value,
+            timestamp: new Date().toISOString(),
+          });
+
           // Check if user exists
           let user = await User.findOne({
             where: { googleId: profile.id },
           });
 
           if (!user) {
-            // Create new user if doesn't exist
+            console.log("[Auth] Creating new user:", {
+              profileId: profile.id,
+              email: profile.emails?.[0]?.value,
+              timestamp: new Date().toISOString(),
+            });
+
             const email = profile.emails?.[0]?.value;
             if (!email) {
-              console.error(
-                "No email provided by Google for profile:",
-                profile.id
-              );
+              console.error("[Auth] No email provided by Google:", {
+                profileId: profile.id,
+                timestamp: new Date().toISOString(),
+              });
               return done(
                 new AppError("No email provided by Google", 400),
                 undefined
@@ -82,29 +122,62 @@ export const configurePassport = () => {
                 email: email,
                 name: profile.displayName,
                 picture: profile.photos?.[0]?.value || undefined,
-                preferredUnit: "kg", // Default unit as per PRD
+                preferredUnit: "kg",
               });
 
-              console.log(`Created new user: ${user.id} (${email})`);
+              console.log("[Auth] User created successfully:", {
+                userId: user.id,
+                email: email,
+                timestamp: new Date().toISOString(),
+              });
             } catch (createError) {
-              console.error("Error creating user:", createError);
+              console.error("[Auth] User creation error:", {
+                error:
+                  createError instanceof Error
+                    ? createError.message
+                    : "Unknown error",
+                email: email,
+                timestamp: new Date().toISOString(),
+                stack:
+                  createError instanceof Error ? createError.stack : undefined,
+              });
               return done(
                 new AppError("Failed to create user account", 500),
                 undefined
               );
             }
+          } else {
+            console.log("[Auth] Existing user found:", {
+              userId: user.id,
+              email: user.email,
+              timestamp: new Date().toISOString(),
+            });
           }
 
-          // Ensure we have a complete user object with all required fields
+          // Ensure we have a complete user object
           const userJson = user.toJSON() as Express.User;
           if (!userJson.createdAt || !userJson.updatedAt) {
-            console.error("Invalid user object:", userJson);
+            console.error("[Auth] Invalid user object:", {
+              userId: user.id,
+              timestamp: new Date().toISOString(),
+              userJson,
+            });
             return done(new AppError("Invalid user data", 500), undefined);
           }
 
+          console.log("[Auth] Authentication successful:", {
+            userId: user.id,
+            email: user.email,
+            timestamp: new Date().toISOString(),
+          });
+
           return done(null, userJson);
         } catch (error) {
-          console.error("Error in Google OAuth strategy:", error);
+          console.error("[Auth] Google OAuth strategy error:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            timestamp: new Date().toISOString(),
+            stack: error instanceof Error ? error.stack : undefined,
+          });
           return done(new AppError("Authentication failed", 500), undefined);
         }
       }

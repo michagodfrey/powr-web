@@ -1,33 +1,35 @@
 import { Model, DataTypes, Sequelize } from "sequelize";
+import { WorkoutSession } from "./WorkoutSession";
 
-interface SetAttributes {
+export interface SetAttributes {
   id: number;
-  workoutExerciseId: number;
+  sessionId: number;
+  setNumber: number;
   weight: number;
   reps: number;
+  unit: "kg" | "lb";
+  volume: number;
   notes?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface SetCreationAttributes extends Omit<SetAttributes, "id"> {}
+export interface SetCreationAttributes extends Omit<SetAttributes, "id"> {}
 
 class Set
   extends Model<SetAttributes, SetCreationAttributes>
   implements SetAttributes
 {
   public id!: number;
-  public workoutExerciseId!: number;
+  public sessionId!: number;
+  public setNumber!: number;
   public weight!: number;
   public reps!: number;
+  public unit!: "kg" | "lb";
+  public volume!: number;
   public notes!: string;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
-
-  // Calculate volume for this set
-  calculateVolume(): number {
-    return this.weight * this.reps;
-  }
 
   static initModel(sequelize: Sequelize): typeof Set {
     Set.init(
@@ -37,21 +39,37 @@ class Set
           autoIncrement: true,
           primaryKey: true,
         },
-        workoutExerciseId: {
+        sessionId: {
           type: DataTypes.INTEGER,
           allowNull: false,
-          field: "workout_exercise_id",
+          field: "session_id",
           references: {
-            model: "workout_exercises",
+            model: "workout_sessions",
             key: "id",
           },
         },
+        setNumber: {
+          type: DataTypes.INTEGER,
+          allowNull: false,
+          field: "set_number",
+        },
         weight: {
-          type: DataTypes.DECIMAL(10, 2),
+          type: DataTypes.DECIMAL(6, 2),
           allowNull: false,
         },
         reps: {
           type: DataTypes.INTEGER,
+          allowNull: false,
+        },
+        unit: {
+          type: DataTypes.STRING(2),
+          allowNull: false,
+          validate: {
+            isIn: [["kg", "lb"]],
+          },
+        },
+        volume: {
+          type: DataTypes.DECIMAL(10, 2),
           allowNull: false,
         },
         notes: {
@@ -78,6 +96,13 @@ class Set
       }
     );
     return Set;
+  }
+
+  static associateModels(): void {
+    Set.belongsTo(WorkoutSession, {
+      foreignKey: "session_id",
+      as: "session",
+    });
   }
 }
 

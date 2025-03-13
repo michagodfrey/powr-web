@@ -162,6 +162,192 @@
 3. Add session table cleanup job
 4. Monitor session storage performance
 
+### 2024-03-13: Major Data Model Refactor and Ongoing Issues
+
+**What Happened**:
+
+- Refactored workout data model to align with PRD:
+  - Removed `Workout` and `WorkoutExercise` models
+  - Implemented `WorkoutSession` and `Set` models as per schema
+  - Updated controllers and routes to match new structure
+  - Fixed type exports and interfaces
+- Changes made:
+  1. Simplified workout creation flow
+  2. Added proper volume calculation
+  3. Improved type safety
+  4. Removed redundant endpoints
+  5. Fixed route organization
+
+**Technical Details**:
+
+- Model Changes:
+
+  ```typescript
+  // Old Structure
+  User -> Workout -> WorkoutExercise -> Set
+
+  // New Structure (per PRD)
+  User -> WorkoutSession -> Set
+  ```
+
+- Endpoint Consolidation:
+  - Removed `/exercise/:exerciseId` in favor of query parameters
+  - Simplified route paths for better REST compliance
+  - Updated payload structure for workout creation
+
+**Current Issues**:
+
+1. Authentication inconsistencies:
+
+   - Login works
+   - Exercise creation works
+   - Workout creation fails with auth errors
+   - Possible session persistence issues
+
+2. Potential Architecture Concerns:
+   - Piecemeal fixes might be creating hidden dependencies
+   - Authentication flow still not fully reliable
+   - Model changes might affect existing data
+   - Type safety improvements needed across the application
+
+**Why It Matters**:
+
+- Current approach of fixing issues in isolation might be masking deeper problems
+- Need for comprehensive review of:
+  1. Authentication flow
+  2. Session management
+  3. Data model integrity
+  4. Type safety
+  5. Error handling
+
+**Next Steps**:
+
+1. **Immediate Actions**:
+
+   - Create comprehensive test suite for authentication flow
+   - Add detailed logging for session management
+   - Document all current error scenarios
+
+2. **Architecture Review**:
+
+   - Map out complete authentication flow
+   - Review all model relationships
+   - Create sequence diagrams for key operations
+   - Identify potential race conditions
+
+3. **Systematic Fixes**:
+
+   - Implement consistent error handling
+   - Add request/response logging
+   - Create middleware for session debugging
+   - Add system health endpoints
+
+4. **Documentation**:
+   - Update API documentation
+   - Document known issues
+   - Create troubleshooting guide
+   - Update setup instructions
+
+**Lessons Learned**:
+
+1. Need for more systematic approach to changes
+2. Importance of comprehensive testing
+3. Value of detailed error logging
+4. Risk of isolated fixes without full context
+
+### 2024-03-13: Authentication Debugging Enhancement
+
+**What Happened**:
+
+1. Created comprehensive authentication flow documentation:
+
+   - Detailed sequence diagram showing complete OAuth flow
+   - Mapped out session validation process
+   - Identified potential failure points
+   - Documented interaction between components
+
+2. Implemented structured logging across authentication system:
+   - Added consistent "[Auth]" prefix for easy filtering
+   - Included contextual data (path, method, timestamps)
+   - Enhanced error logging with stack traces
+   - Added session state tracking
+
+**Technical Details**:
+
+1. Authentication Flow Components:
+
+   ```
+   Client -> Frontend -> Backend -> Passport -> Google OAuth
+                                    |
+                                 Database
+                                    |
+                                Session Store
+   ```
+
+2. Key Monitoring Points:
+
+   - OAuth callback processing
+   - User creation/lookup
+   - Session serialization/deserialization
+   - Request authentication checks
+   - Permission validation
+
+3. Logging Structure:
+   ```typescript
+   console.log("[Auth] Event description:", {
+     path: string,
+     method: string,
+     userId: number,
+     sessionID: string,
+     timestamp: ISO8601,
+     // Additional context...
+   });
+   ```
+
+**Why It Matters**:
+
+1. Debugging Benefits:
+
+   - Clear visibility into authentication flow
+   - Easy correlation of related events
+   - Quick identification of failure points
+   - Session state tracking across requests
+
+2. Security Improvements:
+   - Better audit trail of authentication attempts
+   - Enhanced visibility of unauthorized access
+   - Clear tracking of session lifecycle
+   - Improved error context for troubleshooting
+
+**Next Steps**:
+
+1. **Monitoring**:
+
+   - Set up log aggregation
+   - Create authentication-specific dashboards
+   - Configure alerts for authentication failures
+   - Track session anomalies
+
+2. **Analysis**:
+
+   - Review common failure patterns
+   - Identify session persistence issues
+   - Monitor OAuth callback reliability
+   - Analyze user creation success rate
+
+3. **Documentation**:
+   - Update troubleshooting guides
+   - Document common error patterns
+   - Create debugging flowcharts
+   - Add logging documentation
+
+**Lessons Learned**:
+
+1. Importance of structured logging for authentication debugging
+2. Value of visual documentation for complex flows
+3. Need for consistent logging patterns across components
+4. Benefits of detailed context in security-related logs
+
 ## Current Focus Areas
 
 1. **Authentication Flow**
