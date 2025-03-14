@@ -276,7 +276,7 @@
 
 1. Authentication Flow Components:
 
-   ```
+   ```bash
    Client -> Frontend -> Backend -> Passport -> Google OAuth
                                     |
                                  Database
@@ -293,6 +293,7 @@
    - Permission validation
 
 3. Logging Structure:
+
    ```typescript
    console.log("[Auth] Event description:", {
      path: string,
@@ -411,6 +412,52 @@
 3. Create automated setup script
 4. Implement session cleanup and maintenance
 5. Add monitoring for authentication-related issues
+
+### 2024-03-14: Volume Calculation Type Safety Improvements
+
+**What Happened**:
+
+- Added defensive programming to handle potential undefined or invalid volume values
+- Enhanced type safety in the VolumeChart component
+- Implemented fallbacks for volume calculations to prevent NaN and undefined errors
+- Updated volume display to use workout-specific units instead of hardcoded values
+
+**Technical Details**:
+
+1. Volume Calculation Safeguards:
+
+   ```typescript
+   // Added type checking for volume calculations
+   const volumes = filteredWorkouts.map((w) =>
+     typeof w.totalVolume === "number" ? w.totalVolume : 0
+   );
+
+   // Protected against division by zero in progress calculation
+   const firstVolume = volumes[0] || 0;
+   const lastVolume = volumes[volumes.length - 1] || 0;
+   const change =
+     firstVolume === 0 ? 0 : ((lastVolume - firstVolume) / firstVolume) * 100;
+   ```
+
+2. Unit Display Improvements:
+   - Changed from hardcoded 'kg' to using workout-specific units
+   - Ensured consistency between workout display and volume charts
+   - Added proper typing for unit values ("kg" | "lb")
+
+**Why It Matters**:
+
+- Prevents runtime errors from undefined or invalid volume values
+- Improves user experience by avoiding NaN displays
+- Maintains data consistency across different views
+- Sets foundation for reliable volume tracking and progress visualization
+
+**Next Steps**:
+
+1. Add validation at the data entry point to prevent invalid volume values
+2. Consider adding unit conversion capabilities
+3. Implement volume data sanity checks
+4. Add error boundaries for chart components
+5. Consider adding tooltips to explain volume calculations
 
 ---
 

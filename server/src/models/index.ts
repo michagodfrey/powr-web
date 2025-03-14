@@ -2,8 +2,6 @@ import { Sequelize } from "sequelize";
 import { Exercise } from "./Exercise";
 import { User } from "./User";
 import { Set } from "./Set";
-import { Workout } from "./Workout";
-import { WorkoutExercise } from "./WorkoutExercise";
 import { WorkoutSession } from "./WorkoutSession";
 import { Session } from "./Session";
 
@@ -12,8 +10,6 @@ export const initializeModels = (sequelize: Sequelize) => {
   Exercise.initModel(sequelize);
   User.initModel(sequelize);
   Set.initModel(sequelize);
-  Workout.initModel(sequelize);
-  WorkoutExercise.initModel(sequelize);
   WorkoutSession.initModel(sequelize);
   Session.initModel(sequelize);
 
@@ -23,14 +19,6 @@ export const initializeModels = (sequelize: Sequelize) => {
     as: "exercises",
   });
   Exercise.belongsTo(User, {
-    foreignKey: "userId",
-  });
-
-  User.hasMany(Workout, {
-    foreignKey: "userId",
-    as: "workouts",
-  });
-  Workout.belongsTo(User, {
     foreignKey: "userId",
   });
 
@@ -48,25 +36,15 @@ export const initializeModels = (sequelize: Sequelize) => {
   });
   WorkoutSession.belongsTo(Exercise, {
     foreignKey: "exerciseId",
+    as: "exercise",
   });
 
-  Workout.belongsToMany(Exercise, {
-    through: WorkoutExercise,
-    foreignKey: "workoutId",
-    as: "exercises",
-  });
-  Exercise.belongsToMany(Workout, {
-    through: WorkoutExercise,
-    foreignKey: "exerciseId",
-    as: "workouts",
-  });
-
-  WorkoutExercise.hasMany(Set, {
-    foreignKey: "workoutExerciseId",
+  WorkoutSession.hasMany(Set, {
+    foreignKey: "sessionId",
     as: "sets",
   });
-  Set.belongsTo(WorkoutExercise, {
-    foreignKey: "workoutExerciseId",
+  Set.belongsTo(WorkoutSession, {
+    foreignKey: "sessionId",
   });
 
   // Initialize Session associations
@@ -76,19 +54,9 @@ export const initializeModels = (sequelize: Sequelize) => {
     Exercise,
     User,
     Set,
-    Workout,
-    WorkoutExercise,
     WorkoutSession,
     Session,
   };
 };
 
-export {
-  Exercise,
-  User,
-  Set,
-  Workout,
-  WorkoutExercise,
-  WorkoutSession,
-  Session,
-};
+export { Exercise, User, Set, WorkoutSession, Session };

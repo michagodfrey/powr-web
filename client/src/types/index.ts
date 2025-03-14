@@ -15,13 +15,15 @@ export interface Set {
 // Represents a workout session
 export interface WorkoutSession {
   id: number;
+  userId: number;
   exerciseId: number;
-  // Date is stored as ISO string
   date: string;
-  // Array of Set objects
-  sets: Set[];
-  // Computed total volume
+  notes?: string;
   totalVolume: number;
+  unit: "kg" | "lb";
+  sets: Set[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Represents an exercise

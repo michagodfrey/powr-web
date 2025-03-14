@@ -90,15 +90,20 @@ const VolumeChart = ({ workouts, dateRange, unit }: VolumeChartProps) => {
       };
     }
 
-    const volumes = filteredWorkouts.map((w) => w.totalVolume);
+    // Ensure we have valid numbers for volume calculations
+    const volumes = filteredWorkouts.map((w) =>
+      typeof w.totalVolume === "number" ? w.totalVolume : 0
+    );
+
     const total = volumes.reduce((sum, vol) => sum + vol, 0);
     const max = Math.max(...volumes);
     const avg = total / volumes.length;
 
     // Calculate volume change (comparing last workout to first workout)
-    const firstVolume = volumes[0];
-    const lastVolume = volumes[volumes.length - 1];
-    const change = ((lastVolume - firstVolume) / firstVolume) * 100;
+    const firstVolume = volumes[0] || 0;
+    const lastVolume = volumes[volumes.length - 1] || 0;
+    const change =
+      firstVolume === 0 ? 0 : ((lastVolume - firstVolume) / firstVolume) * 100;
 
     return {
       totalVolume: total,
@@ -108,8 +113,17 @@ const VolumeChart = ({ workouts, dateRange, unit }: VolumeChartProps) => {
     };
   }, [filteredWorkouts]);
 
-  // Prepare data for the chart
-  const chartData: ChartData<"line" | "bar"> = {
+  // Prepare base chart data with defensive programming
+  const baseDataset = {
+    label: `Volume (${unit})`,
+    data: filteredWorkouts.map((workout) =>
+      typeof workout.totalVolume === "number" ? workout.totalVolume : 0
+    ),
+    borderColor: "#e8772e",
+  };
+
+  // Prepare line chart data
+  const lineChartData: ChartData<"line"> = {
     labels: filteredWorkouts.map((workout) =>
       new Date(workout.date).toLocaleDateString("en-US", {
         month: "short",
@@ -118,13 +132,26 @@ const VolumeChart = ({ workouts, dateRange, unit }: VolumeChartProps) => {
     ),
     datasets: [
       {
-        label: `Volume (${unit})`,
-        data: filteredWorkouts.map((workout) => workout.totalVolume),
-        borderColor: "#e8772e", // Primary color from design
-        backgroundColor:
-          chartType === "line" ? "rgba(232, 119, 46, 0.1)" : "#e8772e",
+        ...baseDataset,
+        backgroundColor: "rgba(232, 119, 46, 0.1)",
         tension: 0.1,
-        fill: chartType === "line",
+        fill: true,
+      },
+    ],
+  };
+
+  // Prepare bar chart data
+  const barChartData: ChartData<"bar"> = {
+    labels: filteredWorkouts.map((workout) =>
+      new Date(workout.date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      })
+    ),
+    datasets: [
+      {
+        ...baseDataset,
+        backgroundColor: "#e8772e",
       },
     ],
   };
@@ -146,7 +173,7 @@ const VolumeChart = ({ workouts, dateRange, unit }: VolumeChartProps) => {
         padding: 10,
         displayColors: false,
         callbacks: {
-          label: (context: any) => {
+          label: (context) => {
             return `Volume: ${context.parsed.y.toFixed(1)} ${unit}`;
           },
         },
@@ -253,9 +280,9 @@ const VolumeChart = ({ workouts, dateRange, unit }: VolumeChartProps) => {
       {/* Chart */}
       <div className="w-full h-[400px] bg-white dark:bg-gray-800 rounded-lg p-4">
         {chartType === "line" ? (
-          <Line data={chartData} options={options} />
+          <Line data={lineChartData} options={options} />
         ) : (
-          <Bar data={chartData} options={options} />
+          <Bar data={barChartData} options={options} />
         )}
       </div>
     </div>

@@ -426,7 +426,7 @@ const ExerciseDetail = () => {
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       {workout.sets.length} sets · Total Volume:{" "}
-                      {workout.totalVolume.toFixed(1)} kg
+                      {workout.totalVolume.toFixed(1)} {workout.unit}
                     </p>
                   </div>
                   <div className="flex gap-2">
