@@ -143,6 +143,12 @@ export const createWorkout = async (
       ],
     });
 
+    // Convert totalVolume to number before sending response
+    const response = {
+      ...completeSession?.toJSON(),
+      totalVolume: completeSession?.totalVolumeAsNumber || 0,
+    };
+
     console.log("[Workout] Sending response:", {
       sessionId: workoutSession.id,
       timestamp: new Date().toISOString(),
@@ -151,7 +157,7 @@ export const createWorkout = async (
     res.status(201).json({
       status: "success",
       data: {
-        workoutSession: completeSession,
+        workoutSession: response,
       },
     });
   } catch (error) {
@@ -213,10 +219,16 @@ export const getWorkouts = async (
       order: [["date", "DESC"]],
     });
 
+    // Convert totalVolume to number for each session
+    const response = workoutSessions.map((session) => ({
+      ...session.toJSON(),
+      totalVolume: session.totalVolumeAsNumber,
+    }));
+
     res.json({
       status: "success",
       data: {
-        workoutSessions,
+        workoutSessions: response,
       },
     });
   } catch (error) {
@@ -360,10 +372,16 @@ export const updateWorkout = async (
       ],
     });
 
+    // Convert totalVolume to number before sending response
+    const response = {
+      ...updatedSession?.toJSON(),
+      totalVolume: updatedSession?.totalVolumeAsNumber || 0,
+    };
+
     res.json({
       status: "success",
       data: {
-        workoutSession: updatedSession,
+        workoutSession: response,
       },
     });
   } catch (error) {
@@ -441,10 +459,16 @@ export const getWorkoutsByExercise = async (
       order: [["date", "DESC"]],
     });
 
+    // Convert totalVolume to number for each session
+    const response = workoutSessions.map((session) => ({
+      ...session.toJSON(),
+      totalVolume: session.totalVolumeAsNumber,
+    }));
+
     res.json({
       status: "success",
       data: {
-        workoutSessions,
+        workoutSessions: response,
       },
     });
   } catch (error) {

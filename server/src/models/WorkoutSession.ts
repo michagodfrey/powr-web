@@ -32,6 +32,10 @@ class WorkoutSession
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
+  get totalVolumeAsNumber(): number {
+    return Number(this.getDataValue("totalVolume"));
+  }
+
   static initModel(sequelize: Sequelize): typeof WorkoutSession {
     WorkoutSession.init(
       {
