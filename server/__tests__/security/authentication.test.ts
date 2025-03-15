@@ -69,12 +69,15 @@ describe("Authentication Security", () => {
     it("should prevent session fixation", async () => {
       // Create a user and get their session
       const user = await createTestUser();
+      const sessionId = "test-session-123";
       const authHeader = {
         "x-test-auth": JSON.stringify({
           id: user.id,
           email: user.email,
           preferredUnit: user.preferredUnit,
+          sessionId: sessionId,
         }),
+        "x-session-id": sessionId,
       };
 
       // Make a successful request
@@ -90,7 +93,9 @@ describe("Authentication Security", () => {
           id: user.id + 1, // Different user
           email: "evil@example.com",
           preferredUnit: "kg",
+          sessionId: "evil-session-456", // Different session ID
         }),
+        "x-session-id": sessionId, // Try to reuse original session
       };
 
       const response2 = await request(app)

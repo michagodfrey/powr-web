@@ -10,6 +10,7 @@ import exerciseRoutes from "./routes/exerciseRoutes";
 import workoutRoutes from "./routes/workoutRoutes";
 import exportRoutes from "./routes/exportRoutes";
 import { errorHandler } from "./middleware/errorHandler";
+import { sanitizeInput } from "./middleware/validation";
 import cookieParser from "cookie-parser";
 
 export const createApp = (configuredPassport: typeof passport) => {
@@ -38,6 +39,7 @@ export const createApp = (configuredPassport: typeof passport) => {
   app.use(cookieParser(config.SESSION_SECRET));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  app.use(sanitizeInput);
 
   // CORS configuration
   app.use(

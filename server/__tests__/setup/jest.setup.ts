@@ -68,18 +68,58 @@ global.testDb = testDb;
 jest.mock("../../src/middleware/auth", () => ({
   isAuthenticated: jest.fn(
     (req: Request, res: Response, next: NextFunction) => {
-      if (req.headers["x-test-auth"]) {
-        const authData = JSON.parse(req.headers["x-test-auth"] as string);
+      try {
+        if (!req.headers["x-test-auth"]) {
+          return res.status(401).json({
+            status: "fail",
+            message: "Please log in to access this resource",
+          });
+        }
+
+        // Try to parse the auth header
+        let authData;
+        try {
+          authData = JSON.parse(req.headers["x-test-auth"] as string);
+        } catch (e) {
+          return res.status(401).json({
+            status: "fail",
+            message: "Please log in to access this resource",
+          });
+        }
+
+        // Validate auth data structure
+        if (!authData || !authData.id || !authData.email) {
+          return res.status(401).json({
+            status: "fail",
+            message: "Please log in to access this resource",
+          });
+        }
 
         // Check for session expiration
         if (authData.exp && authData.exp < Math.floor(Date.now() / 1000)) {
-          return res.status(401).json({ message: "Unauthorized" });
+          return res.status(401).json({
+            status: "fail",
+            message: "Please log in to access this resource",
+          });
+        }
+
+        // Check for session fixation
+        const currentSession = req.headers["x-session-id"];
+        if (currentSession && currentSession !== authData.sessionId) {
+          return res.status(401).json({
+            status: "fail",
+            message: "Please log in to access this resource",
+          });
         }
 
         req.user = authData;
         return next();
+      } catch (error) {
+        return res.status(401).json({
+          status: "fail",
+          message: "Please log in to access this resource",
+        });
       }
-      res.status(401).json({ message: "Unauthorized" });
     }
   ),
 }));
