@@ -10,7 +10,14 @@ const Settings = () => {
   };
 
   const handleThemeChange = (isDark: boolean) => {
-    updatePreferences({ darkMode: isDark });
+    updatePreferences({
+      darkMode: isDark,
+      useDeviceTheme: false,
+    });
+  };
+
+  const handleDeviceThemeChange = (useDevice: boolean) => {
+    updatePreferences({ useDeviceTheme: useDevice });
   };
 
   return (
@@ -69,27 +76,51 @@ const Settings = () => {
 
         <div>
           <h2 className="text-xl font-semibold mb-4">Theme</h2>
-          <div className="flex gap-4">
-            <button
-              className={`px-4 py-2 rounded-md ${
-                !preferences.darkMode
-                  ? "bg-primary text-white"
-                  : "bg-gray-200 dark:bg-gray-700"
+          <div className="space-y-4">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="useDeviceTheme"
+                checked={preferences.useDeviceTheme ?? true}
+                onChange={(e) => handleDeviceThemeChange(e.target.checked)}
+                className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+              />
+              <label
+                htmlFor="useDeviceTheme"
+                className="ml-2 text-sm font-medium"
+              >
+                Use device theme
+              </label>
+            </div>
+
+            <div
+              className={`flex gap-4 ${
+                preferences.useDeviceTheme ? "opacity-50" : ""
               }`}
-              onClick={() => handleThemeChange(false)}
             >
-              Light Mode
-            </button>
-            <button
-              className={`px-4 py-2 rounded-md ${
-                preferences.darkMode
-                  ? "bg-primary text-white"
-                  : "bg-gray-200 dark:bg-gray-700"
-              }`}
-              onClick={() => handleThemeChange(true)}
-            >
-              Dark Mode
-            </button>
+              <button
+                className={`px-4 py-2 rounded-md ${
+                  !preferences.darkMode && !preferences.useDeviceTheme
+                    ? "bg-primary text-white"
+                    : "bg-gray-200 dark:bg-gray-700"
+                }`}
+                onClick={() => handleThemeChange(false)}
+                disabled={preferences.useDeviceTheme}
+              >
+                Light Mode
+              </button>
+              <button
+                className={`px-4 py-2 rounded-md ${
+                  preferences.darkMode && !preferences.useDeviceTheme
+                    ? "bg-primary text-white"
+                    : "bg-gray-200 dark:bg-gray-700"
+                }`}
+                onClick={() => handleThemeChange(true)}
+                disabled={preferences.useDeviceTheme}
+              >
+                Dark Mode
+              </button>
+            </div>
           </div>
         </div>
       </div>

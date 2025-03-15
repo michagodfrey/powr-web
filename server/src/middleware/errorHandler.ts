@@ -46,33 +46,44 @@ export const errorHandler = (
     user: req.user,
   });
 
+  // If error already has statusCode, use it, otherwise default to 500
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
 
   let error = { ...err };
   error.message = err.message;
 
-  // Sequelize validation error
-  if (err.name === "SequelizeValidationError")
+  // Handle Sequelize validation errors
+  if (err.name === "SequelizeValidationError") {
     error = handleSequelizeValidationError(err);
+  }
 
-  // Sequelize unique constraint error
-  if (err.name === "SequelizeUniqueConstraintError")
+  // Handle Sequelize unique constraint errors
+  if (err.name === "SequelizeUniqueConstraintError") {
     error = handleSequelizeUniqueConstraintError(err);
+  }
+
+  // Handle AppError (our custom validation errors)
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      status: err.status,
+      message: err.message,
+    });
+  }
 
   if (process.env.NODE_ENV === "development") {
-    res.status(err.statusCode).json({
-      status: err.status,
-      error: err,
-      message: err.message,
-      stack: err.stack,
+    res.status(error.statusCode).json({
+      status: error.status,
+      error: error,
+      message: error.message,
+      stack: error.stack,
     });
   } else {
     // Operational, trusted error: send message to client
-    if (err.isOperational) {
-      res.status(err.statusCode).json({
-        status: err.status,
-        message: err.message,
+    if (error.isOperational) {
+      res.status(error.statusCode).json({
+        status: error.status,
+        message: error.message,
       });
     } else {
       // Programming or other unknown error: don't leak error details

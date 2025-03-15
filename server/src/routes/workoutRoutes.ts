@@ -1,28 +1,29 @@
-import express from "express";
-import * as workoutController from "../controllers/workoutController";
+import { Router } from "express";
 import { isAuthenticated } from "../middleware/auth";
+import { validateWorkoutInput } from "../middleware/validation";
+import {
+  createWorkout,
+  getWorkouts,
+  getWorkout,
+  updateWorkout,
+  deleteWorkout,
+  getWorkoutsByExercise,
+} from "../controllers/workoutController";
 
-const router = express.Router();
+const router = Router();
 
 // Apply authentication middleware to all routes
 router.use(isAuthenticated);
 
+router.route("/").get(getWorkouts).post(validateWorkoutInput, createWorkout);
+
+router
+  .route("/:id")
+  .get(getWorkout)
+  .put(validateWorkoutInput, updateWorkout)
+  .delete(deleteWorkout);
+
 // Get workouts for a specific exercise
-router.get("/exercise/:exerciseId", workoutController.getWorkoutsByExercise);
-
-// Create a new workout
-router.post("/", workoutController.createWorkout);
-
-// Get a specific workout
-router.get("/:id", workoutController.getWorkout);
-
-// Get all workouts
-router.get("/", workoutController.getWorkouts);
-
-// Update a workout
-router.put("/:id", workoutController.updateWorkout);
-
-// Delete a workout
-router.delete("/:id", workoutController.deleteWorkout);
+router.get("/exercise/:exerciseId", getWorkoutsByExercise);
 
 export default router;

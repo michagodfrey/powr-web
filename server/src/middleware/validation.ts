@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import xss from "xss";
+import { AppError } from "./errorHandler";
 
 /**
  * Sanitizes a string value by removing XSS and malicious URLs
@@ -42,6 +43,67 @@ const sanitizeObject = (obj: any): any => {
 };
 
 /**
+ * Validates exercise data
+ */
+const validateExercise = (data: any): void => {
+  if (!data.name || typeof data.name !== "string" || data.name.trim() === "") {
+    throw new AppError("Exercise name is required", 400);
+  }
+};
+
+/**
+ * Validates set data
+ */
+const validateSet = (set: any): void => {
+  if (!set || typeof set !== "object") {
+    throw new AppError("Invalid set data", 400);
+  }
+
+  if (typeof set.weight !== "number" || set.weight < 0) {
+    throw new AppError("Weight must be a non-negative number", 400);
+  }
+
+  if (typeof set.reps !== "number" || set.reps <= 0) {
+    throw new AppError("Reps must be a positive number", 400);
+  }
+
+  if (set.unit && !["kg", "lb"].includes(set.unit)) {
+    throw new AppError("Unit must be either 'kg' or 'lb'", 400);
+  }
+};
+
+/**
+ * Validates workout data
+ */
+const validateWorkout = (data: any): void => {
+  if (!data.exerciseId || typeof data.exerciseId !== "number") {
+    throw new AppError("Valid exercise ID is required", 400);
+  }
+
+  if (!data.date || isNaN(Date.parse(data.date))) {
+    throw new AppError("Valid date is required", 400);
+  }
+
+  if (!Array.isArray(data.sets) || data.sets.length === 0) {
+    throw new AppError("At least one set is required", 400);
+  }
+
+  data.sets.forEach((set: any, index: number) => {
+    try {
+      validateSet(set);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new AppError(
+          `Invalid set at index ${index}: ${error.message}`,
+          400
+        );
+      }
+      throw new AppError(`Invalid set at index ${index}`, 400);
+    }
+  });
+};
+
+/**
  * Middleware to sanitize request body, query, and params
  */
 export const sanitizeInput = (
@@ -66,13 +128,45 @@ export const sanitizeInput = (
     }
 
     next();
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("[Validation] Input sanitization error:", {
       error: error instanceof Error ? error.message : "Unknown error",
       path: req.path,
       method: req.method,
       timestamp: new Date().toISOString(),
     });
+    next(error);
+  }
+};
+
+/**
+ * Middleware to validate exercise data
+ */
+export const validateExerciseInput = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    validateExercise(req.body);
+    next();
+  } catch (error: unknown) {
+    next(error);
+  }
+};
+
+/**
+ * Middleware to validate workout data
+ */
+export const validateWorkoutInput = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    validateWorkout(req.body);
+    next();
+  } catch (error: unknown) {
     next(error);
   }
 };

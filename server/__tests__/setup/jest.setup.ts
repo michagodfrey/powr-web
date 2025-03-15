@@ -3,6 +3,10 @@ import { config } from "../../src/config/validateEnv";
 import { initializeModels } from "../../src/models";
 import "@jest/globals";
 import { Request, Response, NextFunction } from "express";
+import { User } from "../../src/models/User";
+import { Exercise } from "../../src/models/Exercise";
+import { WorkoutSession } from "../../src/models/WorkoutSession";
+import { Set } from "../../src/models/Set";
 
 // Declare global test database
 declare global {
@@ -33,8 +37,34 @@ beforeAll(async () => {
     // Initialize models
     initializeModels(testDb);
 
-    // Sync models with database
-    await testDb.sync({ force: true });
+    // Drop all tables first to ensure clean state
+    await testDb.drop({ cascade: true });
+
+    // Sync models with database in correct order
+    await User.sync({ force: true });
+    console.log("✅ Users table created");
+
+    await Exercise.sync({ force: true });
+    console.log("✅ Exercises table created");
+
+    await WorkoutSession.sync({ force: true });
+    console.log("✅ WorkoutSessions table created");
+
+    await Set.sync({ force: true });
+    console.log("✅ Sets table created");
+
+    // Create session table for connect-pg-simple
+    await testDb.query(`
+      CREATE TABLE IF NOT EXISTS "session" (
+        "sid" varchar NOT NULL COLLATE "default",
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+      );
+      CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+    `);
+    console.log("✅ Session table created");
+
     console.log("✅ Test database synced");
   } catch (error) {
     console.error("❌ Unable to connect to test database:", error);
@@ -55,10 +85,11 @@ beforeEach(async () => {
     throw new Error("Test database not initialized");
   }
   // Clear all tables before each test
-  const models = Object.values(testDb.models);
-  for (const model of models) {
-    await model.destroy({ truncate: true, cascade: true });
-  }
+  await Set.destroy({ truncate: true, cascade: true });
+  await WorkoutSession.destroy({ truncate: true, cascade: true });
+  await Exercise.destroy({ truncate: true, cascade: true });
+  await User.destroy({ truncate: true, cascade: true });
+  await testDb.query('TRUNCATE TABLE "session" CASCADE;');
 });
 
 // Add global test utilities

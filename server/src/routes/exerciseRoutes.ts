@@ -1,25 +1,25 @@
-import express from "express";
+import { Router } from "express";
 import { isAuthenticated } from "../middleware/auth";
-import * as exerciseController from "../controllers/exerciseController";
+import { validateExerciseInput } from "../middleware/validation";
+import {
+  createExercise,
+  getExercises,
+  getExercise,
+  updateExercise,
+  deleteExercise,
+} from "../controllers/exerciseController";
 
-const router = express.Router();
+const router = Router();
 
 // Protect all routes in this router
 router.use(isAuthenticated);
 
-// Create a new exercise
-router.post("/", exerciseController.createExercise);
+router.route("/").get(getExercises).post(validateExerciseInput, createExercise);
 
-// Get all exercises for the user
-router.get("/", exerciseController.getExercises);
-
-// Get a specific exercise
-router.get("/:id", exerciseController.getExercise);
-
-// Update an exercise
-router.put("/:id", exerciseController.updateExercise);
-
-// Delete an exercise
-router.delete("/:id", exerciseController.deleteExercise);
+router
+  .route("/:id")
+  .get(getExercise)
+  .put(validateExerciseInput, updateExercise)
+  .delete(deleteExercise);
 
 export default router;
