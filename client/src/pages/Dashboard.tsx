@@ -101,9 +101,6 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold text-secondary dark:text-white">
             My Exercises
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Logged in as: {user?.email}
-          </p>
         </div>
         <button
           onClick={() => setShowExerciseForm(true)}

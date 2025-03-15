@@ -1,40 +1,131 @@
 # Project Structure
 
-Below is a suggested directory layout for the web application (React + Node.js/Express):
+## Current directory layout 15 March 2025 for the Progressive Overload Workout Recorder (POWR)
+
+project-root/
+├── client/ # Frontend React + TypeScript application
+│ ├── src/
+│ │ ├── auth/ # Authentication-related components and utilities
+│ │ ├── components/ # Reusable UI components
+│ │ ├── contexts/ # React contexts (Auth, Theme, etc.)
+│ │ ├── pages/ # Page-level components
+│ │ ├── routes/ # Route definitions and configuration
+│ │ ├── types/ # TypeScript type definitions
+│ │ ├── assets/ # Static assets
+│ │ ├── App.tsx # Root component
+│ │ └── main.tsx # Application entry point
+│ ├── public/ # Public assets
+│ ├── .env # Environment variables
+│ ├── index.html # HTML entry point
+│ ├── vite.config.ts # Vite configuration
+│ ├── tailwind.config.js # Tailwind CSS configuration
+│ └── tsconfig.json # TypeScript configuration
+│
+├── server/ # Backend Express + TypeScript application
+│ ├── src/
+│ │ ├── config/ # Configuration files
+│ │ ├── controllers/ # Request handlers
+│ │ ├── middleware/ # Custom middleware
+│ │ ├── models/ # Sequelize models
+│ │ ├── routes/ # API route definitions
+│ │ ├── test/ # Test files
+│ │ ├── app.ts # Express application setup
+│ │ └── index.ts # Server entry point
+│ ├── scripts/ # Database and utility scripts
+│ ├── .env # Server environment variables
+│ ├── .env.example # Environment variables template
+│ └── tsconfig.json # TypeScript configuration
+│
+├── docs/ # Project documentation
+│ ├── PRD/ # Product Requirements Documents
+│ │ ├── authentication.md
+│ │ ├── database-schema.md
+│ │ ├── security-requirements.md
+│ │ └── ... other specification files
+│ └── learnings.md # Development learnings and decisions
+│
+├── .gitignore # Git ignore rules
+└── README.md # Project overview and setup instructions
+
+**Key Changes from Original Structure**:
+
+1. **Frontend (client/)**:
+
+   - Added TypeScript configuration
+   - Added Vite and Tailwind configurations
+   - Organized auth-specific code in dedicated directory
+   - Added contexts for state management
+   - Added routes directory for navigation
+
+2. **Backend (server/)**:
+
+   - Moved source code to src/ directory
+   - Added test directory for testing
+   - Added scripts directory for database management
+   - Added middleware directory
+   - Separated app.ts and index.ts
+
+3. **Documentation (docs/)**:
+
+   - Organized PRD files in dedicated directory
+   - Added learnings.md for development decisions
+   - Improved documentation organization
+
+4. **Configuration**:
+   - Added environment variable templates
+   - Added TypeScript configurations
+   - Added build and development tooling
+
+## Proposed additional folders for completed app
 
 project-root/
 ├── client/
-│   ├── public/             # Public assets (images, icons, etc.)
 │   ├── src/
-│   │   ├── components/     # Reusable UI components (buttons, forms, charts, etc.)
-│   │   ├── pages/          # Page-level components (Dashboard, ExerciseList, etc.)
-│   │   ├── services/       # API calls and utility functions
-│   │   └── App.js          # Root component of the React app
-│   └── package.json        # Frontend dependencies and scripts
+│   │   ├── analytics/          # Analytics and monitoring integration
+│   │   │   ├── sentry.ts      # Error tracking
+│   │   │   └── metrics.ts     # Performance metrics
+│   │   ├── hooks/             # Custom React hooks
+│   │   ├── utils/             # Utility functions
+│   │   │   ├── validation.ts  # Form validation
+│   │   │   └── formatting.ts  # Data formatting
+│   │   ├── services/          # API service layer
+│   │   │   ├── api.ts        # Base API configuration
+│   │   │   ├── workout.ts    # Workout-related API calls
+│   │   │   └── exercise.ts   # Exercise-related API calls
+│   │   └── constants/         # Application constants
+│   └── tests/                 # Frontend tests
+│       ├── unit/             # Unit tests
+│       └── integration/      # Integration tests
+│
 ├── server/
-│   ├── controllers/        # Request handlers (create, read, update, delete workouts)
-│   ├── models/             # Database models (using ORM like Sequelize or similar)
-│   ├── routes/             # API endpoint definitions
-│   ├── config/             # Configuration files (DB connections, env variables)
-│   ├── index.js            # Main entry point for the Express server
-│   └── ... other files     # Additional files (middleware, utilities, etc.)
-├── database/ (optional)
-│   ├── migrations/         # Scripts for database schema changes
-│   └── seeds/              # Seed files for initial or test data
-├── docs/
-│   ├── project-overview.md # Overview of the project
-│   ├── requirements.md     # Functional and non-functional requirements
-│   ├── features.md         # Detailed features (or "feautures.md" as per screenshot)
-│   ├── implementation.md   # Implementation roadmap and milestones
-│   ├── project-structure.md# Explanation of the project structure
-│   ├── tech-stack.md       # Technology stack details
-│   └── user-flow.md        # User flow and experience documentation
-├── package.json            # Root package file if shared scripts or dependencies exist
-└── README.md               # Project overview and quick start guide
-
-**Notes**:
-
-- **client** folder hosts the React frontend.
-- **server** folder holds all backend logic.
-- **database** folder (optional) can manage schema migrations or seeds if using a tool like Sequelize or Knex.
-- **docs** folder can store markdown files for documentation (like this set of files).
+│   ├── src/
+│   │   ├── logging/           # Logging configuration
+│   │   │   ├── winston.ts    # Logger setup
+│   │   │   └── morgan.ts     # HTTP request logging
+│   │   ├── monitoring/        # Monitoring setup
+│   │   │   ├── sentry.ts     # Error tracking
+│   │   │   └── metrics.ts    # Performance metrics
+│   │   ├── utils/            # Utility functions
+│   │   │   ├── validation.ts # Input validation
+│   │   │   └── formatting.ts # Data formatting
+│   │   ├── services/         # Business logic layer
+│   │   │   ├── workout.ts    # Workout-related logic
+│   │   │   └── exercise.ts   # Exercise-related logic
+│   │   └── types/            # TypeScript type definitions
+│   ├── migrations/           # Database migrations
+│   │   ├── schema/          # Schema migrations
+│   │   └── data/           # Data migrations
+│   └── tests/               # Backend tests
+│       ├── unit/           # Unit tests
+│       ├── integration/    # Integration tests
+│       └── fixtures/       # Test data
+│
+├── shared/                  # Shared code between client and server
+│   ├── types/              # Shared TypeScript types
+│   ├── constants/          # Shared constants
+│   └── validation/         # Shared validation schemas
+│
+└── scripts/                # Project-wide scripts
+    ├── deployment/         # Deployment scripts
+    ├── database/          # Database management scripts
+    └── monitoring/        # Monitoring setup scripts

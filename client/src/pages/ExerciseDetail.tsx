@@ -334,9 +334,6 @@ const ExerciseDetail = () => {
               {exercise.description}
             </p>
           )}
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Logged in as: {user?.email}
-          </p>
         </div>
         <div className="flex gap-2">
           <div className="flex gap-2">
