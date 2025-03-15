@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Set } from "../types";
+import { calculateTotalVolume } from "../utils/volumeCalculation";
 
 interface WorkoutSetProps {
   onSave: (sets: Set[], date: string) => void;
@@ -34,9 +35,14 @@ const WorkoutSet = ({
     initialDate || new Date().toISOString().split("T")[0]
   );
 
-  // Calculate total volume for all sets
-  const calculateTotalVolume = () => {
-    return sets.reduce((total, set) => total + set.weight * set.reps, 0);
+  // Calculate total volume using the utility function
+  const getTotalVolume = () => {
+    try {
+      return calculateTotalVolume(sets, preferredUnit);
+    } catch (error) {
+      console.error("Error calculating volume:", error);
+      return 0;
+    }
   };
 
   // Add a new set
@@ -194,7 +200,7 @@ const WorkoutSet = ({
               Total Volume
             </div>
             <div className="text-2xl font-bold text-primary">
-              {calculateTotalVolume()} {preferredUnit}
+              {getTotalVolume().toFixed(2)} {preferredUnit}
             </div>
           </div>
 

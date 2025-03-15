@@ -2,6 +2,7 @@ import { Model, DataTypes, Sequelize } from "sequelize";
 import { User } from "./User";
 import { Exercise } from "./Exercise";
 import { Set } from "./Set";
+import { normalizeVolume } from "../utils/volumeCalculation";
 
 interface WorkoutSessionAttributes {
   id: number;
@@ -33,7 +34,11 @@ class WorkoutSession
   public readonly updatedAt!: Date;
 
   get totalVolumeAsNumber(): number {
-    return Number(this.getDataValue("totalVolume"));
+    return normalizeVolume(this.getDataValue("totalVolume"));
+  }
+
+  set totalVolumeValue(value: number | string) {
+    this.setDataValue("totalVolume", normalizeVolume(value));
   }
 
   static initModel(sequelize: Sequelize): typeof WorkoutSession {
@@ -75,6 +80,13 @@ class WorkoutSession
           allowNull: false,
           field: "total_volume",
           defaultValue: 0,
+          validate: {
+            isNonNegative(value: number) {
+              if (value < 0) {
+                throw new Error("Total volume cannot be negative");
+              }
+            },
+          },
         },
         unit: {
           type: DataTypes.STRING(2),

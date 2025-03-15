@@ -14,6 +14,7 @@ import {
 } from "chart.js";
 import { WorkoutSession, DateRange } from "../types";
 import { useState, useMemo } from "react";
+import { normalizeVolume, convertWeight } from "../utils/volumeCalculation";
 
 // Register Chart.js components
 ChartJS.register(
@@ -79,7 +80,7 @@ const VolumeChart = ({ workouts, dateRange, unit }: VolumeChartProps) => {
     [sortedWorkouts, dateRange]
   );
 
-  // Calculate statistics
+  // Calculate statistics with proper volume handling
   const stats: Stats = useMemo(() => {
     if (filteredWorkouts.length === 0) {
       return {
@@ -90,35 +91,58 @@ const VolumeChart = ({ workouts, dateRange, unit }: VolumeChartProps) => {
       };
     }
 
-    // Ensure we have valid numbers for volume calculations
-    const volumes = filteredWorkouts.map((w) =>
-      typeof w.totalVolume === "number" ? w.totalVolume : 0
-    );
+    try {
+      // Normalize volumes and convert to target unit if needed
+      const volumes = filteredWorkouts.map((workout) => {
+        const normalizedVolume = normalizeVolume(workout.totalVolume);
+        return workout.unit === unit
+          ? normalizedVolume
+          : convertWeight(normalizedVolume, workout.unit, unit);
+      });
 
-    const total = volumes.reduce((sum, vol) => sum + vol, 0);
-    const max = Math.max(...volumes);
-    const avg = total / volumes.length;
+      const total = volumes.reduce((sum, vol) => sum + vol, 0);
+      const max = Math.max(...volumes);
+      const avg = total / volumes.length;
 
-    // Calculate volume change (comparing last workout to first workout)
-    const firstVolume = volumes[0] || 0;
-    const lastVolume = volumes[volumes.length - 1] || 0;
-    const change =
-      firstVolume === 0 ? 0 : ((lastVolume - firstVolume) / firstVolume) * 100;
+      // Calculate volume change (comparing last workout to first workout)
+      const firstVolume = volumes[0] || 0;
+      const lastVolume = volumes[volumes.length - 1] || 0;
+      const change =
+        firstVolume === 0
+          ? 0
+          : ((lastVolume - firstVolume) / firstVolume) * 100;
 
-    return {
-      totalVolume: total,
-      averageVolume: avg,
-      maxVolume: max,
-      volumeChange: change,
-    };
-  }, [filteredWorkouts]);
+      return {
+        totalVolume: Number(total.toFixed(2)),
+        averageVolume: Number(avg.toFixed(2)),
+        maxVolume: Number(max.toFixed(2)),
+        volumeChange: Number(change.toFixed(1)),
+      };
+    } catch (error) {
+      console.error("Error calculating stats:", error);
+      return {
+        totalVolume: 0,
+        averageVolume: 0,
+        maxVolume: 0,
+        volumeChange: 0,
+      };
+    }
+  }, [filteredWorkouts, unit]);
 
-  // Prepare base chart data with defensive programming
+  // Prepare base chart data with proper volume handling
   const baseDataset = {
     label: `Volume (${unit})`,
-    data: filteredWorkouts.map((workout) =>
-      typeof workout.totalVolume === "number" ? workout.totalVolume : 0
-    ),
+    data: filteredWorkouts.map((workout) => {
+      try {
+        const normalizedVolume = normalizeVolume(workout.totalVolume);
+        return workout.unit === unit
+          ? normalizedVolume
+          : convertWeight(normalizedVolume, workout.unit, unit);
+      } catch (error) {
+        console.error("Error processing volume:", error);
+        return 0;
+      }
+    }),
     borderColor: "#e8772e",
   };
 
@@ -242,7 +266,7 @@ const VolumeChart = ({ workouts, dateRange, unit }: VolumeChartProps) => {
               Total Volume
             </div>
             <div className="text-xl font-bold">
-              {stats.totalVolume.toFixed(1)} {unit}
+              {stats.totalVolume.toFixed(2)} {unit}
             </div>
           </div>
           <div className="text-center">
@@ -250,7 +274,7 @@ const VolumeChart = ({ workouts, dateRange, unit }: VolumeChartProps) => {
               Average Volume
             </div>
             <div className="text-xl font-bold">
-              {stats.averageVolume.toFixed(1)} {unit}
+              {stats.averageVolume.toFixed(2)} {unit}
             </div>
           </div>
           <div className="text-center">
@@ -258,7 +282,7 @@ const VolumeChart = ({ workouts, dateRange, unit }: VolumeChartProps) => {
               Max Volume
             </div>
             <div className="text-xl font-bold">
-              {stats.maxVolume.toFixed(1)} {unit}
+              {stats.maxVolume.toFixed(2)} {unit}
             </div>
           </div>
           <div className="text-center">
