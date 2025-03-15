@@ -14,8 +14,9 @@ const ExerciseForm = ({ onSubmit, onCancel }: ExerciseFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const timestamp = Date.now();
     onSubmit({
-      name: formData.name.trim(),
+      name: `${formData.name.trim()}_${timestamp}`,
       description: formData.description.trim(),
     });
   };

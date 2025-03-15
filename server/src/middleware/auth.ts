@@ -20,6 +20,26 @@ export const protect = (req: Request, res: Response, next: NextFunction) => {
     return next(new AppError("Please log in to access this resource", 401));
   }
 
+  // Check session expiration
+  if (req.session && req.session.cookie) {
+    const now = new Date();
+    const expires = new Date(req.session.cookie.expires || 0);
+
+    if (expires <= now) {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("[Auth] Error destroying expired session:", err);
+        }
+      });
+      console.warn("[Auth] Session expired:", {
+        sessionId: req.sessionID,
+        expiry: expires,
+        now: now,
+      });
+      return next(new AppError("Session expired. Please log in again", 401));
+    }
+  }
+
   console.log("[Auth] Authentication successful:", {
     userId: (req.user as any)?.id,
     path: req.path,

@@ -593,3 +593,180 @@ const response = {
 3. Configure alerts for cleanup failures
 4. Document cleanup procedures in operations guide
 5. Consider implementing session analytics
+
+### 2024-03-15: Volume Calculation Standardization
+
+**What Happened**:
+
+1. **Centralized Volume Calculation**:
+
+   - Created dedicated volume calculation utilities for both client and server
+   - Implemented consistent type handling and validation
+   - Added unit conversion support (kg/lb)
+   - Standardized decimal precision and rounding methods
+
+2. **Technical Implementation**:
+
+   - Created shared volume calculation utilities with interface `VolumeOptions`
+   - Implemented core functions:
+     - `calculateTotalVolume` for multi-set calculations
+     - `normalizeVolume` for consistent number handling
+     - `convertWeight` for unit conversions
+     - `validateSet` for data validation
+   - Added proper error handling and validation
+   - Standardized to 2 decimal places by default
+
+3. **Integration Points**:
+   - Updated WorkoutSession model to use normalized volume
+   - Enhanced WorkoutSet component with proper volume calculations
+   - Improved VolumeChart with consistent unit handling
+   - Added validation across all volume-related operations
+
+**Why It Matters**:
+
+- Ensures consistent volume calculations across the application
+- Prevents type-related bugs (string vs number)
+- Improves data reliability with proper validation
+- Makes volume calculations more maintainable
+- Supports accurate progress tracking
+- Enables reliable unit conversion
+
+**Next Steps**:
+
+1. Testing & Validation:
+
+   - Add unit tests for volume calculation utilities
+   - Test edge cases and error conditions
+   - Verify calculations across different units
+   - Add integration tests for volume-related features
+
+2. Feature Enhancements:
+
+   - Consider implementing volume history export
+   - Add volume-based progress indicators
+   - Consider adding custom volume calculation formulas
+   - Implement volume comparison tools
+
+3. Documentation & Monitoring:
+
+   - Document volume calculation methodology
+   - Add volume calculation examples
+   - Monitor for edge cases in production
+   - Track volume calculation errors
+
+4. Future Considerations:
+   - Consider adding support for more units
+   - Implement volume calculation presets
+   - Add volume goal tracking
+   - Consider adding volume-based achievements
+
+### 2024-03-15: Test Suite Development and Authentication Issues
+
+**What Happened**:
+
+1. **Test Suite Implementation**:
+
+   - Created comprehensive test suites for core functionality:
+     - Session management (5 passing tests)
+     - Workout integration (3 tests, 1 passing)
+     - Authentication security (5 tests, 1 passing)
+   - Implemented test factories for Users, Exercises, and Workouts
+   - Set up isolated test database environment
+
+2. **Current Issues Identified**:
+
+   a) Workout Validation:
+
+   - Empty exercise name accepted (returns 201 instead of 400)
+   - Negative volume validation happening too late (500 instead of 400)
+   - Need to move validation to request level before database
+
+   b) Authentication Security:
+
+   - Incorrect unauthorized message ("Unauthorized" vs "Please log in to access this resource")
+   - Malformed headers causing 500 errors instead of 401
+   - Session fixation protection not working (200 instead of 401)
+   - XSS protection not implemented (script tags not being sanitized)
+
+**Technical Details**:
+
+1. Test Structure:
+
+   ```typescript
+   // Session Tests
+   - Authentication (2 tests)
+   - Session Persistence (2 tests)
+   - Session Cleanup (1 test)
+
+   // Workout Tests
+   - Complete Flow (1 test)
+   - Error Handling (2 tests)
+
+   // Authentication Tests
+   - Protected Routes (2 tests)
+   - Session Security (2 tests)
+   - Input Validation (1 test)
+   ```
+
+2. Key Validation Points:
+   - Request validation before database operations
+   - Proper error status codes (400 vs 500)
+   - Consistent error messages
+   - Security headers and sanitization
+
+**Why It Matters**:
+
+- Identifies security vulnerabilities early
+- Ensures consistent error handling
+- Validates core business logic
+- Provides regression protection
+- Guides implementation of security best practices
+
+**Next Steps**:
+
+1. **Immediate Fixes**:
+
+   - Implement request-level validation for exercises and workouts
+   - Add proper XSS sanitization middleware
+   - Fix authentication error messages
+   - Implement proper session fixation protection
+
+2. **Test Enhancements**:
+
+   - Add more edge cases for workout validation
+   - Implement concurrent session tests
+   - Add rate limiting tests
+   - Create stress tests for session management
+
+3. **Security Improvements**:
+
+   - Add CSRF protection tests
+   - Implement proper input sanitization
+   - Add request validation middleware
+   - Enhance error handling middleware
+
+4. **Documentation**:
+   - Document test patterns and conventions
+   - Create test data generation guidelines
+   - Add security testing procedures
+   - Document error handling standards
+
+---
+
+## How to Use This Document (do not delete)
+
+1. **Add a New Entry**  
+   Whenever a milestone is reached or a significant change is made, create a new heading (e.g., `### [YYYY-MM-DD]: Heading Text`) to detail:
+
+   - What was changed or learned.
+   - Why this change or insight matters.
+   - Next steps or action items.
+
+2. **Keep It Concise**  
+   Focus on bullet points and short explanations so the document remains easy to read and update.
+
+3. **Document Decisions**  
+   If a design or architectural choice is made, record the reasoning. This will help future contributors understand the project's evolution.
+
+4. **Reflect Often**  
+   Look back on previous entries to avoid repeating mistakes and to see how the project has progressed over time.
