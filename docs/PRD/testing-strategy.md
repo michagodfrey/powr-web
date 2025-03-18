@@ -4,30 +4,81 @@
 
 This document outlines the testing strategy for the Progressive Overload Workout Recorder (POWR) project. The strategy emphasizes reliability, maintainability, and confidence in our codebase while keeping the testing process efficient and focused on critical functionality.
 
+## Development Phase Testing Priorities
+
+During active feature development, we follow these testing priorities:
+
+1. **Critical Path Testing**
+
+   - Focus on core functionality that directly impacts user data
+   - Test new features as they are built, focusing on the happy path
+   - Ensure data integrity for workout tracking and volume calculations
+   - Validate authentication and user session management
+
+2. **Test Documentation**
+
+   - Maintain a "Testing TODO" list in `docs/testing-todo.md`
+   - Document edge cases as they are discovered during development
+   - Track scenarios that need testing coverage in later phases
+   - Note potential regression test cases
+
+3. **Minimal Viable Testing**
+   - Write basic tests for critical features during development
+   - Focus on "happy path" scenarios first
+   - Test data integrity points (saving, loading, calculating)
+   - Defer comprehensive test coverage until features stabilize
+
+Example Testing TODO format:
+
+```markdown
+# Testing TODO
+
+## Critical Paths
+
+- [ ] Workout volume calculation with various unit combinations
+- [ ] Exercise history persistence across sessions
+- [ ] User preference saving and loading
+
+## Edge Cases to Test Later
+
+- [ ] Handle extremely large volume numbers
+- [ ] Multiple concurrent workout sessions
+- [ ] Network interruption during save
+
+## Regression Scenarios
+
+- [ ] Verify volume calculations after unit conversion
+- [ ] Check exercise list after deletion and recreation
+```
+
 ## Core Testing Principles
 
-1. **Test Business Value**
+1. **Prioritize Business Value**
 
    - Focus on testing features that directly impact users
    - Prioritize critical paths and data integrity
-   - Ensure volume calculations are accurate
+   - Start with "happy path" testing during development
+   - Add edge cases and comprehensive testing as features stabilize
 
 2. **Keep Tests Simple**
 
    - Write clear, focused tests
    - One assertion per test when possible
    - Use descriptive test names that explain the behavior being tested
+   - Document test scenarios even if not implementing immediately
 
 3. **Maintain Test Independence**
 
    - Each test should be able to run in isolation
    - No shared state between tests
    - Clean up after each test
+   - Document dependencies for future test implementation
 
-4. **Test Real Usage**
-   - Mirror actual user behavior in tests
-   - Test realistic data scenarios
-   - Include edge cases that users might encounter
+4. **Progressive Testing Strategy**
+   - Begin with critical path testing during development
+   - Document edge cases and scenarios as discovered
+   - Build comprehensive test suite as features stabilize
+   - Maintain a clear testing roadmap
 
 ## Test Types
 

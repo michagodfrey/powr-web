@@ -6,17 +6,31 @@ interface ExerciseFormProps {
   onCancel: () => void;
 }
 
+const MAX_NAME_LENGTH = 25;
+const MAX_DESCRIPTION_LENGTH = 200;
+
 const ExerciseForm = ({ onSubmit, onCancel }: ExerciseFormProps) => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
   });
 
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value.slice(0, MAX_NAME_LENGTH);
+    setFormData((prev) => ({ ...prev, name: newValue }));
+  };
+
+  const handleDescriptionChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    const newValue = e.target.value.slice(0, MAX_DESCRIPTION_LENGTH);
+    setFormData((prev) => ({ ...prev, description: newValue }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const timestamp = Date.now();
     onSubmit({
-      name: `${formData.name.trim()}_${timestamp}`,
+      name: formData.name.trim(),
       description: formData.description.trim(),
     });
   };
@@ -40,13 +54,15 @@ const ExerciseForm = ({ onSubmit, onCancel }: ExerciseFormProps) => {
               type="text"
               id="name"
               value={formData.name}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, name: e.target.value }))
-              }
+              onChange={handleNameChange}
               className="input-field"
               placeholder="e.g., Bench Press"
+              maxLength={MAX_NAME_LENGTH}
               required
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {formData.name.length}/{MAX_NAME_LENGTH} characters
+            </p>
           </div>
 
           <div>
@@ -59,15 +75,14 @@ const ExerciseForm = ({ onSubmit, onCancel }: ExerciseFormProps) => {
             <textarea
               id="description"
               value={formData.description}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }))
-              }
+              onChange={handleDescriptionChange}
               className="input-field min-h-[100px]"
               placeholder="Add notes or description about the exercise..."
+              maxLength={MAX_DESCRIPTION_LENGTH}
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {formData.description.length}/{MAX_DESCRIPTION_LENGTH} characters
+            </p>
           </div>
 
           <div className="flex justify-end space-x-3 pt-4">

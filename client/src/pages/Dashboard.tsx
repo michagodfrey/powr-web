@@ -130,9 +130,11 @@ const Dashboard = () => {
               className="card cursor-pointer hover:shadow-lg transition-shadow"
               onClick={() => handleExerciseClick(exercise.id)}
             >
-              <h3 className="text-xl font-semibold mb-2">{exercise.name}</h3>
+              <h3 className="text-xl font-semibold mb-2 break-words">
+                {exercise.name}
+              </h3>
               {exercise.description && (
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                <p className="text-gray-600 dark:text-gray-400 mb-4 break-words overflow-wrap-anywhere">
                   {exercise.description}
                 </p>
               )}

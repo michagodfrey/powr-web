@@ -8,6 +8,9 @@ import VolumeChart from "../components/VolumeChart";
 import ErrorToast from "../components/ErrorToast";
 import ConfirmDialog from "../components/ConfirmDialog";
 
+const MAX_NAME_LENGTH = 25;
+const MAX_DESCRIPTION_LENGTH = 200;
+
 const ExerciseDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -24,6 +27,10 @@ const ExerciseDetail = () => {
   );
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showEditConfirm, setShowEditConfirm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [editedDescription, setEditedDescription] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
@@ -100,6 +107,13 @@ const ExerciseDetail = () => {
   useEffect(() => {
     fetchExerciseData();
   }, [id]);
+
+  useEffect(() => {
+    if (exercise) {
+      setEditedName(exercise.name);
+      setEditedDescription(exercise.description || "");
+    }
+  }, [exercise]);
 
   const handleSaveWorkout = async (sets: Set[], date: string) => {
     if (!exercise) return;
@@ -286,6 +300,70 @@ const ExerciseDetail = () => {
     });
   };
 
+  const handleUpdateExercise = async () => {
+    try {
+      setError(null);
+      const response = await fetch(`${API_URL}/api/exercises/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          name: editedName,
+          description: editedDescription,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update exercise");
+      }
+
+      await fetchExerciseData();
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating exercise:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to update exercise"
+      );
+    }
+  };
+
+  const handleDeleteExercise = async () => {
+    try {
+      setError(null);
+      const response = await fetch(`${API_URL}/api/exercises/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete exercise");
+      }
+
+      navigate("/");
+    } catch (error) {
+      console.error("Error deleting exercise:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to delete exercise"
+      );
+    }
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value.slice(0, MAX_NAME_LENGTH);
+    setEditedName(newValue);
+  };
+
+  const handleDescriptionChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    const newValue = e.target.value.slice(0, MAX_DESCRIPTION_LENGTH);
+    setEditedDescription(newValue);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -318,24 +396,118 @@ const ExerciseDetail = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
+      <div className="flex justify-between items-start mb-8">
+        <div className="flex-1">
           <button
             onClick={() => navigate("/")}
             className="text-gray-600 dark:text-gray-400 mb-2 hover:text-primary"
           >
             ← Back to Exercises
           </button>
-          <h1 className="text-3xl font-bold text-secondary dark:text-white">
-            {exercise.name}
-          </h1>
-          {exercise.description && (
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              {exercise.description}
-            </p>
+          {isEditing ? (
+            <div className="space-y-3">
+              <div>
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={handleNameChange}
+                  className="input-field text-2xl font-bold w-full break-words"
+                  placeholder="Exercise name"
+                  maxLength={MAX_NAME_LENGTH}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {editedName.length}/{MAX_NAME_LENGTH} characters
+                </p>
+              </div>
+              <div>
+                <textarea
+                  value={editedDescription}
+                  onChange={handleDescriptionChange}
+                  className="input-field w-full break-words overflow-wrap-anywhere"
+                  placeholder="Exercise description (optional)"
+                  rows={2}
+                  maxLength={MAX_DESCRIPTION_LENGTH}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {editedDescription.length}/{MAX_DESCRIPTION_LENGTH} characters
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleUpdateExercise}
+                  className="btn-primary"
+                  disabled={!editedName.trim()}
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditedName(exercise?.name || "");
+                    setEditedDescription(exercise?.description || "");
+                  }}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h1 className="text-3xl font-bold text-secondary dark:text-white break-words">
+                {exercise?.name}
+              </h1>
+              {exercise?.description && (
+                <p className="text-gray-600 dark:text-gray-400 mt-2 break-words overflow-wrap-anywhere">
+                  {exercise.description}
+                </p>
+              )}
+            </div>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-start ml-4">
+          {!isEditing && (
+            <>
+              <button
+                onClick={() => setIsEditing(true)}
+                className="btn-secondary"
+                title="Edit exercise"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="btn-secondary text-red-500 hover:text-red-700"
+                title="Delete exercise"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            </>
+          )}
           <div className="flex gap-2">
             <button
               onClick={() => handleExport("csv")}
@@ -528,6 +700,14 @@ const ExerciseDetail = () => {
           setWorkoutToEdit(null);
         }}
         onCancel={() => setShowEditConfirm(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete Exercise"
+        message="Are you sure you want to delete this exercise? This will permanently delete all associated workout data and cannot be undone."
+        onConfirm={handleDeleteExercise}
+        onCancel={() => setShowDeleteConfirm(false)}
       />
 
       {error && (

@@ -1,19 +1,36 @@
 # Project Structure
 
-## Current directory layout 15 March 2025 for the Progressive Overload Workout Recorder (POWR)
+## Current directory layout 17 March 2025 for the Progressive Overload Workout Recorder (POWR)
 
 project-root/
 ├── client/ # Frontend React + TypeScript application
 │ ├── src/
 │ │ ├── auth/ # Authentication-related components and utilities
+│ │ │ ├── AuthContext.tsx # Authentication context provider
+│ │ │ ├── AuthCallback.tsx # OAuth callback handler
+│ │ │ └── ProtectedRoute.tsx # Route protection wrapper
 │ │ ├── components/ # Reusable UI components
+│ │ │ ├── ExerciseForm.tsx # Exercise creation/editing form
+│ │ │ ├── VolumeChart.tsx # Volume visualization component
+│ │ │ ├── WorkoutSet.tsx # Individual set management
+│ │ │ ├── Header.tsx # Application header
+│ │ │ ├── ConfirmDialog.tsx # Confirmation modal
+│ │ │ ├── Layout.tsx # Common layout wrapper
+│ │ │ └── ErrorToast.tsx # Error notification component
 │ │ ├── contexts/ # React contexts (Auth, Theme, etc.)
 │ │ ├── pages/ # Page-level components
+│ │ │ ├── Settings.tsx # User settings page
+│ │ │ ├── ExerciseDetail.tsx # Exercise details and tracking
+│ │ │ ├── Dashboard.tsx # Main dashboard view
+│ │ │ └── Login.tsx # Login page
 │ │ ├── routes/ # Route definitions and configuration
 │ │ ├── types/ # TypeScript type definitions
 │ │ ├── assets/ # Static assets
 │ │ ├── App.tsx # Root component
-│ │ └── main.tsx # Application entry point
+│ │ ├── main.tsx # Application entry point
+│ │ ├── index.ts # Exports and configurations
+│ │ ├── App.css # Root component styles
+│ │ └── index.css # Global styles
 │ ├── public/ # Public assets
 │ ├── .env # Environment variables
 │ ├── index.html # HTML entry point
@@ -25,10 +42,25 @@ project-root/
 │ ├── src/
 │ │ ├── config/ # Configuration files
 │ │ ├── controllers/ # Request handlers
+│ │ │ ├── workoutController.ts # Workout management
+│ │ │ ├── exportController.ts # Data export functionality
+│ │ │ ├── authController.ts # Authentication handling
+│ │ │ └── exerciseController.ts # Exercise management
 │ │ ├── middleware/ # Custom middleware
+│ │ │ ├── errorHandler.ts # Global error handling
+│ │ │ ├── validation.ts # Request validation
+│ │ │ └── auth.ts # Authentication middleware
 │ │ ├── models/ # Sequelize models
+│ │ │ ├── User.ts # User model
+│ │ │ ├── WorkoutSession.ts # Workout session model
+│ │ │ ├── Session.ts # Auth session model
+│ │ │ ├── Exercise.ts # Exercise model
+│ │ │ ├── Set.ts # Set model
+│ │ │ └── index.ts # Model associations
 │ │ ├── routes/ # API route definitions
-│ │ ├── test/ # Test files
+│ │ ├── utils/ # Utility functions
+│ │ ├── scripts/ # Utility scripts
+│ │ ├── db/ # Database setup and migrations
 │ │ ├── app.ts # Express application setup
 │ │ └── index.ts # Server entry point
 │ ├── scripts/ # Database and utility scripts
@@ -51,19 +83,17 @@ project-root/
 
 1. **Frontend (client/)**:
 
-   - Added TypeScript configuration
-   - Added Vite and Tailwind configurations
-   - Organized auth-specific code in dedicated directory
-   - Added contexts for state management
-   - Added routes directory for navigation
+   - Detailed component organization with specific responsibilities
+   - Comprehensive auth module with context and protected routes
+   - Organized page components with clear purposes
+   - CSS organization with global and component-specific styles
 
 2. **Backend (server/)**:
 
-   - Moved source code to src/ directory
-   - Added test directory for testing
-   - Added scripts directory for database management
-   - Added middleware directory
-   - Separated app.ts and index.ts
+   - Detailed controller organization by feature
+   - Comprehensive middleware setup for error handling, validation, and auth
+   - Complete model structure with associations
+   - Clear separation of concerns in file organization
 
 3. **Documentation (docs/)**:
 
@@ -75,57 +105,3 @@ project-root/
    - Added environment variable templates
    - Added TypeScript configurations
    - Added build and development tooling
-
-## Proposed additional folders for completed app
-
-project-root/
-├── client/
-│   ├── src/
-│   │   ├── analytics/          # Analytics and monitoring integration
-│   │   │   ├── sentry.ts      # Error tracking
-│   │   │   └── metrics.ts     # Performance metrics
-│   │   ├── hooks/             # Custom React hooks
-│   │   ├── utils/             # Utility functions
-│   │   │   ├── validation.ts  # Form validation
-│   │   │   └── formatting.ts  # Data formatting
-│   │   ├── services/          # API service layer
-│   │   │   ├── api.ts        # Base API configuration
-│   │   │   ├── workout.ts    # Workout-related API calls
-│   │   │   └── exercise.ts   # Exercise-related API calls
-│   │   └── constants/         # Application constants
-│   └── tests/                 # Frontend tests
-│       ├── unit/             # Unit tests
-│       └── integration/      # Integration tests
-│
-├── server/
-│   ├── src/
-│   │   ├── logging/           # Logging configuration
-│   │   │   ├── winston.ts    # Logger setup
-│   │   │   └── morgan.ts     # HTTP request logging
-│   │   ├── monitoring/        # Monitoring setup
-│   │   │   ├── sentry.ts     # Error tracking
-│   │   │   └── metrics.ts    # Performance metrics
-│   │   ├── utils/            # Utility functions
-│   │   │   ├── validation.ts # Input validation
-│   │   │   └── formatting.ts # Data formatting
-│   │   ├── services/         # Business logic layer
-│   │   │   ├── workout.ts    # Workout-related logic
-│   │   │   └── exercise.ts   # Exercise-related logic
-│   │   └── types/            # TypeScript type definitions
-│   ├── migrations/           # Database migrations
-│   │   ├── schema/          # Schema migrations
-│   │   └── data/           # Data migrations
-│   └── tests/               # Backend tests
-│       ├── unit/           # Unit tests
-│       ├── integration/    # Integration tests
-│       └── fixtures/       # Test data
-│
-├── shared/                  # Shared code between client and server
-│   ├── types/              # Shared TypeScript types
-│   ├── constants/          # Shared constants
-│   └── validation/         # Shared validation schemas
-│
-└── scripts/                # Project-wide scripts
-    ├── deployment/         # Deployment scripts
-    ├── database/          # Database management scripts
-    └── monitoring/        # Monitoring setup scripts

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { Exercise } from "../models/Exercise";
+import { WorkoutSession } from "../models/WorkoutSession";
 import { AppError } from "../middleware/errorHandler";
 
 // Create a new exercise
@@ -41,13 +42,29 @@ export const getExercises = async (
 
     const exercises = await Exercise.findAll({
       where: { userId },
+      include: [
+        {
+          model: WorkoutSession,
+          as: "workoutSessions",
+          attributes: ["id"], // Only fetch IDs to keep response light
+        },
+      ],
       order: [["createdAt", "DESC"]],
+    });
+
+    // Transform the response to match the expected format
+    const transformedExercises = exercises.map((exercise) => {
+      const exerciseJson = exercise.toJSON();
+      return {
+        ...exerciseJson,
+        workoutHistory: exerciseJson.workoutSessions || [],
+      };
     });
 
     res.json({
       status: "success",
       data: {
-        exercises,
+        exercises: transformedExercises,
       },
     });
   } catch (error) {
