@@ -11,6 +11,7 @@ import {
   Legend,
   ChartData,
   ChartOptions,
+  Filler,
 } from "chart.js";
 import { WorkoutSession, DateRange } from "../types";
 import { useState, useMemo } from "react";
@@ -25,7 +26,8 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 interface VolumeChartProps {

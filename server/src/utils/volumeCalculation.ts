@@ -31,14 +31,25 @@ export const convertWeight = (
  * @param set - Set data to validate
  * @throws Error if validation fails
  */
-export const validateSet = (set: { weight: number; reps: number }) => {
-  if (typeof set.weight !== "number" || set.weight < 0) {
+export const validateSet = (set: {
+  weight: number | string;
+  reps: number | string;
+}) => {
+  // Convert weight to number and validate
+  const weightNum =
+    typeof set.weight === "string" ? parseFloat(set.weight) : set.weight;
+  if (typeof weightNum !== "number" || isNaN(weightNum) || weightNum < 0) {
     throw new Error(`Invalid weight value: ${set.weight}`);
   }
+
+  // Convert reps to number and validate
+  const repsNum =
+    typeof set.reps === "string" ? parseInt(set.reps, 10) : set.reps;
   if (
-    typeof set.reps !== "number" ||
-    set.reps < 0 ||
-    !Number.isInteger(set.reps)
+    typeof repsNum !== "number" ||
+    isNaN(repsNum) ||
+    repsNum < 0 ||
+    !Number.isInteger(repsNum)
   ) {
     throw new Error(`Invalid reps value: ${set.reps}`);
   }
@@ -50,9 +61,14 @@ export const validateSet = (set: { weight: number; reps: number }) => {
  * @param reps - Number of repetitions
  * @returns Calculated volume
  */
-export const calculateSetVolume = (weight: number, reps: number): number => {
-  validateSet({ weight, reps });
-  return weight * reps;
+export const calculateSetVolume = (
+  weight: number | string,
+  reps: number | string
+): number => {
+  const weightNum = typeof weight === "string" ? parseFloat(weight) : weight;
+  const repsNum = typeof reps === "string" ? parseInt(reps, 10) : reps;
+  validateSet({ weight: weightNum, reps: repsNum });
+  return weightNum * repsNum;
 };
 
 /**
@@ -63,14 +79,22 @@ export const calculateSetVolume = (weight: number, reps: number): number => {
  * @returns Total volume in the specified unit
  */
 export const calculateTotalVolume = (
-  sets: Array<{ weight: number; reps: number; unit: "kg" | "lb" }>,
+  sets: Array<{
+    weight: number | string;
+    reps: number | string;
+    unit: "kg" | "lb";
+  }>,
   targetUnit: "kg" | "lb",
   options: VolumeOptions = DEFAULT_OPTIONS
 ): number => {
   const totalVolume = sets.reduce((total, set) => {
-    validateSet(set);
-    const convertedWeight = convertWeight(set.weight, set.unit, targetUnit);
-    return total + calculateSetVolume(convertedWeight, set.reps);
+    const weightNum =
+      typeof set.weight === "string" ? parseFloat(set.weight) : set.weight;
+    const repsNum =
+      typeof set.reps === "string" ? parseInt(set.reps, 10) : set.reps;
+    validateSet({ weight: weightNum, reps: repsNum });
+    const convertedWeight = convertWeight(weightNum, set.unit, targetUnit);
+    return total + calculateSetVolume(convertedWeight, repsNum);
   }, 0);
 
   const { precision = 2, roundingMethod = "round" } = options;

@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Exercise, WorkoutSession, Set, DateRange } from "../types";
 import { usePreferences } from "../contexts/PreferencesContext";
 import { useAuth } from "../auth/AuthContext";
@@ -31,6 +31,9 @@ const ExerciseDetail = () => {
   const [editedName, setEditedName] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
+  const settingsMenuRef = useRef<HTMLDivElement>(null);
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
@@ -38,12 +41,12 @@ const ExerciseDetail = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log(
-        "ExerciseDetail: Fetching exercise",
-        id,
-        "for user:",
-        user?.id
-      );
+      // console.log(
+      //   "ExerciseDetail: Fetching exercise",
+      //   id,
+      //   "for user:",
+      //   user?.id
+      // );
 
       // Fetch exercise details
       const exerciseResponse = await fetch(`${API_URL}/api/exercises/${id}`, {
@@ -59,7 +62,7 @@ const ExerciseDetail = () => {
       }
 
       const exerciseData = await exerciseResponse.json();
-      console.log("ExerciseDetail: Received exercise data:", exerciseData);
+      // console.log("ExerciseDetail: Received exercise data:", exerciseData);
 
       // Fetch workout sessions
       let workoutHistory = [];
@@ -115,6 +118,23 @@ const ExerciseDetail = () => {
     }
   }, [exercise]);
 
+  // Add click outside handler for settings menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        settingsMenuRef.current &&
+        settingsButtonRef.current &&
+        !settingsMenuRef.current.contains(event.target as Node) &&
+        !settingsButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowSettingsMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleSaveWorkout = async (sets: Set[], date: string) => {
     if (!exercise) return;
 
@@ -130,7 +150,7 @@ const ExerciseDetail = () => {
           unit: set.unit,
         })),
       };
-      console.log("[Workout] Saving workout with payload:", payload);
+      // console.log("[Workout] Saving workout with payload:", payload);
 
       const response = await fetch(`${API_URL}/api/workouts`, {
         method: "POST",
@@ -141,11 +161,11 @@ const ExerciseDetail = () => {
         body: JSON.stringify(payload),
       });
 
-      console.log("[Workout] Server response status:", {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-      });
+      // console.log("[Workout] Server response status:", {
+      //   status: response.status,
+      //   statusText: response.statusText,
+      //   headers: Object.fromEntries(response.headers.entries()),
+      // });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
@@ -161,7 +181,7 @@ const ExerciseDetail = () => {
       }
 
       const responseData = await response.json();
-      console.log("[Workout] Server success response:", responseData);
+      // console.log("[Workout] Server success response:", responseData);
 
       await fetchExerciseData();
       setShowWorkoutModal(false);
@@ -453,77 +473,146 @@ const ExerciseDetail = () => {
               </div>
             </div>
           ) : (
-            <div>
-              <h1 className="text-3xl font-bold text-secondary dark:text-white break-words">
-                {exercise?.name}
-              </h1>
-              {exercise?.description && (
-                <p className="text-gray-600 dark:text-gray-400 mt-2 break-words overflow-wrap-anywhere">
-                  {exercise.description}
-                </p>
-              )}
+            <div className="flex items-start">
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-secondary dark:text-white break-words">
+                  {exercise?.name}
+                </h1>
+                {exercise?.description && (
+                  <p className="text-gray-600 dark:text-gray-400 mt-2 break-words overflow-wrap-anywhere">
+                    {exercise.description}
+                  </p>
+                )}
+              </div>
+              <div className="relative ml-4">
+                <button
+                  ref={settingsButtonRef}
+                  onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                  className="btn-secondary p-2"
+                  title="Exercise settings"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                </button>
+                {showSettingsMenu && (
+                  <div
+                    ref={settingsMenuRef}
+                    className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
+                  >
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setIsEditing(true);
+                          setShowSettingsMenu(false);
+                        }}
+                        className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                      >
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                        Edit Exercise
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleExport("csv");
+                          setShowSettingsMenu(false);
+                        }}
+                        className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                      >
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        Export CSV
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleExport("pdf");
+                          setShowSettingsMenu(false);
+                        }}
+                        className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                      >
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        Export PDF
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDeleteConfirm(true);
+                          setShowSettingsMenu(false);
+                        }}
+                        className="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center border-t border-gray-200 dark:border-gray-700"
+                      >
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                        Delete Exercise
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
-        <div className="flex gap-2 items-start ml-4">
-          {!isEditing && (
-            <>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="btn-secondary"
-                title="Edit exercise"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
-              </button>
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="btn-secondary text-red-500 hover:text-red-700"
-                title="Delete exercise"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-              </button>
-            </>
-          )}
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleExport("csv")}
-              className="btn-secondary"
-              title="Export as CSV"
-            >
-              Export CSV
-            </button>
-            <button
-              onClick={() => handleExport("pdf")}
-              className="btn-secondary"
-              title="Export as PDF"
-            >
-              Export PDF
-            </button>
-          </div>
+        <div className="ml-4">
           <button
             onClick={() => setShowWorkoutModal(true)}
             className="btn-primary"

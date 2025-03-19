@@ -17,7 +17,7 @@ const Dashboard = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log("Dashboard: Fetching exercises for user:", user?.id);
+      // console.log("Dashboard: Fetching exercises for user:", user?.id);
       const response = await fetch(
         `${
           import.meta.env.VITE_API_URL || "http://localhost:4000"
@@ -32,7 +32,7 @@ const Dashboard = () => {
       }
 
       const data = await response.json();
-      console.log("Dashboard: Received exercises:", data.data.exercises);
+      // console.log("Dashboard: Received exercises:", data.data.exercises);
       setExercises(data.data.exercises);
     } catch (error) {
       console.error("Error fetching exercises:", error);
