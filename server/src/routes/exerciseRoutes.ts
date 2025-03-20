@@ -1,3 +1,5 @@
+// Protected routes for managing user exercises
+// Handles CRUD operations with input validation and authentication checks
 import { Router } from "express";
 import { isAuthenticated } from "../middleware/auth";
 import { validateExerciseInput } from "../middleware/validation";

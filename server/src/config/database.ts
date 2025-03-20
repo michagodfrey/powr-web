@@ -1,3 +1,5 @@
+// Database configuration and connection management
+// Sets up Sequelize and connection pool with environment-specific settings
 import { Sequelize } from "sequelize";
 import { config } from "./validateEnv";
 import { initializeModels } from "../models";

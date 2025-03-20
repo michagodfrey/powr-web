@@ -1,3 +1,5 @@
+// Database model initialization and association configuration
+// Sets up relationships between models and exports them for use throughout the application
 import { Sequelize } from "sequelize";
 import { Exercise } from "./Exercise";
 import { User } from "./User";
@@ -6,14 +8,16 @@ import { WorkoutSession } from "./WorkoutSession";
 import { Session } from "./Session";
 
 export const initializeModels = (sequelize: Sequelize) => {
-  // Initialize all models
+  // Initialize all models with their database schemas
   Exercise.initModel(sequelize);
   User.initModel(sequelize);
   Set.initModel(sequelize);
   WorkoutSession.initModel(sequelize);
   Session.initModel(sequelize);
 
-  // Define associations
+  // Define model relationships and foreign key constraints
+
+  // User -> Exercise relationship (one-to-many)
   User.hasMany(Exercise, {
     foreignKey: "userId",
     as: "exercises",
@@ -22,6 +26,7 @@ export const initializeModels = (sequelize: Sequelize) => {
     foreignKey: "userId",
   });
 
+  // User -> WorkoutSession relationship (one-to-many)
   User.hasMany(WorkoutSession, {
     foreignKey: "userId",
     as: "workoutSessions",
@@ -30,6 +35,7 @@ export const initializeModels = (sequelize: Sequelize) => {
     foreignKey: "userId",
   });
 
+  // Exercise -> WorkoutSession relationship (one-to-many)
   Exercise.hasMany(WorkoutSession, {
     foreignKey: "exerciseId",
     as: "workoutSessions",
@@ -39,6 +45,7 @@ export const initializeModels = (sequelize: Sequelize) => {
     as: "exercise",
   });
 
+  // WorkoutSession -> Set relationship (one-to-many)
   WorkoutSession.hasMany(Set, {
     foreignKey: "sessionId",
     as: "sets",
@@ -47,7 +54,7 @@ export const initializeModels = (sequelize: Sequelize) => {
     foreignKey: "sessionId",
   });
 
-  // Initialize Session associations
+  // Initialize session table associations
   Session.associateModels();
 
   return {

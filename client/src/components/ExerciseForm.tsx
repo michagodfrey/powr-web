@@ -1,3 +1,5 @@
+// Modal form component for creating or editing exercises
+// Handles input validation and character limits for exercise name and description
 import { useState } from "react";
 import { Exercise } from "../types";
 
@@ -15,11 +17,13 @@ const ExerciseForm = ({ onSubmit, onCancel }: ExerciseFormProps) => {
     description: "",
   });
 
+  // Handles name input changes with character limit enforcement
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value.slice(0, MAX_NAME_LENGTH);
     setFormData((prev) => ({ ...prev, name: newValue }));
   };
 
+  // Handles description input changes with character limit enforcement
   const handleDescriptionChange = (
     e: React.ChangeEvent<HTMLTextAreaElement>
   ) => {
@@ -27,6 +31,7 @@ const ExerciseForm = ({ onSubmit, onCancel }: ExerciseFormProps) => {
     setFormData((prev) => ({ ...prev, description: newValue }));
   };
 
+  // Submits the form data after trimming whitespace
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({

@@ -1,5 +1,8 @@
+// Global error handling middleware for consistent error responses
+// Handles Sequelize errors, validation errors, and custom application errors
 import { Request, Response, NextFunction } from "express";
 
+// Custom error class for application-specific errors
 export class AppError extends Error {
   statusCode: number;
   status: string;

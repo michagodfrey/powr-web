@@ -1,6 +1,9 @@
+// Authentication middleware for protecting routes and validating user access
+// Includes session validation, user permission checks, and admin authorization
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "./errorHandler";
 
+// Protects routes by requiring authentication and validating session
 export const protect = (req: Request, res: Response, next: NextFunction) => {
   console.log("[Auth] Checking authentication:", {
     path: req.path,

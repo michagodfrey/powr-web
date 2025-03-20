@@ -1,5 +1,5 @@
-// client/src/utils/volumeCalculation.ts
-
+// Utility functions for workout volume calculations and unit conversions
+// Handles weight unit conversion, set validation, and volume normalization
 export interface VolumeOptions {
   precision?: number; // Number of decimal places
   roundingMethod?: "floor" | "ceil" | "round";
@@ -31,15 +31,21 @@ export const convertWeight = (
  * @param set - Set data to validate
  * @throws Error if validation fails
  */
-export const validateSet = (set: { weight: number; reps: number }) => {
-  if (typeof set.weight !== "number" || set.weight < 0) {
+export const validateSet = (set: {
+  weight: number | string;
+  reps: number | string;
+}) => {
+  // Convert weight to number and validate
+  const weightNum =
+    typeof set.weight === "string" ? parseFloat(set.weight) : set.weight;
+  if (isNaN(weightNum) || weightNum < 0) {
     throw new Error(`Invalid weight value: ${set.weight}`);
   }
-  if (
-    typeof set.reps !== "number" ||
-    set.reps < 0 ||
-    !Number.isInteger(set.reps)
-  ) {
+
+  // Convert reps to number and validate
+  const repsNum =
+    typeof set.reps === "string" ? parseInt(set.reps.toString(), 10) : set.reps;
+  if (isNaN(repsNum) || repsNum < 0 || !Number.isInteger(repsNum)) {
     throw new Error(`Invalid reps value: ${set.reps}`);
   }
 };

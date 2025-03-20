@@ -1,3 +1,5 @@
+// Detailed view of an exercise, showing workout history and progress
+// Provides functionality to record, edit, and delete workouts, and manage exercise details
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { Exercise, WorkoutSession, Set, DateRange } from "../types";
@@ -37,16 +39,17 @@ const ExerciseDetail = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
+  // Fetches exercise details and workout history
   const fetchExerciseData = async () => {
     try {
       setLoading(true);
       setError(null);
-      // console.log(
-      //   "ExerciseDetail: Fetching exercise",
-      //   id,
-      //   "for user:",
-      //   user?.id
-      // );
+      console.log(
+        "[ExerciseDetail] Fetching exercise",
+        id,
+        "for user:",
+        user?.id
+      );
 
       // Fetch exercise details
       const exerciseResponse = await fetch(`${API_URL}/api/exercises/${id}`, {
@@ -55,14 +58,14 @@ const ExerciseDetail = () => {
 
       if (!exerciseResponse.ok) {
         console.error(
-          "ExerciseDetail: Failed to fetch exercise:",
+          "[ExerciseDetail] Failed to fetch exercise:",
           await exerciseResponse.text()
         );
         throw new Error("Failed to fetch exercise details");
       }
 
       const exerciseData = await exerciseResponse.json();
-      // console.log("ExerciseDetail: Received exercise data:", exerciseData);
+      console.log("[ExerciseDetail] Received exercise data:", exerciseData);
 
       // Fetch workout sessions
       let workoutHistory = [];
@@ -76,7 +79,7 @@ const ExerciseDetail = () => {
 
         if (!workoutsResponse.ok) {
           console.warn(
-            "Failed to fetch workout sessions:",
+            "[ExerciseDetail] Failed to fetch workout sessions:",
             await workoutsResponse.text()
           );
           setError(
@@ -84,10 +87,17 @@ const ExerciseDetail = () => {
           );
         } else {
           const workoutsData = await workoutsResponse.json();
+          console.log(
+            "[ExerciseDetail] Received workout history:",
+            workoutsData
+          );
           workoutHistory = workoutsData.data.workoutSessions;
         }
       } catch (workoutError) {
-        console.error("Error fetching workout sessions:", workoutError);
+        console.error(
+          "[ExerciseDetail] Error fetching workout sessions:",
+          workoutError
+        );
         setError(
           "Unable to load workout history. The exercise data was loaded successfully."
         );
@@ -97,8 +107,12 @@ const ExerciseDetail = () => {
         ...exerciseData.data.exercise,
         workoutHistory,
       });
+      console.log("[ExerciseDetail] Updated exercise state:", {
+        ...exerciseData.data.exercise,
+        workoutHistory,
+      });
     } catch (error) {
-      console.error("Error fetching exercise data:", error);
+      console.error("[ExerciseDetail] Error fetching exercise data:", error);
       setError(
         error instanceof Error ? error.message : "Failed to load exercise data"
       );
@@ -107,10 +121,12 @@ const ExerciseDetail = () => {
     }
   };
 
+  // Load exercise data when component mounts or ID changes
   useEffect(() => {
     fetchExerciseData();
   }, [id]);
 
+  // Initialize edit form with current exercise data
   useEffect(() => {
     if (exercise) {
       setEditedName(exercise.name);
@@ -118,7 +134,7 @@ const ExerciseDetail = () => {
     }
   }, [exercise]);
 
-  // Add click outside handler for settings menu
+  // Handle clicks outside the settings menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -135,7 +151,12 @@ const ExerciseDetail = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSaveWorkout = async (sets: Set[], date: string) => {
+  // Records a new workout session for the exercise
+  const handleSaveWorkout = async (
+    sets: Set[],
+    date: string,
+    sessionNotes: string
+  ) => {
     if (!exercise) return;
 
     try {
@@ -143,6 +164,7 @@ const ExerciseDetail = () => {
       const payload = {
         exerciseId: exercise.id,
         date,
+        notes: sessionNotes,
         sets: sets.map((set) => ({
           weight: set.weight,
           reps: set.reps,
@@ -150,7 +172,7 @@ const ExerciseDetail = () => {
           unit: set.unit,
         })),
       };
-      // console.log("[Workout] Saving workout with payload:", payload);
+      console.log("[ExerciseDetail] Saving workout with payload:", payload);
 
       const response = await fetch(`${API_URL}/api/workouts`, {
         method: "POST",
@@ -161,15 +183,15 @@ const ExerciseDetail = () => {
         body: JSON.stringify(payload),
       });
 
-      // console.log("[Workout] Server response status:", {
-      //   status: response.status,
-      //   statusText: response.statusText,
-      //   headers: Object.fromEntries(response.headers.entries()),
-      // });
+      console.log("[ExerciseDetail] Server response status:", {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        console.error("[Workout] Server error response:", {
+        console.error("[ExerciseDetail] Server error response:", {
           status: response.status,
           statusText: response.statusText,
           errorData,
@@ -181,12 +203,12 @@ const ExerciseDetail = () => {
       }
 
       const responseData = await response.json();
-      // console.log("[Workout] Server success response:", responseData);
+      console.log("[ExerciseDetail] Server success response:", responseData);
 
       await fetchExerciseData();
       setShowWorkoutModal(false);
     } catch (error) {
-      console.error("[Workout] Error saving workout:", {
+      console.error("[ExerciseDetail] Error saving workout:", {
         error: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
       });
@@ -196,6 +218,7 @@ const ExerciseDetail = () => {
     }
   };
 
+  // Deletes a workout session
   const handleDeleteWorkout = async (workoutId: number) => {
     try {
       setError(null);
@@ -219,11 +242,29 @@ const ExerciseDetail = () => {
     }
   };
 
-  const handleUpdateWorkout = async (sets: Set[], date: string) => {
-    if (!workoutToEdit) return;
+  // Updates an existing workout session
+  const handleUpdateWorkout = async (
+    sets: Set[],
+    date: string,
+    sessionNotes: string
+  ) => {
+    if (!workoutToEdit || !exercise) return;
 
     try {
       setError(null);
+      // Convert weight and reps to numbers before sending
+      const formattedSets = sets.map((set) => ({
+        weight: parseFloat(set.weight.toString()),
+        reps: parseInt(set.reps.toString(), 10),
+        notes: set.notes,
+        unit: set.unit,
+      }));
+
+      console.log(
+        "[ExerciseDetail] Updating workout with formatted sets:",
+        formattedSets
+      );
+
       const response = await fetch(
         `${API_URL}/api/workouts/${workoutToEdit.id}`,
         {
@@ -233,8 +274,10 @@ const ExerciseDetail = () => {
           },
           credentials: "include",
           body: JSON.stringify({
+            exerciseId: exercise.id,
             date,
-            sets,
+            notes: sessionNotes,
+            sets: formattedSets,
           }),
         }
       );
@@ -255,6 +298,7 @@ const ExerciseDetail = () => {
     }
   };
 
+  // Handles workout modal close with unsaved changes
   const handleCloseWorkoutModal = () => {
     if (workoutToEdit) {
       setShowEditConfirm(true);
@@ -263,6 +307,7 @@ const ExerciseDetail = () => {
     }
   };
 
+  // Exports workout data in CSV or PDF format
   const handleExport = async (format: "csv" | "pdf") => {
     try {
       setError(null);
@@ -311,15 +356,7 @@ const ExerciseDetail = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      weekday: "short",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
+  // Updates exercise details (name and description)
   const handleUpdateExercise = async () => {
     try {
       setError(null);
@@ -350,6 +387,7 @@ const ExerciseDetail = () => {
     }
   };
 
+  // Deletes the entire exercise and its workout history
   const handleDeleteExercise = async () => {
     try {
       setError(null);
@@ -372,11 +410,23 @@ const ExerciseDetail = () => {
     }
   };
 
+  // Formats date for display in workout history
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  // Handles exercise name input changes with character limit
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value.slice(0, MAX_NAME_LENGTH);
     setEditedName(newValue);
   };
 
+  // Handles exercise description input changes with character limit
   const handleDescriptionChange = (
     e: React.ChangeEvent<HTMLTextAreaElement>
   ) => {
@@ -686,6 +736,11 @@ const ExerciseDetail = () => {
                       {workout.sets.length} sets · Total Volume:{" "}
                       {workout.totalVolume.toFixed(1)} {workout.unit}
                     </p>
+                    {workout.notes && (
+                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 break-words">
+                        {workout.notes}
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -754,6 +809,7 @@ const ExerciseDetail = () => {
           onCancel={handleCloseWorkoutModal}
           initialSets={workoutToEdit?.sets}
           initialDate={workoutToEdit?.date}
+          initialNotes={workoutToEdit?.notes}
           preferredUnit={preferences.preferredUnit}
         />
       )}

@@ -1,3 +1,7 @@
+// Handles the OAuth callback after Google authentication
+// Processes the authentication response, fetches user data, and handles any errors
+// Redirects to dashboard on success or login page with error message on failure
+
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
@@ -7,13 +11,15 @@ const AuthCallback = () => {
   const { setUser } = useAuth();
 
   useEffect(() => {
+    // Process the authentication callback and handle user data
     const handleCallback = async () => {
       try {
-        // Get error from URL search params
+        // Check URL for authentication errors
         const params = new URLSearchParams(window.location.search);
         const error = params.get("error");
 
         if (error) {
+          // Map error codes to user-friendly messages
           let errorMessage = "Authentication failed";
           switch (error) {
             case "auth_failed":
@@ -31,7 +37,7 @@ const AuthCallback = () => {
           throw new Error(errorMessage);
         }
 
-        // Fetch user data
+        // Fetch authenticated user data from the backend
         const response = await fetch(
           `${
             import.meta.env.VITE_API_URL || "http://localhost:4000"
@@ -53,7 +59,7 @@ const AuthCallback = () => {
         const userData = await response.json();
         setUser(userData);
 
-        // Redirect to dashboard
+        // On successful authentication, redirect to the main dashboard
         navigate("/");
       } catch (error) {
         console.error("Auth callback error:", error);
@@ -66,6 +72,7 @@ const AuthCallback = () => {
     handleCallback();
   }, [navigate, setUser]);
 
+  // Show loading spinner while processing the callback
   return (
     <div className="flex items-center justify-center min-h-screen bg-light-bg dark:bg-dark-bg">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>

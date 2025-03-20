@@ -1,3 +1,5 @@
+// Main dashboard page that displays all user exercises
+// Provides functionality to view, add, and manage exercises
 import { useState, useEffect } from "react";
 import { Exercise } from "../types";
 import ExerciseForm from "../components/ExerciseForm";
@@ -13,11 +15,12 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetches all exercises for the current user
   const fetchExercises = async () => {
     try {
       setLoading(true);
       setError(null);
-      // console.log("Dashboard: Fetching exercises for user:", user?.id);
+      console.log("Dashboard: Fetching exercises for user:", user?.id);
       const response = await fetch(
         `${
           import.meta.env.VITE_API_URL || "http://localhost:4000"
@@ -32,7 +35,7 @@ const Dashboard = () => {
       }
 
       const data = await response.json();
-      // console.log("Dashboard: Received exercises:", data.data.exercises);
+      console.log("Dashboard: Received exercises:", data.data.exercises);
       setExercises(data.data.exercises);
     } catch (error) {
       console.error("Error fetching exercises:", error);
@@ -44,10 +47,12 @@ const Dashboard = () => {
     }
   };
 
+  // Load exercises when component mounts
   useEffect(() => {
     fetchExercises();
   }, []);
 
+  // Creates a new exercise and refreshes the list
   const handleCreateExercise = async (
     exerciseData: Omit<Exercise, "id" | "workoutHistory">
   ) => {
@@ -82,6 +87,7 @@ const Dashboard = () => {
     }
   };
 
+  // Navigates to the exercise detail page
   const handleExerciseClick = (exerciseId: number) => {
     navigate(`/exercise/${exerciseId}`);
   };

@@ -1,3 +1,5 @@
+// Server-side utilities for workout volume calculations and validation
+// Ensures data consistency and handles unit conversions for workout metrics
 import { Set } from "../models/Set";
 
 export interface VolumeOptions {

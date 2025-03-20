@@ -1,3 +1,5 @@
+// Maintenance script for cleaning up expired user sessions
+// Removes old sessions and provides cleanup statistics for monitoring
 import { pool } from "../config/database";
 import { config } from "../config/validateEnv";
 

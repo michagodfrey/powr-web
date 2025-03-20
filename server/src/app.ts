@@ -1,3 +1,5 @@
+// Express application setup with security, session, and authentication configuration
+// Configures middleware, routes, and error handling for the API server
 import express from "express";
 import cors from "cors";
 import session from "express-session";

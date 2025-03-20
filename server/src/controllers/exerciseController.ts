@@ -1,3 +1,5 @@
+// Exercise controller handling CRUD operations for exercises
+// Manages user's exercise library with validation and error handling
 import { Request, Response, NextFunction } from "express";
 import { Exercise } from "../models/Exercise";
 import { WorkoutSession } from "../models/WorkoutSession";

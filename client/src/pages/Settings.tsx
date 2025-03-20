@@ -1,3 +1,5 @@
+// User preferences page for managing application settings
+// Handles theme selection and unit preferences (kg/lb)
 import { useNavigate } from "react-router-dom";
 import { usePreferences } from "../contexts/PreferencesContext";
 

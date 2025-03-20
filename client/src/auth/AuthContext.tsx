@@ -1,3 +1,6 @@
+// Authentication context provider that manages user authentication state and related functions
+// Handles Google OAuth authentication flow, session management, and user data
+
 import {
   createContext,
   useContext,
@@ -7,6 +10,7 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 
+// User data structure returned from the API
 interface User {
   id: number;
   name: string;
@@ -14,6 +18,7 @@ interface User {
   picture?: string;
 }
 
+// Authentication context shape with all available methods and state
 interface AuthContextType {
   user: User | null;
   setUser: (user: User | null) => void;
@@ -29,6 +34,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
+// Custom hook to use auth context, throws if used outside AuthProvider
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -37,6 +43,7 @@ export const useAuth = () => {
   return context;
 };
 
+// Main auth provider component that wraps the app and provides authentication state
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
@@ -45,6 +52,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Check if user is authenticated by calling the /me endpoint
   const checkAuthStatus = async () => {
     try {
       const response = await fetch(`${API_URL}/api/auth/me`, {
@@ -74,17 +82,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  // Check auth status periodically to handle session expiration
+  // Check auth status every 5 minutes to handle session expiration
   useEffect(() => {
-    const interval = setInterval(checkAuthStatus, 5 * 60 * 1000); // Check every 5 minutes
+    const interval = setInterval(checkAuthStatus, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [user]);
 
-  // Initial auth check
+  // Initial auth check when component mounts
   useEffect(() => {
     checkAuthStatus();
   }, []);
 
+  // Redirect to Google OAuth login
   const login = async () => {
     try {
       window.location.href = `${API_URL}/api/auth/google`;
@@ -97,6 +106,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
+  // Handle user logout by calling logout endpoint and clearing state
   const logout = async () => {
     try {
       const response = await fetch(`${API_URL}/api/auth/logout`, {
@@ -116,6 +126,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
+  // Utility function to clear any auth errors
   const clearError = () => {
     setError(null);
   };

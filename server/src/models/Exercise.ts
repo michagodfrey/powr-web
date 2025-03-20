@@ -1,24 +1,29 @@
+// Exercise model representing user-created exercises in the application
+// Stores exercise details and maintains relationships with workout sessions
 import { Model, DataTypes, Sequelize } from "sequelize";
 import { Set } from "./Set";
 import { WorkoutSession } from "./WorkoutSession";
 
+// Base attributes required for an Exercise instance
 interface ExerciseAttributes {
   id: number;
-  userId: number;
-  name: string;
-  description?: string;
-  isArchived: boolean;
+  userId: number; // References the user who created the exercise
+  name: string; // Name of the exercise (unique per user)
+  description?: string; // Optional description of the exercise
+  isArchived: boolean; // Soft deletion flag
   createdAt?: Date;
   updatedAt?: Date;
-  workoutSessions?: WorkoutSession[];
+  workoutSessions?: WorkoutSession[]; // Associated workout history
 }
 
+// Attributes required when creating a new Exercise (excludes auto-generated fields)
 interface ExerciseCreationAttributes extends Omit<ExerciseAttributes, "id"> {}
 
 class Exercise
   extends Model<ExerciseAttributes, ExerciseCreationAttributes>
   implements ExerciseAttributes
 {
+  // Required field declarations
   public id!: number;
   public userId!: number;
   public name!: string;
@@ -28,6 +33,7 @@ class Exercise
   public readonly updatedAt!: Date;
   public workoutSessions?: WorkoutSession[];
 
+  // Initialize the model's schema and configuration
   static initModel(sequelize: Sequelize): typeof Exercise {
     Exercise.init(
       {

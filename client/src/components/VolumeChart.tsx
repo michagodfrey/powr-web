@@ -1,3 +1,5 @@
+// Interactive chart component for visualizing workout volume over time
+// Supports line/bar views and provides statistical analysis of progress
 import { Line, Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,

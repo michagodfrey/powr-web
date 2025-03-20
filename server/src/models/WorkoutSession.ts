@@ -1,3 +1,5 @@
+// Workout session model representing a complete workout for an exercise
+// Tracks sets, total volume, and metadata for each workout instance
 import { Model, DataTypes, Sequelize } from "sequelize";
 import { User } from "./User";
 import { Exercise } from "./Exercise";
@@ -6,12 +8,12 @@ import { normalizeVolume } from "../utils/volumeCalculation";
 
 interface WorkoutSessionAttributes {
   id: number;
-  userId: number;
-  exerciseId: number;
-  date: Date;
-  notes?: string;
-  totalVolume: number;
-  unit: "kg" | "lb";
+  userId: number; // References the user who performed the workout
+  exerciseId: number; // References the exercise performed
+  date: Date; // Date the workout was performed
+  notes?: string; // Optional notes about the workout
+  totalVolume: number; // Calculated total volume (sum of all sets)
+  unit: "kg" | "lb"; // Weight unit used for the workout
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -23,6 +25,7 @@ class WorkoutSession
   extends Model<WorkoutSessionAttributes, WorkoutSessionCreationAttributes>
   implements WorkoutSessionAttributes
 {
+  // Required field declarations
   public id!: number;
   public userId!: number;
   public exerciseId!: number;
@@ -33,14 +36,17 @@ class WorkoutSession
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
+  // Getter for normalized total volume
   get totalVolumeAsNumber(): number {
     return normalizeVolume(this.getDataValue("totalVolume"));
   }
 
+  // Setter for total volume with normalization
   set totalVolumeValue(value: number | string) {
     this.setDataValue("totalVolume", normalizeVolume(value));
   }
 
+  // Initialize the model's schema and configuration
   static initModel(sequelize: Sequelize): typeof WorkoutSession {
     WorkoutSession.init(
       {
@@ -123,6 +129,7 @@ class WorkoutSession
     return WorkoutSession;
   }
 
+  // Define model associations
   static associateModels(): void {
     WorkoutSession.belongsTo(User, {
       foreignKey: "user_id",

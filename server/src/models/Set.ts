@@ -1,15 +1,17 @@
+// Individual set model representing a single set within a workout session
+// Tracks weight, reps, and calculated volume with unit conversion support
 import { Model, DataTypes, Sequelize } from "sequelize";
 import { WorkoutSession } from "./WorkoutSession";
 
 export interface SetAttributes {
   id: number;
-  sessionId: number;
-  setNumber: number;
-  weight: number;
-  reps: number;
-  unit: "kg" | "lb";
-  volume: number;
-  notes?: string;
+  sessionId: number; // References the parent workout session
+  setNumber: number; // Order of the set within the session
+  weight: number; // Weight used in the set
+  reps: number; // Number of repetitions performed
+  unit: "kg" | "lb"; // Weight unit (kilograms or pounds)
+  volume: number; // Calculated volume (weight * reps)
+  notes?: string; // Optional notes for the set
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -20,6 +22,7 @@ class Set
   extends Model<SetAttributes, SetCreationAttributes>
   implements SetAttributes
 {
+  // Required field declarations
   public id!: number;
   public sessionId!: number;
   public setNumber!: number;
@@ -31,6 +34,7 @@ class Set
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
+  // Initialize the model's schema and configuration
   static initModel(sequelize: Sequelize): typeof Set {
     Set.init(
       {
@@ -98,6 +102,7 @@ class Set
     return Set;
   }
 
+  // Define model associations
   static associateModels(): void {
     Set.belongsTo(WorkoutSession, {
       foreignKey: "session_id",

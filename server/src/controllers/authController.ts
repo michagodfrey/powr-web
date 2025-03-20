@@ -1,7 +1,10 @@
+// Authentication controller handling user session management
+// Provides endpoints for retrieving current user and handling logout
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "../middleware/errorHandler";
 import { User } from "../models/User";
 
+// Get the currently authenticated user's information
 export const getCurrentUser = async (
   req: Request,
   res: Response,

@@ -1,3 +1,5 @@
+// Protected routes for exporting workout data in different formats
+// Supports CSV and PDF export with authentication checks
 import express from "express";
 import { isAuthenticated } from "../middleware/auth";
 import {

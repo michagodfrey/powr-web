@@ -1,3 +1,5 @@
+// Main server entry point that initializes the application
+// Handles database setup, passport configuration, and error handling
 import { createApp } from "./app";
 import { initDatabase } from "./config/database";
 import { configurePassport } from "./config/passport";

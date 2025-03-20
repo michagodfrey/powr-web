@@ -1,12 +1,15 @@
+// Modal component for recording or editing workout sets
+// Manages set/rep tracking with weight units and session notes
 import { useState } from "react";
 import { Set } from "../types";
 import { calculateTotalVolume } from "../utils/volumeCalculation";
 
 interface WorkoutSetProps {
-  onSave: (sets: Set[], date: string) => void;
+  onSave: (sets: Set[], date: string, sessionNotes: string) => void;
   onCancel: () => void;
   initialSets?: Set[];
   initialDate?: string;
+  initialNotes?: string;
   preferredUnit?: "kg" | "lb";
 }
 
@@ -22,8 +25,17 @@ const WorkoutSet = ({
   onCancel,
   initialSets = [],
   initialDate,
+  initialNotes = "",
   preferredUnit = "kg",
 }: WorkoutSetProps) => {
+  // Add debug logging for edit mode
+  console.log("[WorkoutSet] Initializing with:", {
+    initialSets,
+    initialDate,
+    initialNotes,
+    preferredUnit,
+  });
+
   const [sets, setSets] = useState<Set[]>(
     initialSets.length > 0
       ? initialSets
@@ -34,6 +46,16 @@ const WorkoutSet = ({
   const [date, setDate] = useState(
     initialDate || new Date().toISOString().split("T")[0]
   );
+
+  // Add state for session notes, ensuring it's always a string
+  const [sessionNotes, setSessionNotes] = useState(initialNotes ?? "");
+
+  // Log state after initialization
+  console.log("[WorkoutSet] State initialized:", {
+    sets,
+    date,
+    sessionNotes,
+  });
 
   // Calculate total volume using the utility function
   const getTotalVolume = () => {
@@ -68,11 +90,22 @@ const WorkoutSet = ({
   const handleSetUpdate = (
     id: number,
     field: "weight" | "reps",
-    value: number
+    value: number | string
   ) => {
-    setSets(
-      sets.map((set) => (set.id === id ? { ...set, [field]: value } : set))
-    );
+    // Convert value to appropriate type
+    const numericValue =
+      field === "weight"
+        ? parseFloat(value.toString())
+        : parseInt(value.toString(), 10);
+
+    // Only update if it's a valid number
+    if (!isNaN(numericValue)) {
+      setSets(
+        sets.map((set) =>
+          set.id === id ? { ...set, [field]: numericValue } : set
+        )
+      );
+    }
   };
 
   // Apply a common set/rep scheme
@@ -131,6 +164,20 @@ const WorkoutSet = ({
               ))}
             </div>
           </div>
+
+          {/* Session Notes */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Session Notes
+            </label>
+            <textarea
+              value={sessionNotes}
+              onChange={(e) => setSessionNotes(e.target.value)}
+              className="input-field min-h-[80px] resize-y"
+              placeholder="How was your workout? Any variations or notes to remember?"
+              aria-label="Session notes"
+            />
+          </div>
         </div>
 
         {/* Scrollable Content */}
@@ -151,11 +198,7 @@ const WorkoutSet = ({
                       type="number"
                       value={set.weight}
                       onChange={(e) =>
-                        handleSetUpdate(
-                          set.id,
-                          "weight",
-                          Number(e.target.value)
-                        )
+                        handleSetUpdate(set.id, "weight", e.target.value)
                       }
                       className="input-field"
                       min="0"
@@ -171,7 +214,7 @@ const WorkoutSet = ({
                       type="number"
                       value={set.reps}
                       onChange={(e) =>
-                        handleSetUpdate(set.id, "reps", Number(e.target.value))
+                        handleSetUpdate(set.id, "reps", e.target.value)
                       }
                       className="input-field"
                       min="0"
@@ -220,7 +263,14 @@ const WorkoutSet = ({
                 Cancel
               </button>
               <button
-                onClick={() => onSave(sets, date)}
+                onClick={() => {
+                  console.log("[WorkoutSet] Saving workout:", {
+                    sets,
+                    date,
+                    sessionNotes,
+                  });
+                  onSave(sets, date, sessionNotes);
+                }}
                 className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
                 disabled={sets.length === 0}
               >

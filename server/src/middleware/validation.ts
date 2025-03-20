@@ -1,3 +1,5 @@
+// Input validation and sanitization middleware
+// Provides security against XSS attacks and validates exercise/workout data
 import { Request, Response, NextFunction } from "express";
 import xss from "xss";
 import { AppError } from "./errorHandler";

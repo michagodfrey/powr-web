@@ -1,12 +1,14 @@
+// User model for managing authenticated users and their preferences
+// Stores user profile data from Google OAuth and application settings
 import { Model, DataTypes, Sequelize } from "sequelize";
 
 interface UserAttributes {
   id: number;
-  email: string;
-  googleId?: string;
-  name: string;
-  picture?: string;
-  preferredUnit: "kg" | "lb";
+  email: string; // User's email address (unique)
+  googleId?: string; // Google OAuth ID for authentication
+  name: string; // User's display name
+  picture?: string; // Profile picture URL from Google
+  preferredUnit: "kg" | "lb"; // User's preferred weight unit
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -17,6 +19,7 @@ class User
   extends Model<UserAttributes, UserCreationAttributes>
   implements UserAttributes
 {
+  // Required field declarations
   public id!: number;
   public email!: string;
   public googleId!: string;
@@ -26,6 +29,7 @@ class User
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
+  // Initialize the model's schema and configuration
   static initModel(sequelize: Sequelize): typeof User {
     User.init(
       {

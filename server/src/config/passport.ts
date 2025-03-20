@@ -1,3 +1,5 @@
+// Passport authentication configuration for Google OAuth
+// Handles user serialization/deserialization and OAuth strategy setup
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { User } from "../models/User";

@@ -1,3 +1,5 @@
+// Authentication routes handling Google OAuth flow and session management
+// Includes login, logout, callback handling, and user status endpoints
 import { Router } from "express";
 import passport from "passport";
 import { Request, Response, NextFunction } from "express";

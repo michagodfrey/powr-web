@@ -1,3 +1,5 @@
+// Global navigation header with user profile and settings menu
+// Handles user authentication state and navigation controls
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";

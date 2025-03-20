@@ -1,3 +1,5 @@
+// Workout controller handling CRUD operations for workout sessions
+// Manages workout tracking with set management and volume calculations
 import { Request, Response, NextFunction } from "express";
 import { Op } from "sequelize";
 import { AppError } from "../middleware/errorHandler";

@@ -1,3 +1,5 @@
+// Export controller for workout data in various formats
+// Handles exporting workout history as CSV or PDF (currently placeholder)
 import { Request, Response, NextFunction } from "express";
 
 // Export workout data as CSV

@@ -23,6 +23,12 @@ This document outlines the development workflow for the Progressive Overload Wor
    - Detailed pull requests
    - Regular status updates
    - Documentation maintenance
+   - Code commenting standards:
+     - Top-level comments describing file/component purpose
+     - Secondary comment providing additional context
+     - Function-level comments for complex operations
+     - Consistent style across similar components
+     - Clear, concise language focusing on "what" and "why"
 
 4. **Security Awareness**
    - Regular security reviews

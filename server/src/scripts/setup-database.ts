@@ -1,3 +1,5 @@
+// Database initialization script that runs initial schema migrations
+// Sets up required tables and indexes for the application
 import { pool } from "../config/database";
 import fs from "fs";
 import path from "path";

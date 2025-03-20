@@ -1,3 +1,5 @@
+// Protected routes for managing workout sessions and history
+// Handles CRUD operations for workouts with validation and exercise association
 import { Router } from "express";
 import { isAuthenticated } from "../middleware/auth";
 import { validateWorkoutInput } from "../middleware/validation";

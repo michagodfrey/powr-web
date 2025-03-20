@@ -1,3 +1,5 @@
+// Temporary notification component for displaying error messages
+// Auto-dismisses after specified duration with fade animation
 import { useEffect, useState } from "react";
 
 interface ErrorToastProps {

@@ -1,3 +1,5 @@
+// Authentication page that handles user login through Google OAuth
+// Provides a clean interface for authentication and handles error states
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";

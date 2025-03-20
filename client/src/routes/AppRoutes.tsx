@@ -1,3 +1,5 @@
+// Main routing configuration with lazy-loaded components
+// Handles protected routes and authentication flow
 import { Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import ProtectedRoute from "../auth/ProtectedRoute";

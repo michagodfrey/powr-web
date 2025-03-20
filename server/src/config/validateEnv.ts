@@ -1,3 +1,5 @@
+// Environment variable validation and configuration
+// Ensures all required environment variables are present and properly typed
 import dotenv from "dotenv";
 
 // Load environment variables

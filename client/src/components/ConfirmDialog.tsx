@@ -1,3 +1,5 @@
+// Modal dialog for confirming user actions
+// Provides consistent styling and behavior for confirmation prompts
 import { useEffect, useRef } from "react";
 
 interface ConfirmDialogProps {
