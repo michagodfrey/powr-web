@@ -13,7 +13,15 @@
 
 3. **Progress Tracking & Visualization**
    - Real-time volume calculations.
-   - Graphical displays of total volume over various time ranges (weekly, monthly, custom).
+   - Graphical displays of total volume over time starting from the first workout. There is a slider so the user can
+   - **3.5 Feature: Time Range Slider for Chart Display**
+      - Overview: Implement an interactive slider for the workout volume chart that allows users to filter the displayed data based on a custom time period. The slider will have two handles representing the start and end dates, enabling users to narrow down the chart to any specific date range. By default, the slider is set to show all available time data.
+      - Key Requirements:
+         - Dual Handle Slider: The slider should have two movable handles allowing the user to select a start and end date.
+         - Default State: When first loaded, the chart displays data for the full time range (i.e., all available workout data).
+         - Dynamic Update: As the user adjusts the slider, the chart updates in real time to reflect the selected date range.
+         - Visual Feedback: Display the selected date range (start and end dates) above or below the slider for clarity.
+         - Responsiveness: Ensure the slider is responsive and works well on various screen sizes.
 
 4. **Settings & Customization**
    - Toggle between metric (kg) and imperial (lb) units.

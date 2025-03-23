@@ -2,7 +2,7 @@
 // Provides functionality to record, edit, and delete workouts, and manage exercise details
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { Exercise, WorkoutSession, Set, DateRange } from "../types";
+import { Exercise, WorkoutSession, Set } from "../types";
 import { usePreferences } from "../contexts/PreferencesContext";
 import { useAuth } from "../auth/AuthContext";
 import WorkoutSet from "../components/WorkoutSet";
@@ -22,7 +22,6 @@ const ExerciseDetail = () => {
   const [showWorkoutModal, setShowWorkoutModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState<DateRange>("month");
   const [workoutToDelete, setWorkoutToDelete] = useState<number | null>(null);
   const [workoutToEdit, setWorkoutToEdit] = useState<WorkoutSession | null>(
     null
@@ -679,25 +678,9 @@ const ExerciseDetail = () => {
             <h2 className="text-xl font-semibold text-secondary dark:text-white">
               Progress
             </h2>
-            <div className="flex gap-2">
-              {(["week", "month", "year"] as const).map((range) => (
-                <button
-                  key={range}
-                  onClick={() => setDateRange(range)}
-                  className={`px-3 py-1 rounded ${
-                    dateRange === range
-                      ? "bg-primary text-white"
-                      : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                  }`}
-                >
-                  {range.charAt(0).toUpperCase() + range.slice(1)}
-                </button>
-              ))}
-            </div>
           </div>
           <VolumeChart
             workouts={exercise.workoutHistory}
-            dateRange={dateRange}
             unit={preferences.preferredUnit}
           />
         </div>

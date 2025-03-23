@@ -95,6 +95,7 @@ export const createWorkout = async (
       userId,
       exerciseId,
       date: new Date(date),
+      notes: req.body.notes,
       totalVolume,
       unit,
     });

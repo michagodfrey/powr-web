@@ -901,7 +901,7 @@ const response = {
 3. Value of separating system and user preferences
 4. Benefits of controlled components for settings
 
-## 2024-03-19: Exercise Form Enhancements
+### 2024-03-19: Exercise Form Enhancements
 
 **What Happened**:
 
@@ -1163,6 +1163,121 @@ interface SomeInterface {
    - Update comments during refactoring
    - Track documentation-related issues
    - Gather feedback on documentation usefulness
+
+### 2024-03-22: Workout Notes Persistence Fix
+
+**What Happened**:
+
+1. **Issue Resolution**:
+
+   - Identified and fixed workout notes not being saved in new workout sessions
+   - Located missing `notes` field in `WorkoutSession` creation
+   - Verified notes are properly included in database schema
+   - Confirmed frontend correctly sends notes in payload
+
+2. **Technical Implementation**:
+
+   - Updated `createWorkout` controller to include notes from request body
+   - Verified notes field exists in `WorkoutSession` model and database schema
+   - Confirmed proper type definitions for notes in TypeScript interfaces
+   - Added debug logging for workout creation payload
+
+3. **Validation**:
+   - Confirmed notes are saved correctly in new workout sessions
+   - Verified notes display in workout history
+   - Ensured consistency between create and update operations
+   - Validated proper handling of null/undefined notes
+
+**Why It Matters**:
+
+1. **User Experience**:
+
+   - Users can now properly record and view workout notes
+   - Session context is preserved for future reference
+   - Workout history provides complete information
+   - Maintains data integrity across the application
+
+2. **Data Quality**:
+   - Ensures consistent handling of workout metadata
+   - Preserves important contextual information
+   - Maintains proper data structure in database
+   - Supports future feature development
+
+**Next Steps**:
+
+1. **Monitoring**:
+
+   - Track usage of workout notes feature
+   - Monitor for any edge cases in notes handling
+   - Gather user feedback on notes functionality
+   - Watch for potential performance impacts
+
+2. **Potential Enhancements**:
+
+   - Consider adding rich text support for notes
+   - Implement note templates or quick-add options
+   - Add note search functionality
+   - Consider adding per-set notes feature
+
+3. **Documentation**:
+   - Update API documentation for notes field
+   - Add examples of notes usage
+   - Document notes-related features
+   - Create user guide for workout notes
+
+### 2024-03-22: Chart Display and Form Input Enhancements
+
+**What Happened**:
+
+1. **Chart Display Improvements**:
+
+   - Implemented dual-handle date range slider for custom time period selection
+   - Added dynamic year display in x-axis labels when data spans multiple years
+   - Enhanced stats display with days trained metric and ratio
+   - Added max volume date tracking and display
+   - Improved chart readability with consistent date formatting
+
+2. **Form Input Styling**:
+   - Fixed input field contrast issues in dark mode
+   - Updated input-field utility class with proper color scheme:
+     ```css
+     .input-field {
+       @apply text-gray-900 bg-white dark:text-gray-100 dark:bg-gray-700
+       border-gray-300 dark:border-gray-600;
+     }
+     ```
+   - Applied consistent styling across all form inputs (text, number, textarea)
+   - Maintained focus states and transitions while improving visibility
+
+**Why It Matters**:
+
+1. **User Experience**:
+
+   - Better data visualization with flexible date range selection
+   - Improved readability of workout statistics
+   - Consistent and accessible form inputs in both light and dark modes
+   - Enhanced visual feedback for user interactions
+
+2. **Technical Benefits**:
+   - Centralized input styling through Tailwind utility class
+   - Consistent theme implementation across components
+   - Improved accessibility through better contrast ratios
+   - Maintainable and scalable styling solution
+
+**Next Steps**:
+
+1. **Monitoring & Feedback**:
+
+   - Gather user feedback on the new chart features
+   - Monitor usage patterns of the date range slider
+   - Track any accessibility issues with input fields
+   - Consider additional statistics or metrics to display
+
+2. **Potential Enhancements**:
+   - Consider adding preset date ranges (last 30 days, 90 days, etc.)
+   - Explore additional chart customization options
+   - Consider adding export functionality for selected date ranges
+   - Evaluate other areas where contrast could be improved
 
 ---
 

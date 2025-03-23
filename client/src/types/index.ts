@@ -44,7 +44,10 @@ export interface UserPreferences {
 }
 
 // Example of a type alias - similar to interface but can be used for unions and primitives
-export type DateRange = "week" | "month" | "year" | "custom";
+export interface DateRangeState {
+  startDate: Date;
+  endDate: Date;
+}
 
 // Example of an enum - a way to define a set of named constants
 export enum ChartType {
