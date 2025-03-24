@@ -1225,7 +1225,7 @@ interface SomeInterface {
    - Document notes-related features
    - Create user guide for workout notes
 
-### 2024-03-22: Chart Display and Form Input Enhancements
+### 2024-03-23: Chart Display and Form Input Enhancements
 
 **What Happened**:
 
@@ -1238,14 +1238,17 @@ interface SomeInterface {
    - Improved chart readability with consistent date formatting
 
 2. **Form Input Styling**:
+
    - Fixed input field contrast issues in dark mode
    - Updated input-field utility class with proper color scheme:
+
      ```css
      .input-field {
        @apply text-gray-900 bg-white dark:text-gray-100 dark:bg-gray-700
        border-gray-300 dark:border-gray-600;
      }
      ```
+
    - Applied consistent styling across all form inputs (text, number, textarea)
    - Maintained focus states and transitions while improving visibility
 
@@ -1278,6 +1281,86 @@ interface SomeInterface {
    - Explore additional chart customization options
    - Consider adding export functionality for selected date ranges
    - Evaluate other areas where contrast could be improved
+
+### 2024-03-23: Set Management and ID Generation Investigation
+
+**What Happened**:
+
+1. **Set Order and Management Improvements**:
+
+   - Implemented `setNumber` property in `Set` interface for consistent ordering
+   - Added sorting logic to maintain set order during editing and display
+   - Enhanced set creation to include sequential numbering
+   - Fixed reverse order display issue in workout history
+
+2. **ID Generation Attempts**:
+
+   - Implemented multiple approaches to unique ID generation:
+
+     ```typescript
+     // First attempt
+     id: Date.now() + Math.floor(Math.random() * 1000000);
+
+     // Second attempt
+     id: Date.now() * 1000 + Math.floor(Math.random() * 1000);
+
+     // Quick scheme approach
+     const baseTimestamp = Date.now() * 1000;
+     id: baseTimestamp + index;
+     ```
+
+   - Issue persists: editing one set still affects all sets in quick scheme workouts
+
+**Technical Details**:
+
+1. **Current Implementation**:
+
+   - Using timestamp-based IDs with random offsets
+   - Maintaining set order through `setNumber` property
+   - Proper sorting implementation for consistent display
+   - Type-safe handling of set properties
+
+2. **Remaining Issues**:
+   - Quick scheme sets sharing same ID despite generation attempts
+   - Possible race condition or state management issue
+   - ID generation may not be as unique as expected
+
+**Why It Matters**:
+
+1. **User Experience**:
+
+   - Critical bug affecting workout data integrity
+   - Users unable to edit individual sets in quick schemes
+   - Risk of unintended data modifications
+   - Impacts core workout tracking functionality
+
+2. **Technical Impact**:
+   - Highlights potential React state management issues
+   - Questions effectiveness of current ID generation approach
+   - May indicate deeper architectural considerations
+   - Important for maintaining data consistency
+
+**Next Steps**:
+
+1. **Investigation**:
+
+   - Debug ID generation timing and uniqueness
+   - Review React state updates in quick scheme application
+   - Test alternative ID generation strategies
+   - Consider using a more robust unique ID library
+
+2. **Potential Solutions**:
+
+   - Implement UUID or nanoid for guaranteed uniqueness
+   - Review state management approach for quick schemes
+   - Consider using React keys differently
+   - Add explicit validation for ID uniqueness
+
+3. **Future Considerations**:
+   - Add comprehensive testing for set management
+   - Implement set operation audit logging
+   - Consider optimistic updates for better UX
+   - Review other areas where ID generation is critical
 
 ---
 

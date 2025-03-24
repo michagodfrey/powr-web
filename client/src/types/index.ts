@@ -10,6 +10,8 @@ export interface Set {
   notes?: string;
   // Union type: can be either 'kg' or 'lb'
   unit: "kg" | "lb";
+  // Optional set number for ordering
+  setNumber?: number;
 }
 
 // Represents a workout session

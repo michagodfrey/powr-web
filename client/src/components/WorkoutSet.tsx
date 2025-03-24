@@ -36,10 +36,23 @@ const WorkoutSet = ({
     preferredUnit,
   });
 
+  // Use the original unit from the first set when editing, otherwise use preferred unit
+  const displayUnit =
+    initialSets.length > 0 ? initialSets[0].unit : preferredUnit;
+
   const [sets, setSets] = useState<Set[]>(
     initialSets.length > 0
-      ? initialSets
-      : [{ id: Date.now(), weight: 0, reps: 0, unit: preferredUnit }]
+      ? initialSets.map((set, index) => ({
+          ...set,
+          id: Date.now() * 1000 + index, // Ensure unique ID for each initial set
+          weight:
+            typeof set.weight === "string"
+              ? parseFloat(set.weight)
+              : set.weight,
+          reps:
+            typeof set.reps === "string" ? parseInt(set.reps, 10) : set.reps,
+        }))
+      : [{ id: Date.now(), weight: 0, reps: 0, unit: displayUnit }]
   );
 
   // Initialize with provided date or current date in YYYY-MM-DD format
@@ -70,13 +83,15 @@ const WorkoutSet = ({
   // Add a new set
   const handleAddSet = () => {
     const lastSet = sets[sets.length - 1];
+    const newId = Date.now() * 1000 + sets.length; // Use length as offset for uniqueness
     setSets([
       ...sets,
       {
-        id: Date.now(),
+        id: newId,
         weight: lastSet?.weight || 0,
         reps: lastSet?.reps || 0,
-        unit: preferredUnit,
+        unit: displayUnit,
+        setNumber: sets.length + 1,
       },
     ]);
   };
@@ -111,14 +126,24 @@ const WorkoutSet = ({
   // Apply a common set/rep scheme
   const applyScheme = (scheme: { sets: number; reps: number }) => {
     const lastWeight = sets[0]?.weight || 0;
-    const newSets: Set[] = Array.from({ length: scheme.sets }, (_, i) => ({
-      id: Date.now() + i,
+    const baseTimestamp = Date.now() * 1000;
+    const newSets: Set[] = Array.from({ length: scheme.sets }, (_, index) => ({
+      id: baseTimestamp + index, // Use index as offset for uniqueness
       weight: lastWeight,
       reps: scheme.reps,
-      unit: preferredUnit,
+      unit: displayUnit,
+      setNumber: index + 1,
     }));
     setSets(newSets);
   };
+
+  // Sort sets by setNumber if available, otherwise by array index
+  const sortedSets = [...sets]
+    .map((set, index) => ({
+      ...set,
+      setNumber: set.setNumber || index + 1,
+    }))
+    .sort((a, b) => a.setNumber - b.setNumber);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center overflow-y-auto p-4">
@@ -182,8 +207,18 @@ const WorkoutSet = ({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6 min-h-0">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Sets
+          </label>
+          {/* Show notice about original units when editing */}
+          {initialSets.length > 0 && displayUnit !== preferredUnit && (
+            <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              This workout was recorded in {displayUnit}.{" "}
+              {displayUnit === "kg" ? <>1 kg ≈ 2.20 lb</> : <>1 lb ≈ 0.45 kg</>}
+            </div>
+          )}
           <div className="space-y-4">
-            {sets.map((set, index) => (
+            {sortedSets.map((set, index) => (
               <div
                 key={set.id}
                 className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
@@ -192,7 +227,7 @@ const WorkoutSet = ({
                 <div className="flex-1 grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Weight ({preferredUnit})
+                      Weight ({displayUnit})
                     </label>
                     <input
                       type="number"
@@ -202,7 +237,6 @@ const WorkoutSet = ({
                       }
                       className="input-field"
                       min="0"
-                      step="0.5"
                       aria-label={`Weight for set ${index + 1}`}
                     />
                   </div>

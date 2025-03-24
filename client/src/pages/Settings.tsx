@@ -2,13 +2,27 @@
 // Handles theme selection and unit preferences (kg/lb)
 import { useNavigate } from "react-router-dom";
 import { usePreferences } from "../contexts/PreferencesContext";
+import { useState } from "react";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const Settings = () => {
   const navigate = useNavigate();
   const { preferences, updatePreferences } = usePreferences();
+  const [showUnitConfirm, setShowUnitConfirm] = useState(false);
+  const [pendingUnit, setPendingUnit] = useState<"kg" | "lb" | null>(null);
 
-  const handleUnitChange = (unit: "kg" | "lb") => {
-    updatePreferences({ preferredUnit: unit });
+  const handleUnitChangeRequest = (unit: "kg" | "lb") => {
+    if (unit === preferences.preferredUnit) return;
+    setPendingUnit(unit);
+    setShowUnitConfirm(true);
+  };
+
+  const handleUnitChangeConfirm = () => {
+    if (pendingUnit) {
+      updatePreferences({ preferredUnit: pendingUnit });
+    }
+    setShowUnitConfirm(false);
+    setPendingUnit(null);
   };
 
   const handleThemeChange = (isDark: boolean) => {
@@ -59,7 +73,7 @@ const Settings = () => {
                   ? "bg-primary text-white"
                   : "bg-gray-200 dark:bg-gray-700"
               }`}
-              onClick={() => handleUnitChange("kg")}
+              onClick={() => handleUnitChangeRequest("kg")}
             >
               Kilograms (kg)
             </button>
@@ -69,7 +83,7 @@ const Settings = () => {
                   ? "bg-primary text-white"
                   : "bg-gray-200 dark:bg-gray-700"
               }`}
-              onClick={() => handleUnitChange("lb")}
+              onClick={() => handleUnitChangeRequest("lb")}
             >
               Pounds (lb)
             </button>
@@ -126,6 +140,18 @@ const Settings = () => {
           </div>
         </div>
       </div>
+
+      {/* Unit change confirmation dialog */}
+      <ConfirmDialog
+        isOpen={showUnitConfirm}
+        title="Change Unit Preference"
+        message={`Your existing workouts will maintain their original units when editing to preserve data accuracy. Only new workouts will use ${pendingUnit}s. Would you like to proceed?`}
+        onConfirm={handleUnitChangeConfirm}
+        onCancel={() => {
+          setShowUnitConfirm(false);
+          setPendingUnit(null);
+        }}
+      />
     </div>
   );
 };
