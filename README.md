@@ -10,13 +10,54 @@ This app is being developed in Cursor IDE with assistance from the Cursor agent.
 
 The agent is instructed to check the Product Requirement Document (PRD) in docs/PRD which describes in detail how the app should function.
 
-The file docs/learnings.md is a log of the step by step progress made and is updated and checked by agents for proper context.
+The files in docs/learnings-1.md are logs of the step by step progress made and updated and checked by agents during development.
+
+## Future Features
+
+    - Data export function
+    - Create workout routines
+    - Develop landing page
+    - Mobile app development
 
 ## Inspiration
 
-This project was an idea I've had for a long time and attempted to build a few years ago but did not complete a functional product I was happy with.
+This project was an idea I've had for a long time and attempted to build a few years ago but did not complete a functional product I was happy with. Here is the [repo](https://github.com/michagodfrey/powr) for the first version. As you can see, POWR 2.0 is quite an upgrade.
 
-POWR was restarted after attending and event held by [Coding from Beach](https://www.peregianhub.com.au/connect/technologists/) which held a lecture.
+## Screenshots
+
+### Minimalist Dashboard
+
+![Dashboard](/docs/screenshots/dashboard.png)
+
+### Display exercise progress over weeks, months and years
+
+![Exercise detail page](/docs/screenshots/exercise-detail.png)
+
+### Choose between light/dark theme and kg/lb
+
+![Settings page](/docs/screenshots/settings.png)
+
+### Total volume each workout can be displayed in a bar chart
+
+![Dark theme bar graph](/docs/screenshots/exercise-dark-bar.png)
+
+### Use slider to specify time period
+
+![Slider](/docs/screenshots/exercise-slider.png)
+
+### Creating a new workout session
+
+![Create workout session](/docs/screenshots/create-workout.png)
+
+### Login
+
+![Login page](/docs/screenshots/login.png)
+
+### Logo
+
+POWR logo created by [Logo](https://logo.com/)
+
+![POWR logo.](/docs/screenshots/powr-logo.jpg)
 
 ## Main Takeaways using Cursor IDE
 
@@ -32,28 +73,10 @@ It's easy to assume that the Agent is going to see all the things you see and wh
 
 ### Be Proactive and vigilant about all the changes the agent is doing
 
-Point out all the problems and add relevant files and lines to the chat. The AI won't read anything unless it thinks it has.
+Point out all the problems and add relevant files and lines to the chat. I got the impression the agent doesn't read things you give it unless it thinks it has to.
 
 ### The Agent can go crazy
 
 One example to illustrate this point: After finally debugging a major issue, there was one file import that was flagging an error, even though it should have been working. It looked unfixable, so brought it the attention of the agent who was also baffled and wanted to go on a rampage of changes when a simple retyping of the import fixed it.
 
-Control the agent or it will control you!
-
-## Screenshots
-
-### Exercise Detail
-
-![Exercise details page.](/docs/screenshots/exerciseDetail.png)
-
-### Dashboard
-
-![Dashboard.](/docs/screenshots/dashboard.png)
-
-### Login
-
-![Login page.](/docs/screenshots/login.png)
-
-### Logo
-
-![POWR logo and header.](/docs/screenshots/powr-logo.jpg)
+**Control the agent or it will control you!**

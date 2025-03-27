@@ -240,28 +240,40 @@ const WorkoutSet = ({
                       aria-label={`Weight for set ${index + 1}`}
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Reps
-                    </label>
-                    <input
-                      type="number"
-                      value={set.reps}
-                      onChange={(e) =>
-                        handleSetUpdate(set.id, "reps", e.target.value)
-                      }
-                      className="input-field"
-                      min="0"
-                      aria-label={`Reps for set ${index + 1}`}
-                    />
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Reps
+                      </label>
+                      <input
+                        type="number"
+                        value={set.reps}
+                        onChange={(e) =>
+                          handleSetUpdate(set.id, "reps", e.target.value)
+                        }
+                        className="input-field"
+                        min="0"
+                        aria-label={`Reps for set ${index + 1}`}
+                      />
+                    </div>
+                    {index === sets.length - 1 && (
+                      <button
+                        onClick={handleAddSet}
+                        className="self-end h-10 w-10 flex items-center justify-center text-lg font-bold border-2 border-primary text-primary rounded hover:bg-primary hover:text-white transition-colors"
+                        aria-label="Add new set"
+                      >
+                        +
+                      </button>
+                    )}
                   </div>
                 </div>
                 {sets.length > 1 && (
                   <button
                     onClick={() => handleRemoveSet(set.id)}
-                    className="text-red-500 hover:text-red-700"
+                    className="self-end h-10 w-10 flex items-center justify-center text-lg font-bold border-2 border-red-500 text-red-500 rounded hover:bg-red-500 hover:text-white transition-colors"
+                    aria-label="Delete set"
                   >
-                    ✕
+                    ×
                   </button>
                 )}
               </div>

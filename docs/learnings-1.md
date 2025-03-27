@@ -1,5 +1,7 @@
 # Project Development Summary (March 2025)
 
+Continuing from learnings.md
+
 ## Key Developments & Milestones
 
 ### Frontend Development
@@ -1361,6 +1363,60 @@ interface SomeInterface {
    - Implement set operation audit logging
    - Consider optimistic updates for better UX
    - Review other areas where ID generation is critical
+
+### 2024-03-25: Set ID Generation Fix
+
+**What Happened**:
+
+1. **Issue Resolution**:
+
+   - Fixed issue where editing one set would affect all sets
+   - Identified root cause: missing unique IDs in `initialSets` data
+   - Implemented proper ID generation for initial sets
+   - Added type-safe handling of weight and reps values
+
+2. **Technical Implementation**:
+
+   ```typescript
+   // Updated state initialization with unique IDs
+   initialSets.map((set, index) => ({
+     ...set,
+     id: Date.now() * 1000 + index,
+     weight:
+       typeof set.weight === "string" ? parseFloat(set.weight) : set.weight,
+     reps: typeof set.reps === "string" ? parseInt(set.reps, 10) : set.reps,
+   }));
+   ```
+
+**Why It Matters**:
+
+1. **User Experience**:
+
+   - Sets can now be edited independently
+   - No more unintended changes to other sets
+   - Maintains data integrity during editing
+   - Improves workout tracking accuracy
+
+2. **Code Quality**:
+   - More robust ID generation strategy
+   - Type-safe handling of numeric values
+   - Consistent approach across set operations
+   - Better maintainability
+
+**Next Steps**:
+
+1. **Monitoring**:
+
+   - Watch for any edge cases in ID generation
+   - Monitor for potential timestamp collisions
+   - Track any set editing issues
+   - Gather user feedback on editing experience
+
+2. **Potential Enhancements**:
+   - Consider implementing UUID for even more reliable uniqueness
+   - Add set operation audit logging
+   - Consider adding undo/redo functionality
+   - Implement set duplication feature
 
 ---
 
