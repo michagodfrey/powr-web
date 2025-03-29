@@ -117,6 +117,26 @@ export const createApp = (configuredPassport: typeof passport) => {
     });
   }
 
+  // Simple health check
+  app.get("/", (req, res) => {
+    res.send("Backend is running. Go to ");
+  });
+
+  // Database connection check
+  app.get("/db-check", async (req, res) => {
+    try {
+      const result = await pool.query("SELECT NOW()");
+      res.json({ status: "success", time: result.rows[0].now });
+    } catch (err: any) {
+      console.error("DB Check Error:", err);
+      res.status(500).json({
+        status: "error",
+        message: "Database connection failed",
+        error: err.message,
+      });
+    }
+  });
+
   // Routes
   app.use("/api/auth", authRoutes);
   app.use("/api/exercises", exerciseRoutes);
