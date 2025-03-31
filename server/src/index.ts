@@ -4,7 +4,7 @@ import { createApp } from "./app";
 import { initDatabase } from "./config/database";
 import { configurePassport } from "./config/passport";
 
-const PORT = process.env.PORT || 4000;
+const PORT = parseInt(process.env.PORT || "") || 3000;
 
 // Initialize database and start server
 async function startServer() {
