@@ -137,7 +137,7 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
   };
 
   // Handle slider change
-  const handleSliderChange = (event: Event, newValue: number | number[]) => {
+  const handleSliderChange = (_event: Event, newValue: number | number[]) => {
     if (Array.isArray(newValue)) {
       setSelectedDateRange({
         startDate: sliderValueToDate(newValue[0]),
