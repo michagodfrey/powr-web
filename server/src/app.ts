@@ -76,12 +76,12 @@ export const createApp = (configuredPassport: typeof passport) => {
       resave: false,
       saveUninitialized: false,
       rolling: true, // Refresh session with each request
-      proxy: config.NODE_ENV === "production", // Trust proxy in production
+      proxy: true, // Always trust proxy as we're behind Railway's proxy
       cookie: {
-        secure: config.NODE_ENV === "production",
+        secure: config.NODE_ENV === "production", // Must be true in production
         httpOnly: true,
         maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days as per PRD
-        sameSite: "lax",
+        sameSite: config.NODE_ENV === "production" ? "none" : "lax", // Important for cross-site cookies
         domain:
           config.NODE_ENV === "production" ? config.COOKIE_DOMAIN : undefined,
         path: "/",
@@ -119,7 +119,7 @@ export const createApp = (configuredPassport: typeof passport) => {
 
   // Simple health check
   app.get("/", (req, res) => {
-    res.send("Backend is running. Go to ");
+    res.send("Backend is running. Go to https://powr-psi.vercel.app");
   });
 
   // Database connection check

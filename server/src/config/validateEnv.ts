@@ -54,8 +54,17 @@ export const validateEnv = (): EnvConfig => {
   }
 
   // In production, COOKIE_DOMAIN is required
-  if (process.env.NODE_ENV === "production" && !process.env.COOKIE_DOMAIN) {
-    throw new Error("COOKIE_DOMAIN is required in production");
+  if (process.env.NODE_ENV === "production") {
+    if (!process.env.COOKIE_DOMAIN) {
+      throw new Error("COOKIE_DOMAIN is required in production");
+    }
+
+    // Validate CORS_ORIGIN is a valid URL in production
+    try {
+      new URL(process.env.CORS_ORIGIN!);
+    } catch (error) {
+      throw new Error("CORS_ORIGIN must be a valid URL in production");
+    }
   }
 
   return {
