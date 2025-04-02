@@ -46,7 +46,18 @@ export const createApp = (configuredPassport: typeof passport) => {
   // CORS configuration
   app.use(
     cors({
-      origin: config.CORS_ORIGIN,
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        const allowedOrigin = config.CORS_ORIGIN;
+        if (origin === allowedOrigin) {
+          callback(null, true);
+        } else {
+          console.warn(`[CORS] Rejected request from origin: ${origin}`);
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
@@ -73,20 +84,19 @@ export const createApp = (configuredPassport: typeof passport) => {
     session({
       store: sessionStore,
       secret: config.SESSION_SECRET,
-      resave: false,
+      resave: true,
       saveUninitialized: false,
-      rolling: true, // Refresh session with each request
-      proxy: true, // Always trust proxy as we're behind Railway's proxy
+      rolling: true,
+      proxy: true,
       cookie: {
-        secure: config.NODE_ENV === "production", // Must be true in production
+        secure: config.NODE_ENV === "production",
         httpOnly: true,
-        maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days as per PRD
-        sameSite: config.NODE_ENV === "production" ? "none" : "lax", // Important for cross-site cookies
-        domain:
-          config.NODE_ENV === "production" ? config.COOKIE_DOMAIN : undefined,
+        maxAge: 14 * 24 * 60 * 60 * 1000,
+        sameSite: config.NODE_ENV === "production" ? "none" : "lax",
+        domain: config.NODE_ENV === "production" ? undefined : undefined,
         path: "/",
       },
-      name: "powr.sid", // Custom session cookie name for better security
+      name: "powr.sid",
     })
   );
 
@@ -94,25 +104,14 @@ export const createApp = (configuredPassport: typeof passport) => {
   app.use(configuredPassport.initialize());
   app.use(configuredPassport.session());
 
-  // Add authentication debugging middleware in development
-  if (config.NODE_ENV === "development") {
-    app.use((req, res, next) => {
-      console.log("Auth Debug:", {
-        path: req.path,
-        method: req.method,
-        isAuthenticated: req.isAuthenticated(),
-        sessionID: req.sessionID,
-        user: req.user,
-        cookies: req.cookies,
-      });
-      next();
-    });
-  }
-
   // Add request logging in development
   if (config.NODE_ENV === "development") {
     app.use((req, res, next) => {
-      console.log(`${req.method} ${req.path}`);
+      console.log(`${req.method} ${req.path}`, {
+        isAuthenticated: req.isAuthenticated(),
+        sessionID: req.sessionID,
+        user: req.user,
+      });
       next();
     });
   }
