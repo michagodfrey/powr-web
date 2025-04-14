@@ -1,8 +1,10 @@
 # Project Structure
 
-## Current directory layout 17 March 2025 for the Progressive Overload Workout Recorder (POWR)
+## Current directory layout for the Progressive Overload Workout Recorder (POWR)
 
+```
 project-root/
+├── .cursor/ # Cursor IDE configuration
 ├── client/ # Frontend React + TypeScript application
 │ ├── src/
 │ │ ├── auth/ # Authentication-related components and utilities
@@ -17,7 +19,7 @@ project-root/
 │ │ │ ├── ConfirmDialog.tsx # Confirmation modal
 │ │ │ ├── Layout.tsx # Common layout wrapper
 │ │ │ └── ErrorToast.tsx # Error notification component
-│ │ ├── contexts/ # React contexts (Auth, Theme, etc.)
+│ │ ├── contexts/ # React contexts (Theme, etc.)
 │ │ ├── pages/ # Page-level components
 │ │ │ ├── Settings.tsx # User settings page
 │ │ │ ├── ExerciseDetail.tsx # Exercise details and tracking
@@ -25,7 +27,7 @@ project-root/
 │ │ │ └── Login.tsx # Login page
 │ │ ├── routes/ # Route definitions and configuration
 │ │ ├── types/ # TypeScript type definitions
-│ │ ├── assets/ # Static assets
+│ │ ├── utils/ # Utility functions
 │ │ ├── App.tsx # Root component
 │ │ ├── main.tsx # Application entry point
 │ │ ├── index.ts # Exports and configurations
@@ -50,58 +52,53 @@ project-root/
 │ │ │ ├── errorHandler.ts # Global error handling
 │ │ │ ├── validation.ts # Request validation
 │ │ │ └── auth.ts # Authentication middleware
-│ │ ├── models/ # Sequelize models
-│ │ │ ├── User.ts # User model
-│ │ │ ├── WorkoutSession.ts # Workout session model
-│ │ │ ├── Session.ts # Auth session model
-│ │ │ ├── Exercise.ts # Exercise model
-│ │ │ ├── Set.ts # Set model
-│ │ │ └── index.ts # Model associations
+│ │ ├── models/ # Database models
 │ │ ├── routes/ # API route definitions
 │ │ ├── utils/ # Utility functions
 │ │ ├── scripts/ # Utility scripts
 │ │ ├── db/ # Database setup and migrations
 │ │ ├── app.ts # Express application setup
 │ │ └── index.ts # Server entry point
-│ ├── scripts/ # Database and utility scripts
 │ ├── .env # Server environment variables
 │ ├── .env.example # Environment variables template
 │ └── tsconfig.json # TypeScript configuration
 │
 ├── docs/ # Project documentation
 │ ├── PRD/ # Product Requirements Documents
-│ │ ├── authentication.md
-│ │ ├── database-schema.md
-│ │ ├── security-requirements.md
-│ │ └── ... other specification files
-│ └── learnings.md # Development learnings and decisions
+│ │ ├── architecture/ # Architecture specifications
+│ │ ├── implementation/ # Implementation details
+│ │ └── planning/ # Planning documents
+│ ├── learnings/ # Development learnings and decisions
+│ └── screenshots/ # Application screenshots
 │
+├── node_modules/ # Project dependencies
+├── package.json # Project configuration
+├── package-lock.json # Dependency lock file
 ├── .gitignore # Git ignore rules
 └── README.md # Project overview and setup instructions
 
 **Key Changes from Original Structure**:
 
-1. **Frontend (client/)**:
+1. **Root Level**:
+   - Added `.cursor/` directory for Cursor IDE configuration
+   - Added root-level `node_modules/` and package files
 
-   - Detailed component organization with specific responsibilities
-   - Comprehensive auth module with context and protected routes
-   - Organized page components with clear purposes
-   - CSS organization with global and component-specific styles
+2. **Frontend (client/)**:
+   - Added `utils/` directory
+   - Simplified component structure
+   - Added `vite-env.d.ts`
 
-2. **Backend (server/)**:
+3. **Backend (server/)**:
+   - Reorganized model structure
+   - Added `scripts/` and `db/` directories
+   - Simplified controller organization
 
-   - Detailed controller organization by feature
-   - Comprehensive middleware setup for error handling, validation, and auth
-   - Complete model structure with associations
-   - Clear separation of concerns in file organization
+4. **Documentation (docs/)**:
+   - Added `screenshots/` directory
+   - Reorganized PRD structure into subdirectories
+   - Added `learnings/` directory
 
-3. **Documentation (docs/)**:
-
-   - Organized PRD files in dedicated directory
-   - Added learnings.md for development decisions
-   - Improved documentation organization
-
-4. **Configuration**:
-   - Added environment variable templates
-   - Added TypeScript configurations
-   - Added build and development tooling
+5. **Configuration**:
+   - Added environment files
+   - Added build and development configurations
+```

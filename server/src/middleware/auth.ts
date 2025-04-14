@@ -3,6 +3,20 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "./errorHandler";
 
+// Extend Express Session type to include our custom properties
+declare module "express-session" {
+  interface SessionData {
+    requestCount?: number;
+  }
+}
+
+// Extend Cookie type to include rolling property
+declare module "express-serve-static-core" {
+  interface CookieOptions {
+    rolling?: boolean;
+  }
+}
+
 // Protects routes by requiring authentication and validating session
 export const protect = (req: Request, res: Response, next: NextFunction) => {
   console.log("[Auth] Checking authentication:", {
@@ -23,24 +37,56 @@ export const protect = (req: Request, res: Response, next: NextFunction) => {
     return next(new AppError("Please log in to access this resource", 401));
   }
 
-  // Check session expiration
-  if (req.session && req.session.cookie) {
+  // Enhanced session validation
+  if (!req.session || !req.user) {
+    console.warn("[Auth] Invalid session state:", {
+      path: req.path,
+      method: req.method,
+      sessionID: req.sessionID,
+      hasSession: !!req.session,
+      hasUser: !!req.user,
+      timestamp: new Date().toISOString(),
+    });
+    return next(new AppError("Invalid session. Please log in again", 401));
+  }
+
+  // Check session expiration with buffer time
+  if (req.session.cookie) {
     const now = new Date();
     const expires = new Date(req.session.cookie.expires || 0);
+    const bufferTime = 5 * 60 * 1000; // 5 minutes buffer
 
-    if (expires <= now) {
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("[Auth] Error destroying expired session:", err);
-        }
-      });
-      console.warn("[Auth] Session expired:", {
+    if (expires.getTime() - now.getTime() <= bufferTime) {
+      console.warn("[Auth] Session near expiration:", {
         sessionId: req.sessionID,
         expiry: expires,
         now: now,
+        timeLeft: expires.getTime() - now.getTime(),
       });
-      return next(new AppError("Session expired. Please log in again", 401));
+
+      // Touch the session to extend its lifetime
+      req.session.touch();
+      console.log("[Auth] Session extended:", {
+        sessionId: req.sessionID,
+        newExpiry: req.session.cookie.expires,
+      });
     }
+  }
+
+  // Rate limiting check (if implemented)
+  const requestCount = req.session.requestCount || 0;
+  req.session.requestCount = requestCount + 1;
+
+  if (requestCount > 1000) {
+    // 1000 requests per session
+    console.warn("[Auth] Rate limit exceeded:", {
+      sessionId: req.sessionID,
+      requestCount,
+      path: req.path,
+    });
+    return next(
+      new AppError("Too many requests. Please try again later.", 429)
+    );
   }
 
   console.log("[Auth] Authentication successful:", {

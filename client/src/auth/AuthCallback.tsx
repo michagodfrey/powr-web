@@ -31,6 +31,23 @@ const AuthCallback = () => {
             case "login_failed":
               errorMessage = "Failed to complete login. Please try again.";
               break;
+            case "invalid_state":
+              errorMessage = "Invalid authentication state. Please try again.";
+              break;
+            case "access_denied":
+              errorMessage =
+                "Access was denied. Please grant the required permissions.";
+              break;
+            case "server_error":
+              errorMessage = "Server error occurred. Please try again later.";
+              break;
+            case "network_error":
+              errorMessage =
+                "Network error. Please check your connection and try again.";
+              break;
+            case "session_error":
+              errorMessage = "Session error. Please try logging in again.";
+              break;
             default:
               errorMessage = decodeURIComponent(error);
           }
@@ -44,6 +61,10 @@ const AuthCallback = () => {
           }/api/auth/me`,
           {
             credentials: "include",
+            headers: {
+              Accept: "application/json",
+              "Cache-Control": "no-cache",
+            },
           }
         );
 
@@ -53,12 +74,25 @@ const AuthCallback = () => {
               "Authentication failed. Please try logging in again."
             );
           }
-          throw new Error("Failed to fetch user data");
+          if (response.status === 429) {
+            throw new Error(
+              "Too many attempts. Please wait a moment and try again."
+            );
+          }
+          if (response.status >= 500) {
+            throw new Error("Server error. Please try again later.");
+          }
+          throw new Error("Failed to fetch user data. Please try again.");
         }
 
         const userData = await response.json();
-        setUser(userData);
+        if (!userData || !userData.id) {
+          throw new Error(
+            "Invalid user data received. Please try logging in again."
+          );
+        }
 
+        setUser(userData);
         // On successful authentication, redirect to the main dashboard
         navigate("/");
       } catch (error) {

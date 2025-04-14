@@ -13,13 +13,11 @@
 ## Database
 
 - **PostgreSQL**: A reliable relational database well-suited for structured data.
-  - Alternatively, MySQL could also be used, but PostgreSQL is often preferred for advanced features.
 
 ## Hosting & Deployment
 
-- **Vercel** (or Netlify) for deploying the frontend.
-- **Heroku** (or AWS/GCP) for hosting the Node.js/Express backend and PostgreSQL database.
-  - Alternatively, use **Railway.app** or **Render.com** for a quick, integrated solution.
+- **Vercel** for deploying the frontend.
+- **Railway.app** for hosting the Node.js/Express backend and PostgreSQL database.
 
 ## Future Mobile Expansion
 
