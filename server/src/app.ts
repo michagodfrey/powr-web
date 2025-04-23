@@ -92,7 +92,7 @@ export const createApp = (configuredPassport: typeof passport) => {
         secure: config.NODE_ENV === "production",
         httpOnly: true,
         maxAge: 14 * 24 * 60 * 60 * 1000,
-        sameSite: config.NODE_ENV === "production" ? "strict" : "lax",
+        sameSite: "none",
         domain: config.COOKIE_DOMAIN,
         path: "/",
       },

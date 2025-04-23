@@ -1499,6 +1499,7 @@ interface SomeInterface {
 
    - Fixed cookie domain configuration to use `COOKIE_DOMAIN` instead of non-existent `CLIENT_DOMAIN`
    - Updated session cookie settings for better security and cross-origin handling:
+
      ```typescript
      cookie: {
        secure: config.NODE_ENV === "production",
@@ -1509,6 +1510,7 @@ interface SomeInterface {
        path: "/",
      }
      ```
+
    - Improved session store configuration with proper error handling
    - Enhanced client-side session management with better error handling and state management
 

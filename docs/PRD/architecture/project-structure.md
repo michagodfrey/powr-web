@@ -2,7 +2,7 @@
 
 ## Current directory layout for the Progressive Overload Workout Recorder (POWR)
 
-```
+```bash
 project-root/
 ├── .cursor/ # Cursor IDE configuration
 ├── client/ # Frontend React + TypeScript application
