@@ -79,7 +79,23 @@ export const createApp = (configuredPassport: typeof passport) => {
     // Don't exit process, but log the error
   });
 
-  // Session configuration as per security-requirements.md
+  // Session configuration
+  const cookieSettings = {
+    httpOnly: true,
+    maxAge: 14 * 24 * 60 * 60 * 1000,
+    domain: config.COOKIE_DOMAIN,
+    path: "/",
+    ...(config.NODE_ENV === "production"
+      ? {
+          secure: true,
+          sameSite: "none" as const,
+        }
+      : {
+          secure: false,
+          sameSite: "lax" as const,
+        }),
+  };
+
   app.use(
     session({
       store: sessionStore,
@@ -88,14 +104,7 @@ export const createApp = (configuredPassport: typeof passport) => {
       saveUninitialized: false,
       rolling: true,
       proxy: config.NODE_ENV === "production",
-      cookie: {
-        secure: config.NODE_ENV === "production",
-        httpOnly: true,
-        maxAge: 14 * 24 * 60 * 60 * 1000,
-        sameSite: "none",
-        domain: config.COOKIE_DOMAIN,
-        path: "/",
-      },
+      cookie: cookieSettings,
       name: "powr.sid",
     })
   );
