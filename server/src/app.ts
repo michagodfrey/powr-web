@@ -82,13 +82,17 @@ export const createApp = (configuredPassport: typeof passport) => {
   // Session configuration
   const cookieSettings = {
     httpOnly: true,
-    maxAge: 14 * 24 * 60 * 60 * 1000,
-    domain: config.COOKIE_DOMAIN,
+    maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
     path: "/",
     ...(config.NODE_ENV === "production"
       ? {
           secure: true,
-          sameSite: "none" as const,
+          sameSite: "strict" as const,
+          ...(config.COOKIE_DOMAIN && {
+            domain: config.COOKIE_DOMAIN.startsWith(".")
+              ? config.COOKIE_DOMAIN
+              : `.${config.COOKIE_DOMAIN}`, // Ensure domain has leading dot
+          }),
         }
       : {
           secure: false,
@@ -106,6 +110,7 @@ export const createApp = (configuredPassport: typeof passport) => {
       proxy: config.NODE_ENV === "production",
       cookie: cookieSettings,
       name: "powr.sid",
+      unset: "destroy", // Properly remove session on logout
     })
   );
 
