@@ -87,11 +87,11 @@ export const createApp = (configuredPassport: typeof passport) => {
     ...(config.NODE_ENV === "production"
       ? {
           secure: true,
-          sameSite: "strict" as const,
+          sameSite: "none" as const,
           ...(config.COOKIE_DOMAIN && {
             domain: config.COOKIE_DOMAIN.startsWith(".")
               ? config.COOKIE_DOMAIN
-              : `.${config.COOKIE_DOMAIN}`, // Ensure domain has leading dot
+              : `.${config.COOKIE_DOMAIN}`,
           }),
         }
       : {
