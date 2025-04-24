@@ -53,11 +53,8 @@ export const validateEnv = (): EnvConfig => {
     throw new Error(`Invalid PORT: ${process.env.PORT}`);
   }
 
-  // In production, COOKIE_DOMAIN is required
+  // In production, COOKIE_DOMAIN requirement removed
   if (process.env.NODE_ENV === "production") {
-    if (!process.env.COOKIE_DOMAIN) {
-      throw new Error("COOKIE_DOMAIN is required in production");
-    }
 
     // Validate CORS_ORIGIN is a valid URL in production
     try {
