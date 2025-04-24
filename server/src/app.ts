@@ -37,6 +37,9 @@ export const createApp = (configuredPassport: typeof passport) => {
     });
   }
 
+  // Trust the first proxy (Railway's load balancer)
+  app.set("trust proxy", 1);
+
   // Essential middleware
   app.use(cookieParser(config.SESSION_SECRET));
   app.use(express.json());
@@ -105,15 +108,27 @@ export const createApp = (configuredPassport: typeof passport) => {
     session({
       store: sessionStore,
       secret: config.SESSION_SECRET,
-      resave: false,
+      resave: true,
       saveUninitialized: false,
       rolling: true,
       proxy: config.NODE_ENV === "production",
-      cookie: cookieSettings,
+      cookie: {
+        ...cookieSettings,
+        secure: config.NODE_ENV === "production",
+        sameSite: config.NODE_ENV === "production" ? "none" : "lax",
+      },
       name: "powr.sid",
-      unset: "destroy", // Properly remove session on logout
+      unset: "destroy",
     })
   );
+
+  // Add session connection error handling
+  app.use((req, res, next) => {
+    if (!req.session) {
+      return next(new Error("Session initialization failed"));
+    }
+    next();
+  });
 
   // Initialize Passport and restore authentication state from session
   app.use(configuredPassport.initialize());

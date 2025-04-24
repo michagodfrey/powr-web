@@ -32,7 +32,12 @@ export const configurePassport = () => {
         email: user.email,
         timestamp: new Date().toISOString(),
       });
-      done(null, user.id);
+      // Ensure we only serialize essential data
+      done(null, {
+        id: user.id,
+        email: user.email,
+        googleId: user.googleId,
+      });
     } catch (error) {
       console.error("[Auth] Serialization error:", {
         error: error instanceof Error ? error.message : "Unknown error",
@@ -44,39 +49,51 @@ export const configurePassport = () => {
   });
 
   // Deserialize user from the session
-  passport.deserializeUser(async (id: number, done) => {
-    try {
-      console.log("[Auth] Deserializing user:", {
-        userId: id,
-        timestamp: new Date().toISOString(),
-      });
-
-      const user = await User.findByPk(id);
-      if (!user) {
-        console.error("[Auth] User not found during deserialization:", {
-          userId: id,
+  passport.deserializeUser(
+    async (
+      serializedUser: { id: number; email: string; googleId: string },
+      done
+    ) => {
+      try {
+        console.log("[Auth] Deserializing user:", {
+          userId: serializedUser.id,
           timestamp: new Date().toISOString(),
         });
-        return done(new AppError("User not found", 401), undefined);
+
+        const user = await User.findOne({
+          where: {
+            id: serializedUser.id,
+            email: serializedUser.email,
+            googleId: serializedUser.googleId,
+          },
+        });
+
+        if (!user) {
+          console.error("[Auth] User not found during deserialization:", {
+            userId: serializedUser.id,
+            timestamp: new Date().toISOString(),
+          });
+          return done(new AppError("User not found", 401), undefined);
+        }
+
+        console.log("[Auth] User deserialized successfully:", {
+          userId: serializedUser.id,
+          email: user.email,
+          timestamp: new Date().toISOString(),
+        });
+
+        done(null, user.toJSON() as Express.User);
+      } catch (error) {
+        console.error("[Auth] Deserialization error:", {
+          userId: serializedUser.id,
+          error: error instanceof Error ? error.message : "Unknown error",
+          timestamp: new Date().toISOString(),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        done(new AppError("Session validation failed", 500), undefined);
       }
-
-      console.log("[Auth] User deserialized successfully:", {
-        userId: id,
-        email: user.email,
-        timestamp: new Date().toISOString(),
-      });
-
-      done(null, user.toJSON() as Express.User);
-    } catch (error) {
-      console.error("[Auth] Deserialization error:", {
-        userId: id,
-        error: error instanceof Error ? error.message : "Unknown error",
-        timestamp: new Date().toISOString(),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      done(new AppError("Session validation failed", 500), undefined);
     }
-  });
+  );
 
   // Google OAuth Strategy
   passport.use(
