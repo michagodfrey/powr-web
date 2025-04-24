@@ -108,27 +108,15 @@ export const createApp = (configuredPassport: typeof passport) => {
     session({
       store: sessionStore,
       secret: config.SESSION_SECRET,
-      resave: true,
+      resave: false,
       saveUninitialized: false,
       rolling: true,
       proxy: config.NODE_ENV === "production",
-      cookie: {
-        ...cookieSettings,
-        secure: config.NODE_ENV === "production",
-        sameSite: config.NODE_ENV === "production" ? "none" : "lax",
-      },
+      cookie: cookieSettings,
       name: "powr.sid",
-      unset: "destroy",
+      unset: "destroy", // Properly remove session on logout
     })
   );
-
-  // Add session connection error handling
-  app.use((req, res, next) => {
-    if (!req.session) {
-      return next(new Error("Session initialization failed"));
-    }
-    next();
-  });
 
   // Initialize Passport and restore authentication state from session
   app.use(configuredPassport.initialize());

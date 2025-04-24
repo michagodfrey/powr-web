@@ -73,18 +73,9 @@ router.get(
             `User ${user.id} (${user.email}) successfully authenticated`
           );
 
-          // Save session before redirect
-          req.session.save((err) => {
-            if (err) {
-              console.error("Session save error:", err);
-              return res.redirect(
-                `${process.env.CLIENT_URL}/login?error=${encodeURIComponent(
-                  "Session save failed"
-                )}`
-              );
-            }
-            // Only redirect after session is explicitly saved
-            return res.redirect(`${process.env.CLIENT_URL}${returnTo}`);
+          // Ensure session is saved before redirecting
+          req.session.save(() => {
+            res.redirect(`${process.env.CLIENT_URL}${returnTo}`);
           });
         });
       }
