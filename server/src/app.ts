@@ -44,14 +44,15 @@ export const createApp = (configuredPassport: typeof passport) => {
   app.use(sanitizeInput);
 
   // CORS configuration
+  const allowedOrigins = [
+    "https://powr-psi.vercel.app",
+    "http://localhost:5173",
+  ];
+
   app.use(
     cors({
       origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-
-        const allowedOrigin = config.CORS_ORIGIN;
-        if (origin === allowedOrigin) {
+        if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {
           console.warn(`[CORS] Rejected request from origin: ${origin}`);
