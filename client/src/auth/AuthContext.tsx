@@ -1,15 +1,21 @@
 // Authentication context provider that manages user authentication state and related functions
-// Handles Google OAuth authentication flow, session management, and user data
+// Handles Google OAuth and JWT-based authentication, token management, and user data
 
-import {
+import React, {
   createContext,
   useContext,
   useState,
   useEffect,
   ReactNode,
-  useRef,
+  useCallback,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  setStoredTokens,
+  removeStoredTokens,
+  hasStoredTokens,
+} from "../utils/tokenUtils";
+import { api } from "../utils/api";
 
 // User data structure returned from the API
 interface User {
@@ -17,6 +23,7 @@ interface User {
   name: string;
   email: string;
   picture?: string;
+  preferredUnit: "kg" | "lb";
 }
 
 // Authentication context shape with all available methods and state
@@ -24,7 +31,11 @@ interface AuthContextType {
   user: User | null;
   setUser: (user: User | null) => void;
   logout: () => Promise<void>;
-  login: () => Promise<void>;
+  login: (params?: {
+    email?: string;
+    password?: string;
+    provider?: "google" | "apple";
+  }) => Promise<void>;
   isAuthenticated: boolean;
   error: string | null;
   clearError: () => void;
@@ -51,115 +62,127 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(false);
-  const [lastCheckTime, setLastCheckTime] = useState(Date.now());
-  const checkAuthStatusRef = useRef<ReturnType<typeof setTimeout>>();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Check if user is authenticated by calling the /me endpoint
-  const checkAuthStatus = async () => {
-    if (isCheckingAuth) return; // Prevent concurrent checks
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
 
+  // Check authentication status
+  const checkAuthStatus = useCallback(async () => {
     try {
-      setIsCheckingAuth(true);
-      const response = await fetch(`${API_URL}/api/auth/me`, {
-        credentials: "include",
-      });
+      setIsLoading(true);
+      if (!hasStoredTokens()) {
+        setUser(null);
+        return;
+      }
 
+      const response = await api.get("/api/auth/me");
       if (!response.ok) {
-        if (response.status === 401) {
-          setUser(null);
-          // Only redirect if we were previously authenticated and enough time has passed
-          if (user !== null && Date.now() - lastCheckTime > 1000) {
-            navigate("/login?error=Session expired. Please log in again.");
-          }
-          return;
-        }
         throw new Error("Failed to fetch user data");
       }
 
       const userData = await response.json();
       setUser(userData);
-      setLastCheckTime(Date.now());
     } catch (error) {
       console.error("Auth status check error:", error);
       setUser(null);
+      removeStoredTokens();
       if (error instanceof Error && error.message.includes("fetch")) {
         setError("Network error. Please check your connection.");
       } else {
         setError("Authentication error. Please try again.");
       }
     } finally {
-      setIsCheckingAuth(false);
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  // Check auth status every 5 minutes
+  // Handle OAuth callback
   useEffect(() => {
-    // Initial check
+    const handleCallback = async () => {
+      if (location.pathname === "/auth/callback") {
+        const params = new URLSearchParams(location.search);
+        const accessToken = params.get("accessToken");
+        const refreshToken = params.get("refreshToken");
+
+        if (accessToken && refreshToken) {
+          setStoredTokens(accessToken, refreshToken);
+          await checkAuthStatus();
+          navigate("/");
+        } else {
+          setError("Authentication failed");
+          navigate("/login");
+        }
+      }
+    };
+
+    handleCallback();
+  }, [location, navigate, checkAuthStatus]);
+
+  // Check auth status on mount
+  useEffect(() => {
     checkAuthStatus();
+  }, [checkAuthStatus]);
 
-    // Set up interval
-    checkAuthStatusRef.current = setInterval(checkAuthStatus, 5 * 60 * 1000);
+  const login = useCallback(
+    async (params?: {
+      email?: string;
+      password?: string;
+      provider?: "google" | "apple";
+    }) => {
+      try {
+        if (params?.provider === "google") {
+          window.location.href = `${API_URL}/api/auth/google`;
+          return;
+        } else if (params?.provider === "apple") {
+          window.location.href = `${API_URL}/api/auth/apple`;
+          return;
+        } else if (params?.email && params?.password) {
+          const response = await fetch(`${API_URL}/api/auth/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: params.email,
+              password: params.password,
+            }),
+          });
 
-    return () => {
-      if (checkAuthStatusRef.current) {
-        clearInterval(checkAuthStatusRef.current);
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || "Login failed");
+          }
+
+          const { accessToken, refreshToken, user } = await response.json();
+          setStoredTokens(accessToken, refreshToken);
+          setUser(user);
+          navigate("/");
+        } else {
+          throw new Error("Invalid login parameters");
+        }
+      } catch (error) {
+        console.error("Login error:", error);
+        setError(error instanceof Error ? error.message : "Login failed");
+        throw error;
       }
-    };
-  }, []); // Remove user dependency to prevent reset
+    },
+    [navigate]
+  );
 
-  // Additional check when window regains focus
-  useEffect(() => {
-    const handleFocus = () => {
-      // Only check if last check was more than 1 minute ago
-      if (Date.now() - lastCheckTime > 60 * 1000) {
-        checkAuthStatus();
-      }
-    };
-
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [lastCheckTime]);
-
-  // Redirect to Google OAuth login
-  const login = async () => {
+  const logout = useCallback(async () => {
     try {
-      window.location.href = `${API_URL}/api/auth/google`;
-    } catch (error) {
-      console.error("Login redirect error:", error);
-      setError(
-        "Failed to initiate login. Please check your internet connection and try again."
-      );
-      throw error;
-    }
-  };
-
-  // Handle user logout by calling logout endpoint and clearing state
-  const logout = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Logout failed");
-      }
-
+      removeStoredTokens();
       setUser(null);
-      window.location.href = "/login";
+      navigate("/login");
     } catch (error) {
       console.error("Logout error:", error);
-      setError("Failed to logout. Please try again.");
+      setError(error instanceof Error ? error.message : "Logout failed");
+      throw error;
     }
-  };
-
-  // Utility function to clear any auth errors
-  const clearError = () => {
-    setError(null);
-  };
+  }, [navigate]);
 
   return (
     <AuthContext.Provider

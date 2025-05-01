@@ -9,6 +9,7 @@ interface UserAttributes {
   name: string; // User's display name
   picture?: string; // Profile picture URL from Google
   preferredUnit: "kg" | "lb"; // User's preferred weight unit
+  passwordHash?: string; // Hashed password for email/password auth
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -26,6 +27,7 @@ class User
   public name!: string;
   public picture!: string;
   public preferredUnit!: "kg" | "lb";
+  public passwordHash?: string;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
@@ -65,6 +67,11 @@ class User
           validate: {
             isIn: [["kg", "lb"]],
           },
+        },
+        passwordHash: {
+          type: DataTypes.STRING(255),
+          allowNull: true,
+          field: "password_hash",
         },
         createdAt: {
           type: DataTypes.DATE,

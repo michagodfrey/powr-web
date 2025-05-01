@@ -6,6 +6,7 @@ import ExerciseForm from "../components/ExerciseForm";
 import { useNavigate } from "react-router-dom";
 import ErrorToast from "../components/ErrorToast";
 import { useAuth } from "../auth/AuthContext";
+import { api } from "../utils/api";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -21,14 +22,8 @@ const Dashboard = () => {
       setLoading(true);
       setError(null);
       console.log("Dashboard: Fetching exercises for user:", user?.id);
-      const response = await fetch(
-        `${
-          import.meta.env.VITE_API_URL || "http://localhost:4000"
-        }/api/exercises`,
-        {
-          credentials: "include",
-        }
-      );
+
+      const response = await api.get("/api/exercises");
 
       if (!response.ok) {
         throw new Error("Failed to fetch exercises");
@@ -58,19 +53,7 @@ const Dashboard = () => {
   ) => {
     try {
       setError(null);
-      const response = await fetch(
-        `${
-          import.meta.env.VITE_API_URL || "http://localhost:4000"
-        }/api/exercises`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify(exerciseData),
-        }
-      );
+      const response = await api.post("/api/exercises", exerciseData);
 
       if (!response.ok) {
         const errorData = await response.json();

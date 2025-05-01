@@ -34,11 +34,12 @@ $$ language 'plpgsql';
 -- Create users table
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    google_id VARCHAR(255) UNIQUE NOT NULL,
+    google_id VARCHAR(255) UNIQUE,
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     picture VARCHAR(512),
     preferred_unit VARCHAR(2) NOT NULL DEFAULT 'kg',
+    password_hash VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_preferred_unit CHECK (preferred_unit IN ('kg', 'lb'))

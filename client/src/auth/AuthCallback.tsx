@@ -5,6 +5,8 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { api } from "../utils/api";
+import { setStoredTokens } from "../utils/tokenUtils";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -17,6 +19,8 @@ const AuthCallback = () => {
         // Check URL for authentication errors
         const params = new URLSearchParams(window.location.search);
         const error = params.get("error");
+        const accessToken = params.get("accessToken");
+        const refreshToken = params.get("refreshToken");
 
         if (error) {
           // Map error codes to user-friendly messages
@@ -54,49 +58,30 @@ const AuthCallback = () => {
           throw new Error(errorMessage);
         }
 
-        // Fetch authenticated user data from the backend
-        const response = await fetch(
-          `${
-            import.meta.env.VITE_API_URL || "http://localhost:4000"
-          }/api/auth/me`,
-          {
-            credentials: "include",
-            headers: {
-              Accept: "application/json",
-              "Cache-Control": "no-cache",
-            },
-          }
-        );
+        // Store tokens if present
+        if (accessToken && refreshToken) {
+          setStoredTokens(accessToken, refreshToken);
+        } else {
+          throw new Error("No authentication tokens received");
+        }
 
+        // Fetch authenticated user data using the new api utility
+        const response = await api.get("/api/auth/me");
         if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error(
-              "Authentication failed. Please try logging in again."
-            );
-          }
-          if (response.status === 429) {
-            throw new Error(
-              "Too many attempts. Please wait a moment and try again."
-            );
-          }
-          if (response.status >= 500) {
-            throw new Error("Server error. Please try again later.");
-          }
-          throw new Error("Failed to fetch user data. Please try again.");
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to fetch user data");
         }
 
         const userData = await response.json();
         if (!userData || !userData.id) {
-          throw new Error(
-            "Invalid user data received. Please try logging in again."
-          );
+          throw new Error("Invalid user data received");
         }
 
         setUser(userData);
         // On successful authentication, redirect to the main dashboard
         navigate("/");
       } catch (error) {
-        console.error("Auth callback error:", error);
+        console.error("[Auth] Callback error:", error);
         const errorMessage =
           error instanceof Error ? error.message : "Authentication failed";
         navigate(`/login?error=${encodeURIComponent(errorMessage)}`);

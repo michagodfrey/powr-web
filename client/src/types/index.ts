@@ -12,6 +12,8 @@ export interface Set {
   unit: "kg" | "lb";
   // Optional set number for ordering
   setNumber?: number;
+  // Optional volume field
+  volume?: number;
 }
 
 // Represents a workout session

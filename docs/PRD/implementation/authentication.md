@@ -2,36 +2,54 @@
 
 ## Overview
 
-POWR uses Google OAuth as its sole authentication method. This decision was made to:
+POWR uses JWT-based authentication exclusively for all authentication methods:
 
-- Simplify the user experience
-- Leverage Google's secure authentication infrastructure
-- Eliminate the need for password management
-- Provide a familiar login experience
+- Google OAuth (implemented)
+- Email/Password (implemented)
+- Apple Sign-In (planned for mobile release)
+
+This approach provides:
+
+- Consistent authentication across all platforms
+- Simplified, stateless authentication flow
+- Easy mobile integration
+- Elimination of session/cookie management
+- Clear path for future authentication methods
 
 ## Implementation Requirements
 
 ### Authentication Flow
 
-1. **Login**
+1. **Login Methods**
 
-   - Users click "Sign in with Google" button
-   - Redirect to Google OAuth consent screen
-   - Upon successful Google authentication, redirect back to app
-   - Create or update user record with Google profile data
-   - Establish user session
-   - Redirect to dashboard
+   - **Google OAuth**:
 
-2. **Session Management**
+     - Standard OAuth 2.0 flow
+     - Convert successful OAuth to JWT
+     - Return JWT to client
 
-   - Use Express session with PostgreSQL store
-   - Session duration: 14 days (two weeks)
-   - Session persists across page refreshes
-   - No need for manual token management
+   - **Email/Password**:
+
+     - Direct JWT issuance on successful login
+     - Secure password hashing with bcrypt
+
+   - **Apple Sign-In** (future):
+     - Will follow same pattern as Google OAuth
+     - Planned for mobile app release
+
+2. **Token Management**
+
+   - Use JWTs exclusively for all authentication
+   - No session state maintained
+   - Access tokens: short-lived (15 minutes)
+   - Refresh tokens: long-lived (14 days)
+   - Token storage:
+     - Web: localStorage for access tokens
+     - Mobile: secure storage (planned)
 
 3. **Logout**
-   - Clear server-side session
-   - Redirect to login page
+   - Clear tokens from client storage
+   - Future: Implement token revocation
 
 ### Data Storage
 
@@ -40,82 +58,93 @@ POWR uses Google OAuth as its sole authentication method. This decision was made
    ```typescript
    interface User {
      id: number;
-     googleId: string; // Google's unique identifier
-     email: string; // User's Google email
-     name: string; // User's Google display name
-     picture?: string; // Google profile picture URL
+     email: string;
+     name: string;
+     picture?: string;
+     googleId?: string; // Optional for Google OAuth
+     appleId?: string; // Optional for Apple Sign-In
+     passwordHash?: string; // Optional for email/password
+     preferredUnit: "kg" | "lb";
      createdAt: Date;
      updatedAt: Date;
    }
    ```
 
-2. **Session Storage**
-   - Use `connect-pg-simple` for PostgreSQL session storage
-   - Store only essential session data
-   - Implement proper session cleanup
+2. **Token Handling**
+   - No server-side session storage
+   - Future: Implement refresh token tracking for revocation
 
 ### Security Requirements
 
-1. **Session Configuration**
+1. **JWT Configuration**
 
-   - HTTP-only cookies
-   - Secure in production
-   - SameSite policy: Lax
-   - CORS configuration matching frontend domain
+   - Strong signing keys (env var)
+   - Short access token lifetime
+   - CORS configuration for web/mobile clients
 
 2. **Environment Variables**
 
    ```bash
-   # Required OAuth settings
+   # OAuth settings
    GOOGLE_CLIENT_ID=your_client_id
    GOOGLE_CLIENT_SECRET=your_client_secret
+   APPLE_CLIENT_ID=your_apple_client_id      # Future
+   APPLE_CLIENT_SECRET=your_apple_client_secret  # Future
 
-   # Session configuration
-   SESSION_SECRET=your_session_secret
+   # JWT configuration
+   JWT_SECRET=your_jwt_secret
+   JWT_ACCESS_EXPIRES_IN=24h
+   JWT_REFRESH_EXPIRES_IN=14d  # Future
 
    # URLs
    CLIENT_URL=http://localhost:5173     # Development
    SERVER_URL=http://localhost:4000     # Development
+   MOBILE_URL=your_mobile_app_scheme    # Future
    ```
 
 ## Non-Requirements
 
 1. **Explicitly NOT Needed**
-   - Email/password authentication
-   - JWT tokens
-   - Remember me functionality
-   - Multi-factor authentication
-   - Password reset flow
-   - Email verification
-   - Multiple OAuth providers
+   - Session/cookie-based authentication
+   - Multiple simultaneous auth methods per user
+   - CSRF protection (JWT in Authorization header)
+   - Multi-factor authentication (for now)
+   - Password reset flow (future enhancement)
+   - Email verification (future enhancement)
 
 ## Error Handling
 
 1. **Authentication Failures**
 
-   - Redirect to login page with error message
-   - Clear error messages for common issues
-   - Log authentication failures for monitoring
+   - Clear error messages for all failure modes
+   - Proper HTTP status codes (401, 403)
+   - Logging for security monitoring
 
-2. **Session Errors**
-   - Automatic redirect to login on session expiration
-   - Clear feedback when session is invalid
+2. **Token Errors**
+   - 401 for expired/invalid tokens
+   - Future: Automatic token refresh
 
 ## Testing Requirements
 
 1. **Test Cases**
-   - Successful Google OAuth flow
-   - Session persistence across page refreshes
-   - Proper session expiration
-   - Logout functionality
-   - Error cases (invalid session, network issues)
+   - JWT issuance and validation
+   - Google OAuth flow
+   - Email/password authentication
+   - Token expiration handling
+   - Error cases and validation
 
 ## Future Considerations
 
-1. **Potential Additions**
-   - Session duration configuration
-   - Remember me functionality
-   - Additional OAuth providers
+1. **Immediate Next Steps**
+
+   - Complete refresh token implementation
+   - Add Apple Sign-In for mobile
+   - Implement secure token storage for mobile
+
+2. **Later Enhancements**
+   - Password reset flow
+   - Email verification
+   - Multi-factor authentication
    - Enhanced security measures
 
-These requirements supersede any previous authentication-related specifications.
+These requirements supersede all previous authentication specifications.

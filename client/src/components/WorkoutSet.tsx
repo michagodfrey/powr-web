@@ -51,6 +51,7 @@ const WorkoutSet = ({
               : set.weight,
           reps:
             typeof set.reps === "string" ? parseInt(set.reps, 10) : set.reps,
+          unit: set.unit || displayUnit, // Ensure unit is set
         }))
       : [{ id: Date.now(), weight: 0, reps: 0, unit: displayUnit }]
   );

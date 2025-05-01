@@ -13,7 +13,10 @@ export const createExercise = async (
 ) => {
   try {
     const { name, description } = req.body;
-    const userId = (req.user as any).id;
+    if (!req.jwtUser) {
+      throw new AppError("Not authenticated", 401);
+    }
+    const userId = req.jwtUser.id;
 
     const exercise = await Exercise.create({
       name,
@@ -40,7 +43,10 @@ export const getExercises = async (
   next: NextFunction
 ) => {
   try {
-    const userId = (req.user as any).id;
+    if (!req.jwtUser) {
+      throw new AppError("Not authenticated", 401);
+    }
+    const userId = req.jwtUser.id;
 
     const exercises = await Exercise.findAll({
       where: { userId },
@@ -82,7 +88,10 @@ export const getExercise = async (
 ) => {
   try {
     const { id } = req.params;
-    const userId = (req.user as any).id;
+    if (!req.jwtUser) {
+      throw new AppError("Not authenticated", 401);
+    }
+    const userId = req.jwtUser.id;
 
     const exercise = await Exercise.findOne({
       where: { id, userId },
@@ -112,7 +121,10 @@ export const updateExercise = async (
   try {
     const { id } = req.params;
     const { name, description } = req.body;
-    const userId = (req.user as any).id;
+    if (!req.jwtUser) {
+      throw new AppError("Not authenticated", 401);
+    }
+    const userId = req.jwtUser.id;
 
     const exercise = await Exercise.findOne({
       where: { id, userId },
@@ -146,7 +158,10 @@ export const deleteExercise = async (
 ) => {
   try {
     const { id } = req.params;
-    const userId = (req.user as any).id;
+    if (!req.jwtUser) {
+      throw new AppError("Not authenticated", 401);
+    }
+    const userId = req.jwtUser.id;
 
     const exercise = await Exercise.findOne({
       where: { id, userId },

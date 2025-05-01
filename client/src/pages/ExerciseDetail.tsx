@@ -9,6 +9,7 @@ import WorkoutSet from "../components/WorkoutSet";
 import VolumeChart from "../components/VolumeChart";
 import ErrorToast from "../components/ErrorToast";
 import ConfirmDialog from "../components/ConfirmDialog";
+import { api } from "../utils/api";
 
 const MAX_NAME_LENGTH = 25;
 const MAX_DESCRIPTION_LENGTH = 200;
@@ -36,8 +37,6 @@ const ExerciseDetail = () => {
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
-
   // Fetches exercise details and workout history
   const fetchExerciseData = async () => {
     try {
@@ -51,9 +50,7 @@ const ExerciseDetail = () => {
       );
 
       // Fetch exercise details
-      const exerciseResponse = await fetch(`${API_URL}/api/exercises/${id}`, {
-        credentials: "include",
-      });
+      const exerciseResponse = await api.get(`/api/exercises/${id}`);
 
       if (!exerciseResponse.ok) {
         console.error(
@@ -69,12 +66,7 @@ const ExerciseDetail = () => {
       // Fetch workout sessions
       let workoutHistory = [];
       try {
-        const workoutsResponse = await fetch(
-          `${API_URL}/api/workouts/exercise/${id}`,
-          {
-            credentials: "include",
-          }
-        );
+        const workoutsResponse = await api.get(`/api/workouts/exercise/${id}`);
 
         if (!workoutsResponse.ok) {
           console.warn(
@@ -150,172 +142,11 @@ const ExerciseDetail = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Records a new workout session for the exercise
-  const handleSaveWorkout = async (
-    sets: Set[],
-    date: string,
-    sessionNotes: string
-  ) => {
-    if (!exercise) return;
-
-    try {
-      setError(null);
-      const payload = {
-        exerciseId: exercise.id,
-        date,
-        notes: sessionNotes,
-        sets: sets.map((set) => ({
-          weight: set.weight,
-          reps: set.reps,
-          notes: set.notes,
-          unit: set.unit,
-        })),
-      };
-      console.log("[ExerciseDetail] Saving workout with payload:", payload);
-
-      const response = await fetch(`${API_URL}/api/workouts`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-
-      console.log("[ExerciseDetail] Server response status:", {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        console.error("[ExerciseDetail] Server error response:", {
-          status: response.status,
-          statusText: response.statusText,
-          errorData,
-          headers: Object.fromEntries(response.headers.entries()),
-        });
-        throw new Error(
-          errorData?.message || `Failed to save workout: ${response.statusText}`
-        );
-      }
-
-      const responseData = await response.json();
-      console.log("[ExerciseDetail] Server success response:", responseData);
-
-      await fetchExerciseData();
-      setShowWorkoutModal(false);
-    } catch (error) {
-      console.error("[ExerciseDetail] Error saving workout:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      setError(
-        error instanceof Error ? error.message : "Failed to save workout"
-      );
-    }
-  };
-
-  // Deletes a workout session
-  const handleDeleteWorkout = async (workoutId: number) => {
-    try {
-      setError(null);
-      const response = await fetch(`${API_URL}/api/workouts/${workoutId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete workout");
-      }
-
-      await fetchExerciseData();
-      setWorkoutToDelete(null);
-    } catch (error) {
-      console.error("Error deleting workout:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to delete workout"
-      );
-    }
-  };
-
-  // Updates an existing workout session
-  const handleUpdateWorkout = async (
-    sets: Set[],
-    date: string,
-    sessionNotes: string
-  ) => {
-    if (!workoutToEdit || !exercise) return;
-
-    try {
-      setError(null);
-      // Convert weight and reps to numbers before sending
-      const formattedSets = sets.map((set) => ({
-        weight: parseFloat(set.weight.toString()),
-        reps: parseInt(set.reps.toString(), 10),
-        notes: set.notes,
-        unit: set.unit,
-      }));
-
-      console.log(
-        "[ExerciseDetail] Updating workout with formatted sets:",
-        formattedSets
-      );
-
-      const response = await fetch(
-        `${API_URL}/api/workouts/${workoutToEdit.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            exerciseId: exercise.id,
-            date,
-            notes: sessionNotes,
-            sets: formattedSets,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update workout");
-      }
-
-      await fetchExerciseData();
-      setWorkoutToEdit(null);
-      setShowEditConfirm(false);
-    } catch (error) {
-      console.error("Error updating workout:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to update workout"
-      );
-    }
-  };
-
-  // Handles workout modal close with unsaved changes
-  const handleCloseWorkoutModal = () => {
-    if (workoutToEdit) {
-      setShowEditConfirm(true);
-    } else {
-      setShowCancelConfirm(true);
-    }
-  };
-
   // Exports workout data in CSV or PDF format
   const handleExport = async (format: "csv" | "pdf") => {
     try {
       setError(null);
-      const response = await fetch(
-        `${API_URL}/api/export/${format}?exerciseId=${id}`,
-        {
-          credentials: "include",
-        }
-      );
+      const response = await api.get(`/api/export/${format}?exerciseId=${id}`);
 
       if (!response.ok) {
         // For error responses, try to parse as JSON first
@@ -355,31 +186,137 @@ const ExerciseDetail = () => {
     }
   };
 
-  // Updates exercise details (name and description)
-  const handleUpdateExercise = async () => {
+  // Records a new workout session for the exercise
+  const handleSaveWorkout = async (
+    sets: Set[],
+    date: string,
+    sessionNotes: string
+  ) => {
+    if (!exercise) return;
+
     try {
       setError(null);
-      const response = await fetch(`${API_URL}/api/exercises/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          name: editedName,
-          description: editedDescription,
-        }),
-      });
+      const payload = {
+        exerciseId: exercise.id,
+        date,
+        notes: sessionNotes,
+        unit: preferences.preferredUnit,
+        sets: sets.map((set) => ({
+          weight: set.weight,
+          reps: set.reps,
+          notes: set.notes,
+          unit: set.unit || preferences.preferredUnit,
+        })),
+      };
+      console.log("[ExerciseDetail] Saving workout with payload:", payload);
+
+      const response = await api.post("/api/workouts", payload);
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update exercise");
+        throw new Error(errorData.message || "Failed to save workout");
+      }
+
+      await fetchExerciseData();
+      setShowWorkoutModal(false);
+    } catch (error) {
+      console.error("[ExerciseDetail] Error saving workout:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to save workout"
+      );
+    }
+  };
+
+  // Deletes a workout session
+  const handleDeleteWorkout = async (workoutId: number) => {
+    try {
+      setError(null);
+      const response = await api.delete(`/api/workouts/${workoutId}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to delete workout");
+      }
+
+      await fetchExerciseData();
+      setWorkoutToDelete(null);
+    } catch (error) {
+      console.error("[ExerciseDetail] Error deleting workout:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to delete workout"
+      );
+    }
+  };
+
+  // Updates an existing workout session
+  const handleUpdateWorkout = async (
+    sets: Set[],
+    date: string,
+    sessionNotes: string
+  ) => {
+    if (!exercise || !workoutToEdit) return;
+
+    try {
+      setError(null);
+      const payload = {
+        exerciseId: exercise.id,
+        date,
+        notes: sessionNotes,
+        sets: sets.map((set) => ({
+          weight: set.weight,
+          reps: set.reps,
+          notes: set.notes,
+          unit: set.unit,
+        })),
+      };
+
+      const response = await api.put(
+        `/api/workouts/${workoutToEdit.id}`,
+        payload
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update workout");
+      }
+
+      await fetchExerciseData();
+      setWorkoutToEdit(null);
+      setShowWorkoutModal(false);
+    } catch (error) {
+      console.error("[ExerciseDetail] Error updating workout:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to update workout"
+      );
+    }
+  };
+
+  // Handles workout modal close with unsaved changes
+  const handleCloseWorkoutModal = () => {
+    if (workoutToEdit) {
+      setShowEditConfirm(true);
+    } else {
+      setShowCancelConfirm(true);
+    }
+  };
+
+  // Updates exercise details (name and description)
+  const handleUpdateExercise = async () => {
+    if (!exercise) return;
+
+    try {
+      setError(null);
+      const response = await api.put(`/api/exercises/${exercise.id}`, {
+        name: editedName.trim(),
+        description: editedDescription.trim(),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update exercise");
       }
 
       await fetchExerciseData();
       setIsEditing(false);
     } catch (error) {
-      console.error("Error updating exercise:", error);
+      console.error("[ExerciseDetail] Error updating exercise:", error);
       setError(
         error instanceof Error ? error.message : "Failed to update exercise"
       );
@@ -388,21 +325,19 @@ const ExerciseDetail = () => {
 
   // Deletes the entire exercise and its workout history
   const handleDeleteExercise = async () => {
+    if (!exercise) return;
+
     try {
       setError(null);
-      const response = await fetch(`${API_URL}/api/exercises/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+      const response = await api.delete(`/api/exercises/${exercise.id}`);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete exercise");
+        throw new Error("Failed to delete exercise");
       }
 
-      navigate("/");
+      navigate("/exercises");
     } catch (error) {
-      console.error("Error deleting exercise:", error);
+      console.error("[ExerciseDetail] Error deleting exercise:", error);
       setError(
         error instanceof Error ? error.message : "Failed to delete exercise"
       );

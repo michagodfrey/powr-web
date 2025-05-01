@@ -1,10 +1,7 @@
 // Main server entry point that initializes the application
-// Handles database setup, passport configuration, and error handling
 import { createApp } from "./app";
 import { initDatabase } from "./config/database";
-import { configurePassport } from "./config/passport";
-
-const PORT = parseInt(process.env.PORT || "") || 3000;
+import { config } from "./config/validateEnv";
 
 // Initialize database and start server
 async function startServer() {
@@ -12,15 +9,12 @@ async function startServer() {
     // Initialize database first
     await initDatabase();
 
-    // Configure passport after database is initialized
-    const configuredPassport = configurePassport();
+    // Create the Express app
+    const app = createApp();
 
-    // Create the Express app with the configured passport
-    const app = createApp(configuredPassport);
-
-    // Start server after all initialization is complete
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+    // Start server
+    app.listen(config.PORT, () => {
+      console.log(`Server is running on port ${config.PORT}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);

@@ -1,10 +1,6 @@
-// Express application setup with security, session, and authentication configuration
-// Configures middleware, routes, and error handling for the API server
+// Express application setup with security and JWT configuration
 import express from "express";
 import cors from "cors";
-import session from "express-session";
-import passport from "./config/passport";
-import pgSession from "connect-pg-simple";
 import { config } from "./config/validateEnv";
 import { pool } from "./config/database";
 import authRoutes from "./routes/authRoutes";
@@ -13,12 +9,11 @@ import workoutRoutes from "./routes/workoutRoutes";
 import exportRoutes from "./routes/exportRoutes";
 import { errorHandler } from "./middleware/errorHandler";
 import { sanitizeInput } from "./middleware/validation";
-import cookieParser from "cookie-parser";
 
-export const createApp = (configuredPassport: typeof passport) => {
+export const createApp = () => {
   const app = express();
 
-  // Security headers middleware as per security-requirements.md
+  // Security headers middleware
   if (config.NODE_ENV === "production") {
     app.use((req, res, next) => {
       res.setHeader(
@@ -41,7 +36,6 @@ export const createApp = (configuredPassport: typeof passport) => {
   app.set("trust proxy", 1);
 
   // Essential middleware
-  app.use(cookieParser(config.SESSION_SECRET));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(sanitizeInput);
@@ -64,72 +58,14 @@ export const createApp = (configuredPassport: typeof passport) => {
       },
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
-      exposedHeaders: ["Set-Cookie"],
+      allowedHeaders: ["Content-Type", "Authorization"],
     })
   );
-
-  const PostgresqlStore = pgSession(session);
-  const sessionStore = new PostgresqlStore({
-    pool,
-    tableName: "session",
-    createTableIfMissing: true,
-    pruneSessionInterval: 24 * 60 * 60, // Prune expired sessions every 24 hours
-  });
-
-  // Handle session store errors
-  sessionStore.on("error", (error: Error) => {
-    console.error("Session store error:", error);
-    // Don't exit process, but log the error
-  });
-
-  // Session configuration
-  const cookieSettings = {
-    httpOnly: true,
-    maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
-    path: "/",
-    ...(config.NODE_ENV === "production"
-      ? {
-          secure: true,
-          sameSite: "none" as const,
-          ...(config.COOKIE_DOMAIN && {
-            domain: config.COOKIE_DOMAIN.startsWith(".")
-              ? config.COOKIE_DOMAIN
-              : `.${config.COOKIE_DOMAIN}`,
-          }),
-        }
-      : {
-          secure: false,
-          sameSite: "lax" as const,
-        }),
-  };
-
-  app.use(
-    session({
-      store: sessionStore,
-      secret: config.SESSION_SECRET,
-      resave: false,
-      saveUninitialized: false,
-      rolling: true,
-      proxy: config.NODE_ENV === "production",
-      cookie: cookieSettings,
-      name: "powr.sid",
-      unset: "destroy", // Properly remove session on logout
-    })
-  );
-
-  // Initialize Passport and restore authentication state from session
-  app.use(configuredPassport.initialize());
-  app.use(configuredPassport.session());
 
   // Add request logging in development
   if (config.NODE_ENV === "development") {
     app.use((req, res, next) => {
-      console.log(`${req.method} ${req.path}`, {
-        isAuthenticated: req.isAuthenticated(),
-        sessionID: req.sessionID,
-        user: req.user,
-      });
+      console.log(`${req.method} ${req.path}`);
       next();
     });
   }

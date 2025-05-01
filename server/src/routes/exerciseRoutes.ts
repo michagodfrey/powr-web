@@ -1,7 +1,7 @@
 // Protected routes for managing user exercises
 // Handles CRUD operations with input validation and authentication checks
 import { Router } from "express";
-import { isAuthenticated } from "../middleware/auth";
+import { validateJWT } from "../middleware/auth";
 import { validateExerciseInput } from "../middleware/validation";
 import {
   createExercise,
@@ -13,8 +13,8 @@ import {
 
 const router = Router();
 
-// Protect all routes in this router
-router.use(isAuthenticated);
+// Protect all routes in this router with JWT validation
+router.use(validateJWT);
 
 router.route("/").get(getExercises).post(validateExerciseInput, createExercise);
 
