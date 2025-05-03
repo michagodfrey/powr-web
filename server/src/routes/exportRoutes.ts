@@ -1,7 +1,7 @@
 // Protected routes for exporting workout data in different formats
 // Supports CSV and PDF export with authentication checks
 import express from "express";
-import { isAuthenticated } from "../middleware/auth";
+import { validateJWT } from "../middleware/auth";
 import {
   exportWorkoutsCSV,
   exportWorkoutsPDF,
@@ -10,7 +10,7 @@ import {
 const router = express.Router();
 
 // Protect all routes in this router
-router.use(isAuthenticated);
+router.use(validateJWT);
 
 // Export workout data as CSV
 router.get("/csv", exportWorkoutsCSV);

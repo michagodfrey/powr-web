@@ -34,11 +34,13 @@ _This checklist tracks the migration to JWT-based authentication for POWR, suppo
 - [x] **Implement JWT access and refresh token generation**  
        _Notes: Basic JWT implementation complete_
 - [x] **Add JWT validation middleware**  
-       _Notes: Implemented and simplified to handle only JWT_
-- [ ] **Implement refresh token rotation and revocation endpoints**  
-       _Notes: To be implemented_
-- [ ] **Store refresh tokens in DB, associated with user/device**  
-       _Notes: To be implemented_
+       _Notes: Implemented and simplified to handle only JWT. All protected routes now use validateJWT and req.jwtUser._
+- [~] **Implement refresh token rotation and revocation endpoints**  
+   _Notes: JWT-only auth is live; rotation/revocation endpoints in progress._
+- [~] **Store refresh tokens in DB, associated with user/device**  
+   _Notes: In progress._
+- [x] **Remove all session-based and isAuthenticated middleware**  
+       _Notes: Fully removed from codebase; all auth is now JWT-based._
 - [ ] **Add logout endpoint to revoke refresh tokens**  
        _Notes: Basic logout implemented, token revocation pending_
 
@@ -54,8 +56,8 @@ _This checklist tracks the migration to JWT-based authentication for POWR, suppo
        _Notes: Using localStorage for web_
 - [ ] **Handle refresh token storage (HTTP-only cookie/web, secure storage/mobile)**  
        _Notes: To be implemented_
-- [ ] **Implement automatic token refresh on expiry**  
-       _Notes: To be implemented_
+- [~] **Implement automatic token refresh on expiry**  
+   _Notes: In progress; basic refresh logic implemented, further improvements planned._
 - [x] **Show clear error messages for auth failures/expiration**  
        _Notes: Implemented with ErrorToast component_
 

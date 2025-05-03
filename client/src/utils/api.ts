@@ -13,7 +13,14 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 const refreshAccessToken = async () => {
   try {
     const { refreshToken } = getStoredTokens();
+    console.log(
+      "[Auth] /refresh called. Token:",
+      refreshToken
+        ? refreshToken.slice(0, 4) + "..." + refreshToken.slice(-4)
+        : "none"
+    );
     if (!refreshToken) {
+      console.log("[Auth] No refresh token provided");
       throw new Error("No refresh token available");
     }
 
@@ -24,6 +31,8 @@ const refreshAccessToken = async () => {
       },
       body: JSON.stringify({ refreshToken }),
     });
+
+    console.log("[Auth] Refresh response:", response);
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));

@@ -31,24 +31,14 @@ export const createWorkout = async (
     console.log("[Workout] Create workout request:", {
       path: req.path,
       method: req.method,
-      isAuthenticated: req.isAuthenticated(),
-      sessionID: req.sessionID,
-      user: req.user,
+      user: req.jwtUser,
       body: req.body,
       timestamp: new Date().toISOString(),
     });
 
     const { exerciseId, date, sets } = req.body;
-    const userId = (req.user as any)?.id;
-
-    if (!userId) {
-      console.error("[Workout] No user ID found in request:", {
-        sessionID: req.sessionID,
-        isAuthenticated: req.isAuthenticated(),
-        user: req.user,
-      });
-      throw new AppError("Authentication required", 401);
-    }
+    const userId = req.jwtUser?.id;
+    if (!userId) throw new AppError("Authentication required", 401);
 
     // Verify exercise belongs to user
     const exercise = await Exercise.findOne({
@@ -71,7 +61,7 @@ export const createWorkout = async (
     });
 
     // Calculate total volume and ensure all sets have units
-    const unit = (req.user as any).preferredUnit || "kg";
+    const unit = (req.jwtUser as any)?.preferredUnit || "kg";
     let totalVolume = 0;
     const setsWithVolume = sets.map((set: SetData, index: number) => {
       const volume = set.weight * set.reps;
@@ -180,7 +170,8 @@ export const getWorkouts = async (
   next: NextFunction
 ) => {
   try {
-    const userId = (req.user as any).id;
+    const userId = req.jwtUser?.id;
+    if (!userId) throw new AppError("Authentication required", 401);
     const { startDate, endDate } = req.query;
 
     // Build date filter if provided
@@ -247,7 +238,8 @@ export const getWorkout = async (
 ) => {
   try {
     const { id } = req.params;
-    const userId = (req.user as any).id;
+    const userId = req.jwtUser?.id;
+    if (!userId) throw new AppError("Authentication required", 401);
 
     const workoutSession = await WorkoutSession.findOne({
       where: { id, userId },
@@ -295,7 +287,8 @@ export const updateWorkout = async (
   try {
     const { id } = req.params;
     const { date, notes, sets } = req.body;
-    const userId = (req.user as any).id;
+    const userId = req.jwtUser?.id;
+    if (!userId) throw new AppError("Authentication required", 401);
 
     const workoutSession = await WorkoutSession.findOne({
       where: { id, userId },
@@ -400,7 +393,8 @@ export const deleteWorkout = async (
 ) => {
   try {
     const { id } = req.params;
-    const userId = (req.user as any).id;
+    const userId = req.jwtUser?.id;
+    if (!userId) throw new AppError("Authentication required", 401);
 
     const workoutSession = await WorkoutSession.findOne({
       where: { id, userId },
@@ -429,7 +423,8 @@ export const getWorkoutsByExercise = async (
 ) => {
   try {
     const { exerciseId } = req.params;
-    const userId = (req.user as any).id;
+    const userId = req.jwtUser?.id;
+    if (!userId) throw new AppError("Authentication required", 401);
 
     // Verify exercise belongs to user
     const exercise = await Exercise.findOne({

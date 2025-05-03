@@ -55,6 +55,8 @@ export const validateJWT = async (
         name: string;
       };
 
+      console.log("[JWT Middleware] Token valid for user:", decoded.id);
+
       // Find user
       const user = await User.findByPk(decoded.id);
       if (!user) {

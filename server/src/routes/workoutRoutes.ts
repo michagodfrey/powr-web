@@ -1,7 +1,7 @@
 // Protected routes for managing workout sessions and history
 // Handles CRUD operations for workouts with validation and exercise association
 import { Router } from "express";
-import { isAuthenticated } from "../middleware/auth";
+import { validateJWT } from "../middleware/auth";
 import { validateWorkoutInput } from "../middleware/validation";
 import {
   createWorkout,
@@ -15,7 +15,7 @@ import {
 const router = Router();
 
 // Apply authentication middleware to all routes
-router.use(isAuthenticated);
+router.use(validateJWT );
 
 router.route("/").get(getWorkouts).post(validateWorkoutInput, createWorkout);
 

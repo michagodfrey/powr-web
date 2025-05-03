@@ -226,20 +226,28 @@ This transition represents a significant evolution from the initial single-auth 
 - Previous mixed session/JWT authentication approach
 - All session-based authentication code and documentation
 
----
+### 2024-05-02: JWT-Only Authentication Fully Implemented and Standardized
 
-## How to Use This Document (reminder)
+**What Happened:**
 
-1. **Add a New Entry**  
-   Whenever a milestone is reached or a significant change is made, create a new heading (e.g., `### [YYYY-MM-DD]: Heading Text`) to detail:
+- Completed migration to JWT-only authentication for all protected routes (workouts, exercises, exports, etc.).
+- Removed all legacy session-based authentication and the isAuthenticated middleware from the backend.
+- Standardized on a single JWT validation middleware (validateJWT) for all protected routes.
+- Updated all controllers to use req.jwtUser for user identification and authorization.
+- Ensured consistent authentication logic across the codebase, eliminating mixed or legacy auth logic.
+- Confirmed that all frontend and backend flows now use JWT for authentication and authorization.
 
-   - What was changed or learned.
+**Why It Matters:**
 
-2. **Keep It Concise**  
-   Focus on bullet points and short explanations so the document remains easy to read and update.
+- Provides a consistent, stateless, and scalable authentication system suitable for web, mobile, and future voice input.
+- Eliminates confusion and bugs caused by mixed session/JWT logic.
+- Simplifies maintenance, debugging, and future feature development (e.g., Apple Sign-In, mobile sync).
+- Lays a robust foundation for future enhancements like refresh token rotation, device management, and 2FA.
 
-3. **Document Decisions**  
-   If a design or architectural choice is made, record the reasoning. This will help future contributors understand the project's evolution.
+**Next Steps:**
 
-4. **Reflect Often**  
-   Look back on previous entries to avoid repeating mistakes and to see how the project has progressed over time.
+- Implement refresh token rotation and revocation endpoints.
+- Store refresh tokens in the database, associated with user/device for enhanced security.
+- Add automated tests for all authentication flows (registration, login, refresh, logout).
+- Continue following the authentication migration checklist for remaining tasks.
+- Plan for future enhancements (CSRF, 2FA, etc.) after mobile app implementation.

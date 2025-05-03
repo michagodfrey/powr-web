@@ -9,10 +9,17 @@ const TOKEN_KEYS = {
 /**
  * Get stored tokens from localStorage
  */
-export const getStoredTokens = () => ({
-  accessToken: localStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN),
-  refreshToken: localStorage.getItem(TOKEN_KEYS.REFRESH_TOKEN),
-});
+export const getStoredTokens = () => {
+  const accessToken = localStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN);
+  const refreshToken = localStorage.getItem(TOKEN_KEYS.REFRESH_TOKEN);
+  console.log("[TokenUtils] getStoredTokens:", {
+    accessTokenPresent: !!accessToken,
+    refreshTokenPresent: !!refreshToken,
+    accessTokenLength: accessToken?.length,
+    refreshTokenLength: refreshToken?.length,
+  });
+  return { accessToken, refreshToken };
+};
 
 /**
  * Set tokens in localStorage
@@ -20,6 +27,12 @@ export const getStoredTokens = () => ({
 export const setStoredTokens = (accessToken: string, refreshToken: string) => {
   localStorage.setItem(TOKEN_KEYS.ACCESS_TOKEN, accessToken);
   localStorage.setItem(TOKEN_KEYS.REFRESH_TOKEN, refreshToken);
+  console.log("[TokenUtils] setStoredTokens:", {
+    accessTokenSet: !!accessToken,
+    refreshTokenSet: !!refreshToken,
+    accessTokenLength: accessToken?.length,
+    refreshTokenLength: refreshToken?.length,
+  });
 };
 
 /**
@@ -28,6 +41,7 @@ export const setStoredTokens = (accessToken: string, refreshToken: string) => {
 export const removeStoredTokens = () => {
   localStorage.removeItem(TOKEN_KEYS.ACCESS_TOKEN);
   localStorage.removeItem(TOKEN_KEYS.REFRESH_TOKEN);
+  console.log("[TokenUtils] removeStoredTokens: tokens removed");
 };
 
 /**
@@ -35,5 +49,7 @@ export const removeStoredTokens = () => {
  */
 export const hasStoredTokens = () => {
   const { accessToken, refreshToken } = getStoredTokens();
-  return !!(accessToken && refreshToken);
+  const hasTokens = !!(accessToken && refreshToken);
+  console.log("[TokenUtils] hasStoredTokens:", hasTokens);
+  return hasTokens;
 };
