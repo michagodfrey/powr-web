@@ -1,63 +1,40 @@
--- PostgreSQL Database Initialization Script
--- This script should be run as the powr user AFTER running setup-permissions.sql as postgres superuser
--- Purpose: Sets up the database schema for the POWR application
+-- PostgreSQL Database Initialization Script (Current Schema)
+-- Sets up tables for POWR: users, exercises, workout_sessions, sets, refresh_tokens
 
--- Verify we're running as powr user
-DO $$
-BEGIN
-    IF NOT (SELECT current_user = 'powr') THEN
-        RAISE EXCEPTION 'This script must be run as the powr user. Please run setup-permissions.sql first as postgres superuser.';
-    END IF;
-END
-$$;
+-- Drop tables if they exist (in dependency order)
+DROP TABLE IF EXISTS refresh_tokens;
+DROP TABLE IF EXISTS sets;
+DROP TABLE IF EXISTS workout_sessions;
+DROP TABLE IF EXISTS exercises;
+DROP TABLE IF EXISTS users;
 
--- Drop existing tables if they exist
-DROP TABLE IF EXISTS session CASCADE;
-DROP TABLE IF EXISTS user_sessions CASCADE;
-DROP TABLE IF EXISTS sets CASCADE;
-DROP TABLE IF EXISTS workout_sessions CASCADE;
-DROP TABLE IF EXISTS exercises CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-
--- Drop existing functions if they exist
-DROP FUNCTION IF EXISTS update_updated_at_column CASCADE;
-
--- Create updated_at trigger function
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Create users table
+-- Users table
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     google_id VARCHAR(255) UNIQUE,
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
-    picture VARCHAR(512),
+    picture VARCHAR(1024),
     preferred_unit VARCHAR(2) NOT NULL DEFAULT 'kg',
     password_hash VARCHAR(255),
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_preferred_unit CHECK (preferred_unit IN ('kg', 'lb'))
 );
 
--- Create exercises table
+-- Exercises table
 CREATE TABLE exercises (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     is_archived BOOLEAN NOT NULL DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT exercises_user_id_name_unique UNIQUE (user_id, name)
 );
 
--- Create workout_sessions table
+-- Workout sessions table
 CREATE TABLE workout_sessions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -66,12 +43,12 @@ CREATE TABLE workout_sessions (
     notes TEXT,
     total_volume DECIMAL(10,2) NOT NULL,
     unit VARCHAR(2) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_unit CHECK (unit IN ('kg', 'lb'))
 );
 
--- Create sets table
+-- Sets table
 CREATE TABLE sets (
     id SERIAL PRIMARY KEY,
     session_id INTEGER NOT NULL REFERENCES workout_sessions(id) ON DELETE CASCADE,
@@ -81,58 +58,32 @@ CREATE TABLE sets (
     unit VARCHAR(2) NOT NULL,
     volume DECIMAL(10,2) NOT NULL,
     notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_unit CHECK (unit IN ('kg', 'lb')),
     CONSTRAINT chk_weight_positive CHECK (weight > 0),
     CONSTRAINT chk_reps_positive CHECK (reps > 0)
 );
 
--- Create session table for connect-pg-simple
-CREATE TABLE session (
-    sid varchar NOT NULL COLLATE "default",
-    sess json NOT NULL,
-    expire timestamp(6) NOT NULL,
-    CONSTRAINT session_pkey PRIMARY KEY (sid)
-);
-
-CREATE INDEX IF NOT EXISTS IDX_session_expire ON session(expire);
-
--- Create user_sessions table for application use
-CREATE TABLE user_sessions (
+-- Refresh tokens table
+CREATE TABLE refresh_tokens (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    expires TIMESTAMP WITH TIME ZONE NOT NULL,
-    data TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    token VARCHAR(255) NOT NULL,
+    device VARCHAR(255),
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_user_sessions_expires ON user_sessions(expires);
-
--- Create indexes
+-- Indexes
 CREATE INDEX idx_exercises_user ON exercises(user_id);
 CREATE INDEX idx_workout_sessions_user ON workout_sessions(user_id);
 CREATE INDEX idx_workout_sessions_exercise ON workout_sessions(exercise_id);
 CREATE INDEX idx_workout_sessions_date ON workout_sessions(date DESC);
 CREATE INDEX idx_sets_session ON sets(session_id);
+CREATE INDEX refresh_tokens_user_id_idx ON refresh_tokens(user_id);
+CREATE INDEX refresh_tokens_token_idx ON refresh_tokens(token);
 
--- Create triggers for updated_at
-CREATE TRIGGER update_users_updated_at
-    BEFORE UPDATE ON users
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_exercises_updated_at
-    BEFORE UPDATE ON exercises
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_workout_sessions_updated_at
-    BEFORE UPDATE ON workout_sessions
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_sets_updated_at
-    BEFORE UPDATE ON sets
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column(); 
+-- Triggers for updated_at (optional, if you want automatic timestamp updates)
+-- You may need to add a trigger function in a separate migration if desired. 

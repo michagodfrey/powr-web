@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { config } from "./config/validateEnv";
 import { pool } from "./config/database";
+import { configurePassport } from "./config/passport";
 import authRoutes from "./routes/authRoutes";
 import exerciseRoutes from "./routes/exerciseRoutes";
 import workoutRoutes from "./routes/workoutRoutes";
@@ -89,6 +90,9 @@ export const createApp = () => {
       });
     }
   });
+
+  // Configure Passport to serialize user for the session
+  configurePassport();
 
   // Routes
   app.use("/api/auth", authRoutes);

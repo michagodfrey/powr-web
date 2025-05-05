@@ -251,3 +251,27 @@ This transition represents a significant evolution from the initial single-auth 
 - Add automated tests for all authentication flows (registration, login, refresh, logout).
 - Continue following the authentication migration checklist for remaining tasks.
 - Plan for future enhancements (CSRF, 2FA, etc.) after mobile app implementation.
+
+### 2025-05-06: DB-Backed Refresh Tokens and Auth Migration Finalization
+
+**What Happened:**
+
+- Implemented secure, database-backed refresh token logic for all authentication flows (email/password and Google OAuth).
+- Updated Google OAuth callback to generate a random refresh token, store its hash in the DB, and return the raw token to the client (not a JWT).
+- Updated login and registration flows to use the same DB-backed refresh token logic.
+- Added a new Sequelize migration and config setup for the `refresh_tokens` table.
+- Updated project structure to include `server/config/` (for CLI config) and `server/migrations/` (for migration files).
+- Ensured all tokens are revocable and support multi-device/session management.
+
+**Why It Matters:**
+
+- Provides secure, revocable refresh tokens for all users, improving security and session management.
+- Unifies authentication logic across providers (Google, email/password).
+- Lays the foundation for future features like device management and session revocation.
+- Ensures compatibility and reliability across browsers (Chrome, Firefox).
+
+**Next Steps:**
+
+- Add automated tests for refresh token rotation and revocation.
+- Monitor for issues in production and gather user feedback.
+- Plan for Apple Sign-In and mobile app integration using the same approach.

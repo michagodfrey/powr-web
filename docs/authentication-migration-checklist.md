@@ -12,8 +12,8 @@ _This checklist tracks the migration to JWT-based authentication for POWR, suppo
        _Notes: Updated PRD to reflect JWT-only approach_
 - [x] **Update User model to support multiple providers and password hash**  
        _Notes: Modified schema to make google_id nullable, added password_hash_
-- [ ] **Design RefreshToken (or Session) table for refresh tokens**  
-       _Notes: Will be implemented after core JWT flow is stable_
+- [x] **Design RefreshToken (or Session) table for refresh tokens**  
+       _Notes: Implemented as refresh_tokens table with Sequelize migration and CLI config._
 
 ---
 
@@ -35,14 +35,14 @@ _This checklist tracks the migration to JWT-based authentication for POWR, suppo
        _Notes: Basic JWT implementation complete_
 - [x] **Add JWT validation middleware**  
        _Notes: Implemented and simplified to handle only JWT. All protected routes now use validateJWT and req.jwtUser._
-- [~] **Implement refresh token rotation and revocation endpoints**  
-   _Notes: JWT-only auth is live; rotation/revocation endpoints in progress._
-- [~] **Store refresh tokens in DB, associated with user/device**  
-   _Notes: In progress._
+- [x] **Implement refresh token rotation and revocation endpoints**  
+       _Notes: DB-backed refresh tokens with rotation and revocation implemented for all flows._
+- [x] **Store refresh tokens in DB, associated with user/device**  
+       _Notes: refresh_tokens table created and used for all providers._
 - [x] **Remove all session-based and isAuthenticated middleware**  
        _Notes: Fully removed from codebase; all auth is now JWT-based._
-- [ ] **Add logout endpoint to revoke refresh tokens**  
-       _Notes: Basic logout implemented, token revocation pending_
+- [x] **Add logout endpoint to revoke refresh tokens**  
+       _Notes: Logout now deletes refresh token from DB._
 
 ---
 
@@ -55,7 +55,7 @@ _This checklist tracks the migration to JWT-based authentication for POWR, suppo
 - [x] **Handle access token storage (memory/secure storage)**  
        _Notes: Using localStorage for web_
 - [ ] **Handle refresh token storage (HTTP-only cookie/web, secure storage/mobile)**  
-       _Notes: To be implemented_
+       _Notes: To be implemented before launch_
 - [~] **Implement automatic token refresh on expiry**  
    _Notes: In progress; basic refresh logic implemented, further improvements planned._
 - [x] **Show clear error messages for auth failures/expiration**  
@@ -80,8 +80,6 @@ _This checklist tracks the migration to JWT-based authentication for POWR, suppo
 
 - [x] **Plan and execute migration for existing Google users**  
        _Notes: No migration needed, JWT implementation preserves existing users_
-- [ ] **Communicate changes to users if needed**  
-       _Notes: Not needed, changes are transparent to users_
 - [ ] **Deploy to staging, then production**  
        _Notes: Pending completion of core features_
 - [ ] **Monitor for issues and gather feedback**  
@@ -92,7 +90,7 @@ _This checklist tracks the migration to JWT-based authentication for POWR, suppo
 ## 6. Documentation & Follow-up
 
 - [x] **Update PRD and learnings with implementation details**  
-       _Notes: Updated to reflect JWT-only approach_
+       _Notes: Updated to reflect JWT-only approach and DB refresh tokens._
 - [ ] **Plan for future enhancements (CSRF, 2FA, etc.)**  
        _Notes: To be considered after mobile app implementation_
 
@@ -100,6 +98,6 @@ _This checklist tracks the migration to JWT-based authentication for POWR, suppo
 
 _Add additional notes, blockers, or questions below as needed:_
 
-- Current focus is on stabilizing JWT implementation before adding refresh tokens
-- Apple Sign-In implementation will follow same JWT pattern as Google OAuth
-- Mobile implementation will use same JWT approach with secure storage
+- All authentication flows now use DB-backed refresh tokens (email/password, Google OAuth).
+- Sequelize CLI config and migration files added to support DB schema changes.
+- Next: Add tests for token rotation/revocation and monitor rollout.

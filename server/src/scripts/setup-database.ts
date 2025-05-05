@@ -8,8 +8,9 @@ async function setupDatabase() {
   try {
     console.log("Setting up database...");
 
-    // Read and execute the initialization SQL
-    const sqlPath = path.join(__dirname, "../db/migrations/init.sql");
+    // Read and execute the updated initialization SQL
+    // This SQL should match the current Sequelize models, including refresh_tokens
+    const sqlPath = path.join(__dirname, "../../scripts/init-database.sql");
     const sql = fs.readFileSync(sqlPath, "utf8");
 
     await pool.query(sql);
