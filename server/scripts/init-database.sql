@@ -1,6 +1,10 @@
 -- PostgreSQL Database Initialization Script (Current Schema)
 -- Sets up tables for POWR: users, exercises, workout_sessions, sets, refresh_tokens
 
+-- Drop legacy session tables if they exist
+DROP TABLE IF EXISTS user_sessions CASCADE;
+DROP TABLE IF EXISTS session CASCADE;
+
 -- Drop tables if they exist (in dependency order)
 DROP TABLE IF EXISTS refresh_tokens;
 DROP TABLE IF EXISTS sets;

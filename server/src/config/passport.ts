@@ -24,6 +24,7 @@ declare global {
 
 // Configure Passport
 export const configurePassport = () => {
+  console.log("[Auth] configurePassport called");
   // Serialize user for the session
   passport.serializeUser((user: Express.User, done) => {
     try {
@@ -98,6 +99,8 @@ export const configurePassport = () => {
           let user = await User.findOne({
             where: { googleId: profile.id },
           });
+
+          console.log("[Auth] Google OAuth strategy registered");
 
           if (!user) {
             console.log("[Auth] Creating new user:", {
@@ -186,6 +189,7 @@ export const configurePassport = () => {
     )
   );
 
+  console.log("[Auth] configurePassport finished");
   return passport;
 };
 
