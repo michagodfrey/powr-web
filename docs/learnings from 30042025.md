@@ -275,3 +275,24 @@ This transition represents a significant evolution from the initial single-auth 
 - Add automated tests for refresh token rotation and revocation.
 - Monitor for issues in production and gather user feedback.
 - Plan for Apple Sign-In and mobile app integration using the same approach.
+
+### 2025-05-06: Production Database Cleanup and Schema Finalization
+
+**What Happened:**
+
+- Audited and cleaned up the production Railway Postgres database to remove legacy session tables (`session`, `user_sessions`).
+- Verified and ensured the presence of the new `refresh_tokens` table in production, matching the DB-backed JWT refresh token system used in development.
+- Confirmed that all authentication flows (email/password, Google OAuth) are now using the new DB schema in production.
+- Updated local and production environments to be consistent, with no legacy session artifacts remaining.
+
+**Why It Matters:**
+
+- Removes confusion and potential security risks from unused legacy tables.
+- Ensures production is using the latest, secure authentication system with revocable, DB-backed refresh tokens.
+- Reduces maintenance overhead and risk of bugs from schema drift between environments.
+
+**Next Steps:**
+
+- Continue monitoring production for authentication issues or edge cases.
+- Add automated tests for refresh token flows and DB cleanup.
+- Prepare for future enhancements (Apple Sign-In, mobile, device/session management).

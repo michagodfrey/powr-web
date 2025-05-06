@@ -72,6 +72,7 @@ project-root/
 │   │   │   ├── Session.ts
 │   │   │   ├── Set.ts
 │   │   │   ├── Exercise.ts
+│   │   │   ├── RefreshToken.ts     # Refresh token model for JWT auth
 │   │   │   └── index.ts
 │   │   ├── routes/                 # API route definitions
 │   │   │   ├── exportRoutes.ts
@@ -81,7 +82,6 @@ project-root/
 │   │   ├── utils/                  # Utility functions
 │   │   │   └── volumeCalculation.ts
 │   │   ├── scripts/                # Utility scripts
-│   │   │   ├── cleanup-sessions.ts
 │   │   │   └── setup-database.ts
 │   │   ├── app.ts                  # Express application setup
 │   │   └── index.ts                # Server entry point
@@ -105,7 +105,7 @@ project-root/
 │   ├── learnings/                  # Development learnings and decisions
 │   ├── screenshots/                # Application screenshots
 │   ├── authentication-migration-checklist.md
-│   └── learnings from 30042025.md
+│   └── learnings from 30042025.md  # Major learnings and decisions (filename includes spaces)
 │
 ├── node_modules/                   # Project dependencies
 ├── package.json                    # Project configuration
