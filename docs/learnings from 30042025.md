@@ -296,3 +296,24 @@ This transition represents a significant evolution from the initial single-auth 
 - Continue monitoring production for authentication issues or edge cases.
 - Add automated tests for refresh token flows and DB cleanup.
 - Prepare for future enhancements (Apple Sign-In, mobile, device/session management).
+
+### 2025-05-07: Manual Production Database Schema Update for Auth Migration
+
+**What Happened:**
+
+- Manually updated the production `users` table schema via psql to support the new authentication system.
+- Added the `password_hash` column to the `users` table to enable email/password authentication.
+- Altered the `google_id` column to be nullable (removed NOT NULL constraint) to support multiple authentication methods.
+- Verified the schema update using `\d+ users` in psql.
+
+**Why It Matters:**
+
+- The backend expects these schema changes for both Google OAuth and email/password authentication to work.
+- Without these changes, Google OAuth login failed in production due to missing columns.
+- Manual schema updates ensured no user data was lost and enabled the new unified authentication logic.
+
+**Next Steps:**
+
+- Resolve the frontend OAuth callback error (404 on `/auth/callback`) so that users can complete login after successful authentication.
+- Ensure frontend and backend callback URLs and routes are fully aligned in all environments.
+- Continue monitoring for further integration issues and document any additional manual interventions.
