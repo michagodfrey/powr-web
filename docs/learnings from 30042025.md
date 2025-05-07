@@ -317,3 +317,67 @@ This transition represents a significant evolution from the initial single-auth 
 - Resolve the frontend OAuth callback error (404 on `/auth/callback`) so that users can complete login after successful authentication.
 - Ensure frontend and backend callback URLs and routes are fully aligned in all environments.
 - Continue monitoring for further integration issues and document any additional manual interventions.
+
+### 2025-05-07: Google OAuth Production Login Issue Resolved
+
+**What Happened:**
+
+- After updating the production database schema, Google OAuth login still resulted in a 404 error on the `/auth/callback` route in production.
+- Investigation revealed that the frontend route was initially misconfigured (`/auth-callback` instead of `/auth/callback`), and Vercel was not rewriting all routes to `index.html` for client-side routing.
+- Updated the frontend route to `/auth/callback` in `AppRoutes.tsx` to match the backend redirect.
+- Added a `vercel.json` file to the client directory to rewrite all routes to `/`, enabling React Router to handle client-side navigation.
+- Redeployed the frontend to Vercel.
+
+**Why It Matters:**
+
+- Ensures that OAuth callback URLs are handled correctly in production, allowing users to complete authentication and access the app.
+- Aligns frontend and backend routing, preventing 404 errors on deep links and OAuth redirects.
+- Demonstrates the importance of deployment configuration for single-page applications.
+
+**Outcome:**
+
+- Google OAuth login now works end-to-end in production.
+- Users are redirected to `/auth/callback`, tokens are processed, and the user is logged in successfully.
+
+**Next Steps:**
+
+- Monitor for any further authentication or routing issues in production.
+- Continue to test other authentication flows (email/password, logout, token refresh).
+- Document any additional deployment or integration learnings as they arise.
+
+### 2025-05-07: Frontend Authentication UI Improvements
+
+**What Happened:**
+
+- Renamed the landing page from `/landing` to `/home` to follow common web conventions and improve user experience.
+- Created a new sign-up page (`/signup`) that matches the design of the existing login page.
+- Implemented consistent styling across authentication buttons:
+  - Added border styling to primary buttons to match secondary buttons
+  - Standardized button widths and alignment
+  - Ensured consistent spacing and padding
+- Created a shared `useAuthHandlers` hook to:
+  - Centralize Google and Apple authentication logic
+  - Provide consistent error handling and loading states
+  - Enable direct authentication from the home page
+  - Reduce code duplication across Login, SignUp, and Home components
+- Updated all authentication-related links to point to the correct routes
+- Maintained dark mode support across all authentication pages
+
+**Why It Matters:**
+
+- Improves user experience by following established web conventions
+- Provides a more cohesive and professional look across authentication flows
+- Ensures consistent styling and behavior across all authentication options
+- Makes the authentication process more intuitive for users
+- Maintains accessibility and responsiveness across all screen sizes
+- Reduces code duplication and improves maintainability
+- Ensures consistent error handling and loading states across all auth flows
+
+**Next Steps:**
+
+- Monitor user feedback on the new sign-up flow
+- Consider adding password strength indicators
+- Plan for Apple Sign-In button styling consistency
+- Consider adding loading states for social authentication buttons
+- Document any additional UI/UX improvements needed
+- Consider extracting email/password authentication logic to the shared hook

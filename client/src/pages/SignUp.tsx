@@ -1,12 +1,12 @@
-// Authentication page that handles multiple login methods (Email, Google, Apple)
-// Provides a clean interface for authentication and handles error states
+// Sign up page that handles multiple registration methods (Email, Google, Apple)
+// Provides a clean interface for registration and handles error states
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useAuthHandlers } from "../hooks/useAuthHandlers";
 import ErrorToast from "../components/ErrorToast";
 
-const Login = () => {
+const SignUp = () => {
   const { login, isAuthenticated, error: authError, clearError } = useAuth();
   const {
     handleGoogleAuth,
@@ -18,6 +18,7 @@ const Login = () => {
   } = useAuthHandlers();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isEmailMode, setIsEmailMode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,7 +36,7 @@ const Login = () => {
     if (urlError) {
       setError(decodeURIComponent(urlError));
       // Clear the error from URL
-      navigate("/login", { replace: true });
+      navigate("/signup", { replace: true });
     }
   }, [location, navigate, setError]);
 
@@ -46,18 +47,23 @@ const Login = () => {
     }
   }, [authError, clearError, setError]);
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
     try {
       setIsLoading(true);
       setError(null);
+      // TODO: Replace with actual signup logic when backend is ready
       await login({ email, password });
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Sign up error:", error);
       setError(
         error instanceof Error
           ? error.message
-          : "Failed to login. Please try again."
+          : "Failed to sign up. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -72,13 +78,13 @@ const Login = () => {
             POWR
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300">
-            Progressive Overload Workout Recorder
+            Create Your Account
           </p>
         </div>
 
         <div className="mt-8 space-y-4">
           {isEmailMode ? (
-            <form onSubmit={handleEmailLogin} className="space-y-4">
+            <form onSubmit={handleEmailSignUp} className="space-y-4">
               <div>
                 <input
                   type="email"
@@ -99,6 +105,16 @@ const Login = () => {
                   required
                 />
               </div>
+              <div>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm Password"
+                  className="w-full px-4 py-3 border-4 border-black dark:border-white bg-white dark:bg-secondary text-secondary dark:text-white placeholder-gray-500"
+                  required
+                />
+              </div>
               <button
                 type="submit"
                 disabled={isLoading}
@@ -109,10 +125,10 @@ const Login = () => {
                 {isLoading ? (
                   <div className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-3"></div>
-                    Logging in...
+                    Creating account...
                   </div>
                 ) : (
-                  "Login with Email"
+                  "Sign Up with Email"
                 )}
               </button>
               <button
@@ -120,7 +136,7 @@ const Login = () => {
                 onClick={() => setIsEmailMode(false)}
                 className="w-full text-secondary dark:text-white underline mt-4"
               >
-                Back to all login options
+                Back to all sign up options
               </button>
             </form>
           ) : (
@@ -129,7 +145,7 @@ const Login = () => {
                 onClick={() => setIsEmailMode(true)}
                 className="w-full py-4 px-8 border-4 border-black dark:border-white bg-primary hover:bg-primary-dark text-white font-bold text-lg transition-colors duration-200"
               >
-                Login with Email
+                Sign Up with Email
               </button>
 
               <button
@@ -140,12 +156,12 @@ const Login = () => {
                 }`}
               >
                 <img
-                  src="https://www.google.com/favicon.ico"
+                  src="/google-icon.svg"
                   alt=""
                   className="w-6 h-6 mr-4"
                   aria-hidden="true"
                 />
-                Login with Google
+                Sign Up with Google
               </button>
 
               <button
@@ -155,14 +171,13 @@ const Login = () => {
                   isLoading ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
-                <svg
+                <img
+                  src="/apple-icon.svg"
+                  alt=""
                   className="w-6 h-6 mr-4"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z" />
-                </svg>
-                Login with Apple
+                  aria-hidden="true"
+                />
+                Sign Up with Apple
               </button>
             </>
           )}
@@ -170,7 +185,10 @@ const Login = () => {
 
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            Track your progress. Break your records.
+            Already have an account?{" "}
+            <Link to="/login" className="text-primary hover:underline">
+              Login
+            </Link>
           </p>
         </div>
       </div>
@@ -186,4 +204,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default SignUp;
