@@ -7,7 +7,7 @@ import { WorkoutSession } from "./WorkoutSession";
 // Base attributes required for an Exercise instance
 interface ExerciseAttributes {
   id: number;
-  userId: number; // References the user who created the exercise
+  userId: string; // References the user who created the exercise
   name: string; // Name of the exercise (unique per user)
   description?: string; // Optional description of the exercise
   isArchived: boolean; // Soft deletion flag
@@ -25,7 +25,7 @@ class Exercise
 {
   // Required field declarations
   public id!: number;
-  public userId!: number;
+  public userId!: string;
   public name!: string;
   public description!: string;
   public isArchived!: boolean;
@@ -43,7 +43,7 @@ class Exercise
           primaryKey: true,
         },
         userId: {
-          type: DataTypes.INTEGER,
+          type: DataTypes.UUID,
           allowNull: false,
           field: "user_id",
           references: {

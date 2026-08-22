@@ -1,33 +1,30 @@
 // User model for managing authenticated users and their preferences
-// Stores user profile data from Google OAuth and application settings
+// The id is the same UUID Supabase Auth assigns in auth.users.id — this table
+// only holds app-specific profile data (Supabase owns credentials/identity).
 import { Model, DataTypes, Sequelize } from "sequelize";
 
 interface UserAttributes {
-  id: number;
+  id: string;
   email: string; // User's email address (unique)
-  googleId?: string; // Google OAuth ID for authentication
   name: string; // User's display name
-  picture?: string; // Profile picture URL from Google
+  picture?: string; // Profile picture URL (from Google, when available)
   preferredUnit: "kg" | "lb"; // User's preferred weight unit
-  passwordHash?: string; // Hashed password for email/password auth
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface UserCreationAttributes extends Omit<UserAttributes, "id"> {}
+interface UserCreationAttributes extends Omit<UserAttributes, "createdAt" | "updatedAt"> {}
 
 class User
   extends Model<UserAttributes, UserCreationAttributes>
   implements UserAttributes
 {
   // Required field declarations
-  public id!: number;
+  public id!: string;
   public email!: string;
-  public googleId!: string;
   public name!: string;
   public picture!: string;
   public preferredUnit!: "kg" | "lb";
-  public passwordHash?: string;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
@@ -36,20 +33,13 @@ class User
     User.init(
       {
         id: {
-          type: DataTypes.INTEGER,
-          autoIncrement: true,
+          type: DataTypes.UUID,
           primaryKey: true,
         },
         email: {
           type: DataTypes.STRING(255),
           allowNull: false,
           unique: true,
-        },
-        googleId: {
-          type: DataTypes.STRING(255),
-          allowNull: true,
-          unique: true,
-          field: "google_id",
         },
         name: {
           type: DataTypes.STRING(255),
@@ -67,11 +57,6 @@ class User
           validate: {
             isIn: [["kg", "lb"]],
           },
-        },
-        passwordHash: {
-          type: DataTypes.STRING(255),
-          allowNull: true,
-          field: "password_hash",
         },
         createdAt: {
           type: DataTypes.DATE,

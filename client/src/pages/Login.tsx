@@ -1,4 +1,4 @@
-// Authentication page that handles multiple login methods (Email, Google, Apple)
+// Authentication page that handles multiple login methods (Email, Google)
 // Provides a clean interface for authentication and handles error states
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -8,14 +8,8 @@ import ErrorToast from "../components/ErrorToast";
 
 const Login = () => {
   const { login, isAuthenticated, error: authError, clearError } = useAuth();
-  const {
-    handleGoogleAuth,
-    handleAppleAuth,
-    isLoading,
-    setIsLoading,
-    error,
-    setError,
-  } = useAuthHandlers();
+  const { handleGoogleAuth, isLoading, setIsLoading, error, setError } =
+    useAuthHandlers();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isEmailMode, setIsEmailMode] = useState(false);
@@ -146,23 +140,6 @@ const Login = () => {
                   aria-hidden="true"
                 />
                 Login with Google
-              </button>
-
-              <button
-                onClick={handleAppleAuth}
-                disabled={isLoading}
-                className={`w-full flex items-center justify-center px-8 py-4 border-4 border-black dark:border-white bg-white hover:bg-gray-50 dark:bg-secondary dark:hover:bg-gray-700 text-secondary dark:text-white font-bold text-lg transition-colors duration-200 ${
-                  isLoading ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-              >
-                <svg
-                  className="w-6 h-6 mr-4"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z" />
-                </svg>
-                Login with Apple
               </button>
             </>
           )}

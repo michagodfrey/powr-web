@@ -7,8 +7,7 @@ import ErrorToast from "../components/ErrorToast";
 const Home = () => {
   const { isAuthenticated } = useAuth();
   const { preferences, updatePreferences } = usePreferences();
-  const { handleGoogleAuth, handleAppleAuth, isLoading, error, setError } =
-    useAuthHandlers();
+  const { handleGoogleAuth, isLoading, error, setError } = useAuthHandlers();
 
   const toggleTheme = () => {
     updatePreferences({
@@ -140,18 +139,6 @@ const Home = () => {
                     className="w-5 h-5 mr-2"
                   />
                   Sign Up with Google
-                </button>
-                <button
-                  onClick={handleAppleAuth}
-                  disabled={isLoading}
-                  className="w-full sm:w-auto bg-white dark:bg-dark-bg text-secondary dark:text-white border border-secondary dark:border-white px-8 py-3 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center"
-                >
-                  <img
-                    src="/apple-icon.svg"
-                    alt="Apple"
-                    className="w-5 h-5 mr-2"
-                  />
-                  Sign Up with Apple
                 </button>
                 <p className="text-center text-secondary dark:text-white">
                   Already have an account?{" "}
@@ -330,14 +317,6 @@ const Home = () => {
                 className="w-5 h-5 mr-2"
               />
               Sign Up with Google
-            </button>
-            <button
-              onClick={handleAppleAuth}
-              disabled={isLoading}
-              className="w-full bg-white dark:bg-dark-bg text-secondary dark:text-white border border-secondary dark:border-white px-8 py-3 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center"
-            >
-              <img src="/apple-icon.svg" alt="Apple" className="w-5 h-5 mr-2" />
-              Sign Up with Apple
             </button>
             <p className="text-secondary dark:text-white">
               Already have an account?{" "}

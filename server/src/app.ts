@@ -3,7 +3,6 @@ import express from "express";
 import cors from "cors";
 import { config } from "./config/validateEnv";
 import { pool } from "./config/database";
-import { configurePassport } from "./config/passport";
 import authRoutes from "./routes/authRoutes";
 import exerciseRoutes from "./routes/exerciseRoutes";
 import workoutRoutes from "./routes/workoutRoutes";
@@ -33,7 +32,7 @@ export const createApp = () => {
     });
   }
 
-  // Trust the first proxy (Railway's load balancer)
+  // Trust the first proxy (Vercel's edge network)
   app.set("trust proxy", 1);
 
   // Essential middleware
@@ -41,11 +40,10 @@ export const createApp = () => {
   app.use(express.urlencoded({ extended: true }));
   app.use(sanitizeInput);
 
-  // CORS configuration
-  const allowedOrigins = [
-    "https://powr-psi.vercel.app",
-    "http://localhost:5173",
-  ];
+  // CORS configuration — origins come from CORS_ORIGIN (comma-separated)
+  const allowedOrigins = config.CORS_ORIGIN.split(",").map((origin) =>
+    origin.trim()
+  );
 
   app.use(
     cors({
@@ -73,7 +71,7 @@ export const createApp = () => {
 
   // Simple health check
   app.get("/", (req, res) => {
-    res.send("Backend is running. Go to https://powr-psi.vercel.app");
+    res.send(`Backend is running. Go to ${config.CLIENT_URL}`);
   });
 
   // Database connection check
@@ -90,9 +88,6 @@ export const createApp = () => {
       });
     }
   });
-
-  // Configure Passport to serialize user for the session
-  configurePassport();
 
   // Routes
   app.use("/api/auth", authRoutes);

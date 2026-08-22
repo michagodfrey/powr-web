@@ -1,5 +1,7 @@
 // Authentication context provider that manages user authentication state and related functions
-// Handles Google OAuth and JWT-based authentication, token management, and user data
+// Backed by Supabase Auth (Google OAuth + email/password) — Supabase manages
+// session storage and token refresh itself; this just tracks the resulting
+// app-specific profile (fetched from the API) and exposes sign-in/out actions.
 
 import React, {
   createContext,
@@ -9,17 +11,13 @@ import React, {
   ReactNode,
   useCallback,
 } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import {
-  setStoredTokens,
-  removeStoredTokens,
-  hasStoredTokens,
-} from "../utils/tokenUtils";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabaseClient";
 import { api } from "../utils/api";
 
 // User data structure returned from the API
 interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
   picture?: string;
@@ -34,8 +32,9 @@ interface AuthContextType {
   login: (params?: {
     email?: string;
     password?: string;
-    provider?: "google" | "apple";
+    provider?: "google";
   }) => Promise<void>;
+  signUp: (params: { email: string; password: string }) => Promise<void>;
   isAuthenticated: boolean;
   error: string | null;
   clearError: () => void;
@@ -43,8 +42,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
 // Custom hook to use auth context, throws if used outside AuthProvider
 export const useAuth = () => {
@@ -63,110 +60,108 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation();
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  // Check authentication status
-  const checkAuthStatus = useCallback(async () => {
+  // Fetch the app-specific profile for the current Supabase session
+  const loadProfile = useCallback(async () => {
     try {
-      setIsLoading(true);
-      if (!hasStoredTokens()) {
-        setUser(null);
-        return;
-      }
-
       const response = await api.get("/api/auth/me");
       if (!response.ok) {
         throw new Error("Failed to fetch user data");
       }
-
-      const userData = await response.json();
-      setUser(userData);
-    } catch (error) {
-      console.error("Auth status check error:", error);
+      setUser(await response.json());
+    } catch (err) {
+      console.error("Failed to load profile:", err);
       setUser(null);
-      removeStoredTokens();
-      if (error instanceof Error && error.message.includes("fetch")) {
-        setError("Network error. Please check your connection.");
-      } else {
-        setError("Authentication error. Please try again.");
-      }
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
-  // Handle OAuth callback
+  // On mount: pick up any existing Supabase session, then react to sign-in/out
   useEffect(() => {
-    const handleCallback = async () => {
-      if (location.pathname === "/auth/callback") {
-        const params = new URLSearchParams(location.search);
-        const accessToken = params.get("accessToken");
-        const refreshToken = params.get("refreshToken");
+    let isMounted = true;
 
-        if (accessToken && refreshToken) {
-          setStoredTokens(accessToken, refreshToken);
-          await checkAuthStatus();
-          navigate("/");
-        } else {
-          setError("Authentication failed");
-          navigate("/login");
-        }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      if (session) {
+        loadProfile().finally(() => isMounted && setIsLoading(false));
+      } else {
+        setIsLoading(false);
       }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        loadProfile();
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
     };
-
-    handleCallback();
-  }, [location, navigate, checkAuthStatus]);
-
-  // Check auth status on mount
-  useEffect(() => {
-    checkAuthStatus();
-  }, [checkAuthStatus]);
+  }, [loadProfile]);
 
   const login = useCallback(
     async (params?: {
       email?: string;
       password?: string;
-      provider?: "google" | "apple";
+      provider?: "google";
     }) => {
       try {
         if (params?.provider === "google") {
-          window.location.href = `${API_URL}/api/auth/google`;
-          return;
-        } else if (params?.provider === "apple") {
-          window.location.href = `${API_URL}/api/auth/apple`;
-          return;
-        } else if (params?.email && params?.password) {
-          const response = await fetch(`${API_URL}/api/auth/login`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: params.email,
-              password: params.password,
-            }),
+          const { error: oauthError } = await supabase.auth.signInWithOAuth({
+            provider: "google",
+            options: { redirectTo: `${window.location.origin}/auth/callback` },
           });
+          if (oauthError) throw oauthError;
+          return;
+        }
 
-          if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || "Login failed");
-          }
+        if (params?.email && params?.password) {
+          const { error: signInError } = await supabase.auth.signInWithPassword(
+            { email: params.email, password: params.password }
+          );
+          if (signInError) throw signInError;
+          navigate("/");
+          return;
+        }
 
-          const { accessToken, refreshToken, user } = await response.json();
-          setStoredTokens(accessToken, refreshToken);
-          setUser(user);
+        throw new Error("Invalid login parameters");
+      } catch (err) {
+        console.error("Login error:", err);
+        setError(err instanceof Error ? err.message : "Login failed");
+        throw err;
+      }
+    },
+    [navigate]
+  );
+
+  const signUp = useCallback(
+    async (params: { email: string; password: string }) => {
+      try {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: params.email,
+          password: params.password,
+        });
+        if (signUpError) throw signUpError;
+
+        if (data.session) {
           navigate("/");
         } else {
-          throw new Error("Invalid login parameters");
+          // Project has "Confirm email" enabled — no session until they click the link
+          setError("Check your email to confirm your account, then log in.");
         }
-      } catch (error) {
-        console.error("Login error:", error);
-        setError(error instanceof Error ? error.message : "Login failed");
-        throw error;
+      } catch (err) {
+        console.error("Sign up error:", err);
+        setError(err instanceof Error ? err.message : "Failed to sign up.");
+        throw err;
       }
     },
     [navigate]
@@ -174,13 +169,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const logout = useCallback(async () => {
     try {
-      removeStoredTokens();
+      await supabase.auth.signOut();
       setUser(null);
       navigate("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-      setError(error instanceof Error ? error.message : "Logout failed");
-      throw error;
+    } catch (err) {
+      console.error("Logout error:", err);
+      setError(err instanceof Error ? err.message : "Logout failed");
+      throw err;
     }
   }, [navigate]);
 
@@ -191,6 +186,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         setUser,
         logout,
         login,
+        signUp,
         isAuthenticated: !!user,
         error,
         clearError,

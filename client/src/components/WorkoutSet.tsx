@@ -1,8 +1,10 @@
 // Modal component for recording or editing workout sets
 // Manages set/rep tracking with weight units and session notes
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Set } from "../types";
 import { calculateTotalVolume } from "../utils/volumeCalculation";
+import { useVoiceInput } from "../hooks/useVoiceInput";
+import { parseVoiceInput } from "../utils/parseVoiceInput";
 
 interface WorkoutSetProps {
   onSave: (sets: Set[], date: string, sessionNotes: string) => void;
@@ -63,6 +65,56 @@ const WorkoutSet = ({
 
   // Add state for session notes, ensuring it's always a string
   const [sessionNotes, setSessionNotes] = useState(initialNotes ?? "");
+
+  // Voice data entry: say a set out loud (e.g. "135 for 8") to append it hands-free
+  const {
+    isSupported: isVoiceSupported,
+    isListening,
+    transcript,
+    error: voiceError,
+    start: startListening,
+    stop: stopListening,
+  } = useVoiceInput();
+  const [voiceMessage, setVoiceMessage] = useState<string | null>(null);
+  const lastHandledTranscript = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (isListening || !transcript || transcript === lastHandledTranscript.current) {
+      return;
+    }
+    lastHandledTranscript.current = transcript;
+
+    const parsed = parseVoiceInput(transcript);
+    if (!parsed) {
+      setVoiceMessage(`Didn't catch that ("${transcript}"). Try again.`);
+      return;
+    }
+
+    setSets((prev) => [
+      ...prev,
+      {
+        id: Date.now() * 1000 + prev.length,
+        weight: parsed.weight,
+        reps: parsed.reps,
+        unit: displayUnit,
+        setNumber: prev.length + 1,
+      },
+    ]);
+    setVoiceMessage(`Logged ${parsed.weight}${displayUnit} × ${parsed.reps} reps`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isListening, transcript]);
+
+  useEffect(() => {
+    if (voiceError) {
+      setVoiceMessage(voiceError);
+    }
+  }, [voiceError]);
+
+  useEffect(() => {
+    if (!voiceMessage) return;
+    const timeout = setTimeout(() => setVoiceMessage(null), 4000);
+    return () => clearTimeout(timeout);
+  }, [voiceMessage]);
 
   // Log state after initialization
   console.log("[WorkoutSet] State initialized:", {
@@ -294,14 +346,51 @@ const WorkoutSet = ({
             </div>
           </div>
 
+          {/* Voice input feedback */}
+          {voiceMessage && (
+            <div
+              className="mb-4 text-sm text-gray-700 dark:text-gray-300"
+              role="status"
+            >
+              {voiceMessage}
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex justify-between">
-            <button
-              onClick={handleAddSet}
-              className="px-4 py-2 text-primary border-2 border-primary rounded hover:bg-primary hover:text-white transition-colors"
-            >
-              Add Set
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleAddSet}
+                className="px-4 py-2 text-primary border-2 border-primary rounded hover:bg-primary hover:text-white transition-colors"
+              >
+                Add Set
+              </button>
+              {isVoiceSupported && (
+                <button
+                  type="button"
+                  onClick={isListening ? stopListening : startListening}
+                  aria-label={
+                    isListening ? "Stop voice input" : "Add set by voice"
+                  }
+                  aria-pressed={isListening}
+                  className={`h-10 w-10 flex items-center justify-center rounded-full border-2 transition-colors ${
+                    isListening
+                      ? "border-red-500 text-red-500 animate-pulse"
+                      : "border-primary text-primary hover:bg-primary hover:text-white"
+                  }`}
+                >
+                  <svg
+                    className="w-5 h-5"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 14a3 3 0 003-3V6a3 3 0 10-6 0v5a3 3 0 003 3z" />
+                    <path d="M17 11a1 1 0 10-2 0 3 3 0 01-6 0 1 1 0 10-2 0 5 5 0 004 4.9V18H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.1a5 5 0 004-4.9z" />
+                  </svg>
+                </button>
+              )}
+            </div>
             <div className="space-x-3">
               <button
                 onClick={onCancel}

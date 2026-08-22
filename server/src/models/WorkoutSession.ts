@@ -8,7 +8,7 @@ import { normalizeVolume } from "../utils/volumeCalculation";
 
 interface WorkoutSessionAttributes {
   id: number;
-  userId: number; // References the user who performed the workout
+  userId: string; // References the user who performed the workout
   exerciseId: number; // References the exercise performed
   date: Date; // Date the workout was performed
   notes?: string; // Optional notes about the workout
@@ -27,7 +27,7 @@ class WorkoutSession
 {
   // Required field declarations
   public id!: number;
-  public userId!: number;
+  public userId!: string;
   public exerciseId!: number;
   public date!: Date;
   public notes!: string;
@@ -56,7 +56,7 @@ class WorkoutSession
           primaryKey: true,
         },
         userId: {
-          type: DataTypes.INTEGER,
+          type: DataTypes.UUID,
           allowNull: false,
           field: "user_id",
           references: {

@@ -1,11 +1,8 @@
 import request from "supertest";
 import { createApp } from "../../src/app";
-import passport from "../../src/config/passport";
 import { createTestUser, createTestExercise } from "../setup/factories";
-import { Exercise } from "../../src/models/Exercise";
-import { WorkoutSession } from "../../src/models/WorkoutSession";
 
-const app = createApp(passport);
+const app = createApp();
 
 describe("Workout Flow Integration", () => {
   describe("Complete Workout Flow", () => {

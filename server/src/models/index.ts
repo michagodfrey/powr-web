@@ -5,8 +5,6 @@ import { Exercise } from "./Exercise";
 import { User } from "./User";
 import { Set } from "./Set";
 import { WorkoutSession } from "./WorkoutSession";
-import { Session } from "./Session";
-import { RefreshToken } from "./RefreshToken";
 
 export const initializeModels = (sequelize: Sequelize) => {
   // Initialize all models with their database schemas
@@ -14,8 +12,6 @@ export const initializeModels = (sequelize: Sequelize) => {
   User.initModel(sequelize);
   Set.initModel(sequelize);
   WorkoutSession.initModel(sequelize);
-  Session.initModel(sequelize);
-  RefreshToken.initModel(sequelize);
 
   // Define model relationships and foreign key constraints
 
@@ -56,26 +52,12 @@ export const initializeModels = (sequelize: Sequelize) => {
     foreignKey: "sessionId",
   });
 
-  // User -> RefreshToken relationship (one-to-many)
-  User.hasMany(RefreshToken, {
-    foreignKey: "userId",
-    as: "refreshTokens",
-  });
-  RefreshToken.belongsTo(User, {
-    foreignKey: "userId",
-  });
-
-  // Initialize session table associations
-  Session.associateModels();
-
   return {
     Exercise,
     User,
     Set,
     WorkoutSession,
-    Session,
-    RefreshToken,
   };
 };
 
-export { Exercise, User, Set, WorkoutSession, Session, RefreshToken };
+export { Exercise, User, Set, WorkoutSession };

@@ -44,9 +44,7 @@ export const errorHandler = (
     errorMessage: err.message,
     statusCode: err.statusCode,
     stack: err.stack,
-    isAuthenticated: req.isAuthenticated?.(),
-    sessionID: req.sessionID,
-    user: req.user,
+    user: req.jwtUser,
   });
 
   // If error already has statusCode, use it, otherwise default to 500

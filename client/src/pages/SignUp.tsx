@@ -1,4 +1,4 @@
-// Sign up page that handles multiple registration methods (Email, Google, Apple)
+// Sign up page that handles multiple registration methods (Email, Google)
 // Provides a clean interface for registration and handles error states
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
@@ -7,15 +7,9 @@ import { useAuthHandlers } from "../hooks/useAuthHandlers";
 import ErrorToast from "../components/ErrorToast";
 
 const SignUp = () => {
-  const { login, isAuthenticated, error: authError, clearError } = useAuth();
-  const {
-    handleGoogleAuth,
-    handleAppleAuth,
-    isLoading,
-    setIsLoading,
-    error,
-    setError,
-  } = useAuthHandlers();
+  const { signUp, isAuthenticated, error: authError, clearError } = useAuth();
+  const { handleGoogleAuth, isLoading, setIsLoading, error, setError } =
+    useAuthHandlers();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -56,8 +50,7 @@ const SignUp = () => {
     try {
       setIsLoading(true);
       setError(null);
-      // TODO: Replace with actual signup logic when backend is ready
-      await login({ email, password });
+      await signUp({ email, password });
     } catch (error) {
       console.error("Sign up error:", error);
       setError(
@@ -162,22 +155,6 @@ const SignUp = () => {
                   aria-hidden="true"
                 />
                 Sign Up with Google
-              </button>
-
-              <button
-                onClick={handleAppleAuth}
-                disabled={isLoading}
-                className={`w-full flex items-center justify-center px-8 py-4 border-4 border-black dark:border-white bg-white hover:bg-gray-50 dark:bg-secondary dark:hover:bg-gray-700 text-secondary dark:text-white font-bold text-lg transition-colors duration-200 ${
-                  isLoading ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-              >
-                <img
-                  src="/apple-icon.svg"
-                  alt=""
-                  className="w-6 h-6 mr-4"
-                  aria-hidden="true"
-                />
-                Sign Up with Apple
               </button>
             </>
           )}

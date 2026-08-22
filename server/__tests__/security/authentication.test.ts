@@ -1,9 +1,9 @@
+import crypto from "crypto";
 import request from "supertest";
 import { createApp } from "../../src/app";
-import passport from "../../src/config/passport";
 import { createTestUser, createTestExercise } from "../setup/factories";
 
-const app = createApp(passport);
+const app = createApp();
 
 describe("Authentication Security", () => {
   describe("Protected Routes", () => {
@@ -56,7 +56,7 @@ describe("Authentication Security", () => {
       const malformedHeaders = [
         { "x-test-auth": "not-json" },
         { "x-test-auth": JSON.stringify({ invalid: "data" }) },
-        { "x-test-auth": JSON.stringify({ id: "not-a-number" }) },
+        { "x-test-auth": JSON.stringify({ id: "some-id" }) }, // missing email
       ];
 
       for (const header of malformedHeaders) {
@@ -90,7 +90,7 @@ describe("Authentication Security", () => {
       // Try to reuse the same session with a different user
       const evilHeader = {
         "x-test-auth": JSON.stringify({
-          id: user.id + 1, // Different user
+          id: crypto.randomUUID(), // Different user
           email: "evil@example.com",
           preferredUnit: "kg",
           sessionId: "evil-session-456", // Different session ID

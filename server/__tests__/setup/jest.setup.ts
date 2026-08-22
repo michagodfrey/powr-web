@@ -53,18 +53,6 @@ beforeAll(async () => {
     await Set.sync({ force: true });
     console.log("✅ Sets table created");
 
-    // Create session table for connect-pg-simple
-    await testDb.query(`
-      CREATE TABLE IF NOT EXISTS "session" (
-        "sid" varchar NOT NULL COLLATE "default",
-        "sess" json NOT NULL,
-        "expire" timestamp(6) NOT NULL,
-        CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
-      );
-      CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
-    `);
-    console.log("✅ Session table created");
-
     console.log("✅ Test database synced");
   } catch (error) {
     console.error("❌ Unable to connect to test database:", error);
@@ -89,70 +77,68 @@ beforeEach(async () => {
   await WorkoutSession.destroy({ truncate: true, cascade: true });
   await Exercise.destroy({ truncate: true, cascade: true });
   await User.destroy({ truncate: true, cascade: true });
-  await testDb.query('TRUNCATE TABLE "session" CASCADE;');
 });
 
 // Add global test utilities
 global.testDb = testDb;
 
-// Mock authentication middleware for protected routes
+// Mock the Supabase-JWT-verifying middleware for protected routes. Real auth
+// (Supabase Auth issuing/refreshing tokens) is out of scope for these tests —
+// this simulates "already authenticated as this user" via a test-only header,
+// matching the real middleware's request shape (req.jwtUser).
 jest.mock("../../src/middleware/auth", () => ({
-  isAuthenticated: jest.fn(
-    (req: Request, res: Response, next: NextFunction) => {
-      try {
-        if (!req.headers["x-test-auth"]) {
-          return res.status(401).json({
-            status: "fail",
-            message: "Please log in to access this resource",
-          });
-        }
-
-        // Try to parse the auth header
-        let authData;
-        try {
-          authData = JSON.parse(req.headers["x-test-auth"] as string);
-        } catch (e) {
-          return res.status(401).json({
-            status: "fail",
-            message: "Please log in to access this resource",
-          });
-        }
-
-        // Validate auth data structure
-        if (!authData || !authData.id || !authData.email) {
-          return res.status(401).json({
-            status: "fail",
-            message: "Please log in to access this resource",
-          });
-        }
-
-        // Check for session expiration
-        if (authData.exp && authData.exp < Math.floor(Date.now() / 1000)) {
-          return res.status(401).json({
-            status: "fail",
-            message: "Please log in to access this resource",
-          });
-        }
-
-        // Check for session fixation
-        const currentSession = req.headers["x-session-id"];
-        if (currentSession && currentSession !== authData.sessionId) {
-          return res.status(401).json({
-            status: "fail",
-            message: "Please log in to access this resource",
-          });
-        }
-
-        req.user = authData;
-        return next();
-      } catch (error) {
+  validateJWT: jest.fn((req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.headers["x-test-auth"]) {
         return res.status(401).json({
           status: "fail",
           message: "Please log in to access this resource",
         });
       }
+
+      let authData;
+      try {
+        authData = JSON.parse(req.headers["x-test-auth"] as string);
+      } catch (e) {
+        return res.status(401).json({
+          status: "fail",
+          message: "Please log in to access this resource",
+        });
+      }
+
+      if (!authData || !authData.id || !authData.email) {
+        return res.status(401).json({
+          status: "fail",
+          message: "Please log in to access this resource",
+        });
+      }
+
+      // Check for simulated token expiration
+      if (authData.exp && authData.exp < Math.floor(Date.now() / 1000)) {
+        return res.status(401).json({
+          status: "fail",
+          message: "Please log in to access this resource",
+        });
+      }
+
+      // Check for simulated session fixation
+      const currentSession = req.headers["x-session-id"];
+      if (currentSession && currentSession !== authData.sessionId) {
+        return res.status(401).json({
+          status: "fail",
+          message: "Please log in to access this resource",
+        });
+      }
+
+      req.jwtUser = authData;
+      return next();
+    } catch (error) {
+      return res.status(401).json({
+        status: "fail",
+        message: "Please log in to access this resource",
+      });
     }
-  ),
+  }),
 }));
 
 // Add custom matchers

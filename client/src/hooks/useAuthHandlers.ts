@@ -11,6 +11,7 @@ export const useAuthHandlers = () => {
       setIsLoading(true);
       setError(null);
       await login({ provider: "google" });
+      // no navigation here — signInWithOAuth redirects the whole page away
     } catch (error) {
       console.error("Google auth error:", error);
       setError(
@@ -23,26 +24,8 @@ export const useAuthHandlers = () => {
     }
   };
 
-  const handleAppleAuth = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      await login({ provider: "apple" });
-    } catch (error) {
-      console.error("Apple auth error:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to initiate Apple authentication. Please try again."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return {
     handleGoogleAuth,
-    handleAppleAuth,
     isLoading,
     setIsLoading,
     error,

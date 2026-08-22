@@ -1,95 +1,51 @@
-// Handles the OAuth callback after Google authentication
-// Processes the authentication response, fetches user data, and handles any errors
-// Redirects to dashboard on success or login page with error message on failure
+// Handles the redirect back from Supabase after Google OAuth.
+// Supabase's client parses the session out of the redirect URL itself
+// (detectSessionInUrl) and fires onAuthStateChange shortly after — we just
+// wait for that, with a timeout fallback in case the provider returned an error.
 
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "./AuthContext";
-import { api } from "../utils/api";
-import { setStoredTokens } from "../utils/tokenUtils";
+import { supabase } from "../lib/supabaseClient";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const { setUser } = useAuth();
 
   useEffect(() => {
-    // Process the authentication callback and handle user data
-    const handleCallback = async () => {
-      try {
-        // Check URL for authentication errors
-        const params = new URLSearchParams(window.location.search);
-        const error = params.get("error");
-        const accessToken = params.get("accessToken");
-        const refreshToken = params.get("refreshToken");
+    let settled = false;
 
-        if (error) {
-          // Map error codes to user-friendly messages
-          let errorMessage = "Authentication failed";
-          switch (error) {
-            case "auth_failed":
-              errorMessage = "Google authentication failed. Please try again.";
-              break;
-            case "no_user":
-              errorMessage = "Failed to create or find user account.";
-              break;
-            case "login_failed":
-              errorMessage = "Failed to complete login. Please try again.";
-              break;
-            case "invalid_state":
-              errorMessage = "Invalid authentication state. Please try again.";
-              break;
-            case "access_denied":
-              errorMessage =
-                "Access was denied. Please grant the required permissions.";
-              break;
-            case "server_error":
-              errorMessage = "Server error occurred. Please try again later.";
-              break;
-            case "network_error":
-              errorMessage =
-                "Network error. Please check your connection and try again.";
-              break;
-            case "session_error":
-              errorMessage = "Session error. Please try logging in again.";
-              break;
-            default:
-              errorMessage = decodeURIComponent(error);
-          }
-          throw new Error(errorMessage);
-        }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (settled || !session) return;
+      settled = true;
+      navigate("/");
+    });
 
-        // Store tokens if present
-        if (accessToken && refreshToken) {
-          setStoredTokens(accessToken, refreshToken);
-        } else {
-          throw new Error("No authentication tokens received");
-        }
+    const timeout = setTimeout(async () => {
+      if (settled) return;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      settled = true;
 
-        // Fetch authenticated user data using the new api utility
-        const response = await api.get("/api/auth/me");
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          throw new Error(data.error || "Failed to fetch user data");
-        }
-
-        const userData = await response.json();
-        if (!userData || !userData.id) {
-          throw new Error("Invalid user data received");
-        }
-
-        setUser(userData);
-        // On successful authentication, redirect to the main dashboard
+      if (session) {
         navigate("/");
-      } catch (error) {
-        console.error("[Auth] Callback error:", error);
-        const errorMessage =
-          error instanceof Error ? error.message : "Authentication failed";
-        navigate(`/login?error=${encodeURIComponent(errorMessage)}`);
+        return;
       }
-    };
 
-    handleCallback();
-  }, [navigate, setUser]);
+      const params = new URLSearchParams(window.location.search);
+      const errorMessage =
+        params.get("error_description") ||
+        params.get("error") ||
+        "Authentication failed";
+      navigate(`/login?error=${encodeURIComponent(errorMessage)}`);
+    }, 4000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, [navigate]);
 
   // Show loading spinner while processing the callback
   return (

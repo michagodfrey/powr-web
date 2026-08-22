@@ -1,12 +1,11 @@
 import request from "supertest";
 import { createApp } from "../../src/app";
-import passport from "../../src/config/passport";
 import { createTestUser } from "../setup/factories";
 import { User } from "../../src/models/User";
 import { Exercise } from "../../src/models/Exercise";
 
 // Create app instance for testing
-const app = createApp(passport);
+const app = createApp();
 
 describe("Session Management", () => {
   describe("Authentication", () => {
@@ -140,7 +139,10 @@ describe("Session Management", () => {
         .set(expiredAuth);
 
       expect(response.status).toBe(401);
-      expect(response.body).toHaveProperty("message", "Unauthorized");
+      expect(response.body).toHaveProperty(
+        "message",
+        "Please log in to access this resource"
+      );
     });
   });
 });

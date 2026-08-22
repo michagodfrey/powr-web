@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { User } from "../../src/models/User";
 import { Exercise } from "../../src/models/Exercise";
 import { WorkoutSession } from "../../src/models/WorkoutSession";
@@ -6,19 +7,18 @@ import { Set } from "../../src/models/Set";
 interface CreateUserOptions {
   name?: string;
   email?: string;
-  googleId?: string;
   preferredUnit?: "kg" | "lb";
 }
 
 interface CreateExerciseOptions {
   name?: string;
   description?: string;
-  userId: number;
+  userId: string;
   isArchived?: boolean;
 }
 
 interface CreateWorkoutOptions {
-  userId?: number;
+  userId?: string;
   exerciseId?: number;
   date?: Date;
   notes?: string;
@@ -32,9 +32,9 @@ interface CreateWorkoutOptions {
 
 export const createTestUser = async (options: CreateUserOptions = {}) => {
   const defaultUser = {
+    id: crypto.randomUUID(),
     name: "Test User",
     email: `test.${Date.now()}@example.com`,
-    googleId: `google_${Date.now()}`,
     preferredUnit: "kg" as const,
     ...options,
   };
