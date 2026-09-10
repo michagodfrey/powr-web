@@ -18,8 +18,9 @@ declare global {
 let testDb: Sequelize | null = null;
 
 beforeAll(async () => {
-  // Initialize test database connection
-  testDb = new Sequelize(config.DATABASE_URL, {
+  // Initialize test database connection — TEST_DATABASE_URL, never
+  // DATABASE_URL, so the test suite can never drop/truncate real data
+  testDb = new Sequelize(config.TEST_DATABASE_URL, {
     logging: false, // Disable logging in tests
     pool: {
       max: 5,

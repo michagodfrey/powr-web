@@ -11,7 +11,7 @@ POWR (Progressive Overload Workout Recorder) tracks resistance-training workouts
 Two-package split repo (not a monorepo tool, no Turborepo/Nx), not Next.js:
 
 - **`client/`** — Vite + React 18 + TypeScript SPA. Tailwind CSS (custom POWR palette: primary orange `#e8772e`, secondary navy `#001f3f`, `darkMode: "class"`), MUI components, Chart.js via `react-chartjs-2` for graphs, `react-router-dom` for routing. Deployed to Vercel.
-- **`server/`** — Express 4 + TypeScript API. Sequelize 6 ORM over PostgreSQL (`pg`). Auth is JWT (`jsonwebtoken`) issued via Passport's Google OAuth strategy or email/password. Deployed to Railway, which also hosts the Postgres database.
+- **`server/`** — Express 4 + TypeScript API. Sequelize 6 ORM over PostgreSQL (`pg`). Auth is JWT issued by Supabase Auth (Google OAuth or email/password), verified server-side against Supabase's JWKS via `jose`. Deployed to Railway, which also hosts the Postgres database.
 - No CI currently runs (`.github/workflows/` doesn't exist), though Jest is configured in both the root `package.json` and `server/`.
 
 ## Data model

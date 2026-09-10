@@ -1,8 +1,15 @@
 // Authentication middleware for protecting routes and validating Supabase-issued JWTs
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "./errorHandler";
-import jwt from "jsonwebtoken";
+import { jwtVerify, createRemoteJWKSet, errors as joseErrors } from "jose";
 import { config } from "../config/validateEnv";
+
+// Supabase Auth's JWKS — verifies JWTs signed with the project's JWT Signing
+// Keys (asymmetric; replaces the legacy shared JWT Secret). createRemoteJWKSet
+// caches keys and re-fetches automatically on rotation.
+const jwks = createRemoteJWKSet(
+  new URL("/auth/v1/.well-known/jwks.json", config.SUPABASE_URL)
+);
 
 // Extend Request type to include user from JWT
 declare global {
@@ -34,7 +41,8 @@ export const validateJWT = async (
     const token = authHeader.split(" ")[1];
 
     try {
-      const decoded = jwt.verify(token, config.SUPABASE_JWT_SECRET) as {
+      const { payload } = await jwtVerify(token, jwks);
+      const decoded = payload as {
         sub: string;
         email: string;
         user_metadata?: { name?: string; full_name?: string; picture?: string; avatar_url?: string };
@@ -48,10 +56,10 @@ export const validateJWT = async (
       };
       next();
     } catch (error) {
-      if (error instanceof jwt.TokenExpiredError) {
+      if (error instanceof joseErrors.JWTExpired) {
         return next(new AppError("Token expired", 401));
       }
-      if (error instanceof jwt.JsonWebTokenError) {
+      if (error instanceof joseErrors.JOSEError) {
         return next(new AppError("Invalid token", 401));
       }
       throw error;

@@ -1,6 +1,8 @@
 // Express application setup with security and JWT configuration
 import express from "express";
 import cors from "cors";
+import fs from "fs";
+import path from "path";
 import { config } from "./config/validateEnv";
 import { pool } from "./config/database";
 import authRoutes from "./routes/authRoutes";
@@ -9,6 +11,11 @@ import workoutRoutes from "./routes/workoutRoutes";
 import exportRoutes from "./routes/exportRoutes";
 import { errorHandler } from "./middleware/errorHandler";
 import { sanitizeInput } from "./middleware/validation";
+
+// Same image the client uses as its favicon (client/public/POWR-dumbell.webp)
+const favicon = fs.readFileSync(
+  path.join(__dirname, "../public/POWR-dumbell.webp")
+);
 
 export const createApp = () => {
   const app = express();
@@ -68,6 +75,14 @@ export const createApp = () => {
       next();
     });
   }
+
+  // Serve the same favicon the client uses, instead of routing the browser's
+  // automatic request through to the rest of the app (and its DB-dependent checks)
+  app.get("/favicon.ico", (req, res) => {
+    res.setHeader("Content-Type", "image/webp");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.send(favicon);
+  });
 
   // Simple health check
   app.get("/", (req, res) => {
