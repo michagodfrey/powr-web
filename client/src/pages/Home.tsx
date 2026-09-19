@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { usePreferences } from "../contexts/PreferencesContext";
 import { useAuthHandlers } from "../hooks/useAuthHandlers";
@@ -8,6 +9,8 @@ const Home = () => {
   const { isAuthenticated } = useAuth();
   const { preferences, updatePreferences } = usePreferences();
   const { handleGoogleAuth, isLoading, error, setError } = useAuthHandlers();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const toggleTheme = () => {
     updatePreferences({
@@ -15,6 +18,16 @@ const Home = () => {
       useDeviceTheme: false,
     });
   };
+
+  useEffect(() => {
+    // AuthCallback redirects here with ?error= when Google sign-in fails
+    const params = new URLSearchParams(location.search);
+    const urlError = params.get("error");
+    if (urlError) {
+      setError(decodeURIComponent(urlError));
+      navigate("/home", { replace: true });
+    }
+  }, [location, navigate, setError]);
 
   return (
     <div className="min-h-screen bg-light-bg dark:bg-dark-bg">
@@ -89,20 +102,19 @@ const Home = () => {
                   Dashboard
                 </Link>
               ) : (
-                <div className="flex items-center space-x-4">
-                  <Link
-                    to="/login"
-                    className="text-secondary dark:text-white border border-secondary dark:border-white px-4 py-2 rounded-md hover:bg-secondary hover:text-white dark:hover:bg-white dark:hover:text-secondary"
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    to="/signup"
-                    className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark flex items-center justify-center"
-                  >
-                    Sign Up
-                  </Link>
-                </div>
+                <button
+                  onClick={handleGoogleAuth}
+                  disabled={isLoading}
+                  className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark flex items-center justify-center"
+                >
+                  <img
+                    src="/google-icon.svg"
+                    alt=""
+                    aria-hidden="true"
+                    className="w-4 h-4 mr-2"
+                  />
+                  Sign in with Google
+                </button>
               )}
             </div>
           </div>
@@ -122,12 +134,6 @@ const Home = () => {
                 ease.
               </p>
               <div className="space-y-4">
-                <Link
-                  to="/signup"
-                  className="w-full sm:w-auto bg-primary text-white px-8 py-3 rounded-md hover:bg-primary-dark border border-secondary flex items-center justify-center"
-                >
-                  Sign Up with Email
-                </Link>
                 <button
                   onClick={handleGoogleAuth}
                   disabled={isLoading}
@@ -138,14 +144,8 @@ const Home = () => {
                     alt="Google"
                     className="w-5 h-5 mr-2"
                   />
-                  Sign Up with Google
+                  Sign In with Google
                 </button>
-                <p className="text-center text-secondary dark:text-white">
-                  Already have an account?{" "}
-                  <Link to="/login" className="text-primary hover:underline">
-                    Login
-                  </Link>
-                </p>
               </div>
             </div>
             <div className="mt-12 lg:mt-0">
@@ -300,12 +300,6 @@ const Home = () => {
             Start Training Smarter Today
           </h2>
           <div className="space-y-4 max-w-md mx-auto">
-            <Link
-              to="/signup"
-              className="w-full bg-primary text-white px-8 py-3 rounded-md hover:bg-primary-dark border border-secondary inline-block text-center"
-            >
-              Sign Up with Email
-            </Link>
             <button
               onClick={handleGoogleAuth}
               disabled={isLoading}
@@ -316,14 +310,8 @@ const Home = () => {
                 alt="Google"
                 className="w-5 h-5 mr-2"
               />
-              Sign Up with Google
+              Sign In with Google
             </button>
-            <p className="text-secondary dark:text-white">
-              Already have an account?{" "}
-              <Link to="/login" className="text-primary hover:underline">
-                Login
-              </Link>
-            </p>
           </div>
         </div>
       </section>

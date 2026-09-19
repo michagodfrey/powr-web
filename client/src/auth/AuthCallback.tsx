@@ -1,51 +1,36 @@
 // Handles the redirect back from Supabase after Google OAuth.
 // Supabase's client parses the session out of the redirect URL itself
-// (detectSessionInUrl) and fires onAuthStateChange shortly after — we just
-// wait for that, with a timeout fallback in case the provider returned an error.
+// (detectSessionInUrl) and AuthContext picks it up via onAuthStateChange,
+// then fetches the app profile. We wait for AuthContext's isAuthenticated
+// (not just the raw Supabase session) so we don't navigate to "/" before
+// the profile has loaded — doing so would bounce through the isAuthenticated
+// guard on "/" and strand the user on the public landing page.
 
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "./AuthContext";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    let settled = false;
+    if (isAuthenticated) {
+      navigate("/", { replace: true });
+      return;
+    }
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (settled || !session) return;
-      settled = true;
-      navigate("/");
-    });
-
-    const timeout = setTimeout(async () => {
-      if (settled) return;
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      settled = true;
-
-      if (session) {
-        navigate("/");
-        return;
-      }
-
+    const timeout = setTimeout(() => {
       const params = new URLSearchParams(window.location.search);
       const errorMessage =
         params.get("error_description") ||
         params.get("error") ||
         "Authentication failed";
-      navigate(`/login?error=${encodeURIComponent(errorMessage)}`);
+      navigate(`/home?error=${encodeURIComponent(errorMessage)}`);
     }, 4000);
 
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(timeout);
-    };
-  }, [navigate]);
+    return () => clearTimeout(timeout);
+  }, [isAuthenticated, navigate]);
 
   // Show loading spinner while processing the callback
   return (

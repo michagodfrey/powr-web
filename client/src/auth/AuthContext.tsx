@@ -1,6 +1,6 @@
 // Authentication context provider that manages user authentication state and related functions
-// Backed by Supabase Auth (Google OAuth + email/password) — Supabase manages
-// session storage and token refresh itself; this just tracks the resulting
+// Backed by Supabase Auth (Google OAuth only) — Supabase manages session
+// storage and token refresh itself; this just tracks the resulting
 // app-specific profile (fetched from the API) and exposes sign-in/out actions.
 
 import React, {
@@ -29,12 +29,7 @@ interface AuthContextType {
   user: User | null;
   setUser: (user: User | null) => void;
   logout: () => Promise<void>;
-  login: (params?: {
-    email?: string;
-    password?: string;
-    provider?: "google";
-  }) => Promise<void>;
-  signUp: (params: { email: string; password: string }) => Promise<void>;
+  login: () => Promise<void>;
   isAuthenticated: boolean;
   error: string | null;
   clearError: () => void;
@@ -108,70 +103,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     };
   }, [loadProfile]);
 
-  const login = useCallback(
-    async (params?: {
-      email?: string;
-      password?: string;
-      provider?: "google";
-    }) => {
-      try {
-        if (params?.provider === "google") {
-          const { error: oauthError } = await supabase.auth.signInWithOAuth({
-            provider: "google",
-            options: { redirectTo: `${window.location.origin}/auth/callback` },
-          });
-          if (oauthError) throw oauthError;
-          return;
-        }
-
-        if (params?.email && params?.password) {
-          const { error: signInError } = await supabase.auth.signInWithPassword(
-            { email: params.email, password: params.password }
-          );
-          if (signInError) throw signInError;
-          navigate("/");
-          return;
-        }
-
-        throw new Error("Invalid login parameters");
-      } catch (err) {
-        console.error("Login error:", err);
-        setError(err instanceof Error ? err.message : "Login failed");
-        throw err;
-      }
-    },
-    [navigate]
-  );
-
-  const signUp = useCallback(
-    async (params: { email: string; password: string }) => {
-      try {
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email: params.email,
-          password: params.password,
-        });
-        if (signUpError) throw signUpError;
-
-        if (data.session) {
-          navigate("/");
-        } else {
-          // Project has "Confirm email" enabled — no session until they click the link
-          setError("Check your email to confirm your account, then log in.");
-        }
-      } catch (err) {
-        console.error("Sign up error:", err);
-        setError(err instanceof Error ? err.message : "Failed to sign up.");
-        throw err;
-      }
-    },
-    [navigate]
-  );
+  const login = useCallback(async () => {
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (oauthError) throw oauthError;
+      // No navigation here — signInWithOAuth redirects the whole page away,
+      // and AuthCallback handles navigating to "/" once isAuthenticated
+      // flips true after the profile loads.
+    } catch (err) {
+      console.error("Login error:", err);
+      setError(err instanceof Error ? err.message : "Login failed");
+      throw err;
+    }
+  }, []);
 
   const logout = useCallback(async () => {
     try {
       await supabase.auth.signOut();
       setUser(null);
-      navigate("/login");
+      navigate("/home");
     } catch (err) {
       console.error("Logout error:", err);
       setError(err instanceof Error ? err.message : "Logout failed");
@@ -186,7 +139,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         setUser,
         logout,
         login,
-        signUp,
         isAuthenticated: !!user,
         error,
         clearError,

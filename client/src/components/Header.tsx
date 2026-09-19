@@ -29,7 +29,6 @@ const Header = () => {
   const handleLogout = () => {
     setShowMenu(false);
     logout();
-    navigate("/login");
   };
 
   return (

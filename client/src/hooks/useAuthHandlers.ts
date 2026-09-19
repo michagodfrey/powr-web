@@ -10,7 +10,7 @@ export const useAuthHandlers = () => {
     try {
       setIsLoading(true);
       setError(null);
-      await login({ provider: "google" });
+      await login();
       // no navigation here — signInWithOAuth redirects the whole page away
     } catch (error) {
       console.error("Google auth error:", error);
