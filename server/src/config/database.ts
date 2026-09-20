@@ -1,11 +1,12 @@
 // Database configuration and connection management
-// Connects to Supabase Postgres via its pooled ("Transaction" mode / pgbouncer)
-// connection string, sized for a serverless (Vercel) deployment.
+// In production, DATABASE_URL is Supabase's pooled ("Transaction" mode /
+// pgbouncer) connection string, sized for a serverless (Vercel) deployment.
+// In local dev, DATABASE_URL should point at a local Postgres database
+// instead (see server/.env.example) — never at the same database as
+// production, since `npm run setup:db` drops and recreates every table.
 import { Sequelize } from "sequelize";
 import { config } from "./validateEnv";
 import { initializeModels } from "../models";
-import fs from "fs";
-import path from "path";
 import { Pool } from "pg";
 
 // Create a single pool instance to be shared
@@ -44,8 +45,6 @@ pool.on("error", (err) => {
   console.error("Unexpected error on idle client", err);
 });
 
-export const isDev = config.NODE_ENV === "development";
-
 export const initDatabase = async () => {
   try {
     await sequelize.authenticate();
@@ -54,15 +53,11 @@ export const initDatabase = async () => {
     // Initialize all models using the centralized initialization function
     initializeModels(sequelize);
 
-    // In development, we'll use the init-database.sql script instead of sync
-    if (isDev) {
-      const initScript = fs.readFileSync(
-        path.join(__dirname, "../../scripts/init-database.sql"),
-        "utf8"
-      );
-      await sequelize.query(initScript);
-      console.log("Database initialized using init-database.sql");
-    }
+    // Schema setup (scripts/init-database.sql, which DROPs and recreates
+    // every table) is a deliberate, manual step — `npm run setup:db` — not
+    // something that runs implicitly on every server start. Running it
+    // automatically here previously wiped whatever DATABASE_URL pointed at
+    // on every dev server boot.
 
     return sequelize;
   } catch (error) {

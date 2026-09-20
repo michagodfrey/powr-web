@@ -9,6 +9,7 @@
     "build": "tsc -p tsconfig.json",
     "lint": "eslint . --ext .ts",
     "typecheck": "tsc --noEmit",
+    "setup:dev-db": "ts-node scripts/setup-dev-db.ts",
     "test:setup-db": "ts-node scripts/setup-test-db.ts",
     "test": "jest",
     "test:watch": "jest --watch",

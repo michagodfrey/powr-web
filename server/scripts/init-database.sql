@@ -10,8 +10,24 @@
 -- SECURITY is set) — so none of this affects the API. It's a second line of
 -- defense: if the anon/authenticated key were ever used directly against
 -- Supabase's REST API, these policies keep everyone scoped to their own rows.
--- auth.uid() is a Supabase-provided function and requires this to run against
--- a real Supabase Postgres instance (not a vanilla local Postgres).
+-- auth.uid() is a Supabase-provided function. On a real Supabase project it
+-- already exists, so this no-ops there; on a vanilla local Postgres (local
+-- dev) it doesn't, so this stubs in a schema/function that always returns
+-- NULL — harmless since RLS is bypassed by the API's table-owner connection
+-- anyway, and this only fires when auth.uid() is genuinely absent, so it can
+-- never clobber Supabase's real implementation.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE n.nspname = 'auth' AND p.proname = 'uid'
+  ) THEN
+    CREATE SCHEMA IF NOT EXISTS auth;
+    CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $fn$
+      SELECT NULL::uuid
+    $fn$;
+  END IF;
+END $$;
 
 -- Drop legacy tables from earlier (pre-Supabase) auth designs if they exist
 DROP TABLE IF EXISTS user_sessions CASCADE;

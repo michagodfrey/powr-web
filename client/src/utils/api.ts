@@ -5,7 +5,14 @@
 
 import { supabase } from "../lib/supabaseClient";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+// Only fall back to localhost in dev — a production build missing
+// VITE_API_URL should fail loudly instead of silently routing every
+// request at whatever happens to be on the visitor's own localhost:4000.
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:4000" : "");
+
+if (!API_URL) {
+  throw new Error("Missing VITE_API_URL environment variable");
+}
 
 // Create an authenticated fetch function
 export const apiFetch = async (
