@@ -30,20 +30,13 @@ const WorkoutSet = ({
   initialNotes = "",
   preferredUnit = "kg",
 }: WorkoutSetProps) => {
-  // Add debug logging for edit mode
-  console.log("[WorkoutSet] Initializing with:", {
-    initialSets,
-    initialDate,
-    initialNotes,
-    preferredUnit,
-  });
+  const isEditMode = initialSets.length > 0;
 
   // Use the original unit from the first set when editing, otherwise use preferred unit
-  const displayUnit =
-    initialSets.length > 0 ? initialSets[0].unit : preferredUnit;
+  const displayUnit = isEditMode ? initialSets[0].unit : preferredUnit;
 
   const [sets, setSets] = useState<Set[]>(
-    initialSets.length > 0
+    isEditMode
       ? initialSets.map((set, index) => ({
           ...set,
           id: Date.now() * 1000 + index, // Ensure unique ID for each initial set
@@ -63,8 +56,12 @@ const WorkoutSet = ({
     initialDate || new Date().toISOString().split("T")[0]
   );
 
-  // Add state for session notes, ensuring it's always a string
+  // Session notes are collapsed by default unless there's already something to show
   const [sessionNotes, setSessionNotes] = useState(initialNotes ?? "");
+  const [notesExpanded, setNotesExpanded] = useState(!!initialNotes);
+
+  // Weight to apply when a quick scheme is tapped, so sets aren't created at 0
+  const [schemeWeight, setSchemeWeight] = useState<string>("");
 
   // Voice data entry: say a set out loud (e.g. "135 for 8") to append it hands-free
   const {
@@ -115,13 +112,6 @@ const WorkoutSet = ({
     const timeout = setTimeout(() => setVoiceMessage(null), 4000);
     return () => clearTimeout(timeout);
   }, [voiceMessage]);
-
-  // Log state after initialization
-  console.log("[WorkoutSet] State initialized:", {
-    sets,
-    date,
-    sessionNotes,
-  });
 
   // Calculate total volume using the utility function
   const getTotalVolume = () => {
@@ -176,18 +166,25 @@ const WorkoutSet = ({
     }
   };
 
-  // Apply a common set/rep scheme
+  // Apply a common set/rep scheme, using the entered weight (falling back to the current first-set weight)
   const applyScheme = (scheme: { sets: number; reps: number }) => {
-    const lastWeight = sets[0]?.weight || 0;
+    const parsedWeight = parseFloat(schemeWeight);
+    const weight = schemeWeight.trim() !== "" && !isNaN(parsedWeight)
+      ? parsedWeight
+      : sets[0]?.weight || 0;
     const baseTimestamp = Date.now() * 1000;
     const newSets: Set[] = Array.from({ length: scheme.sets }, (_, index) => ({
       id: baseTimestamp + index, // Use index as offset for uniqueness
-      weight: lastWeight,
+      weight,
       reps: scheme.reps,
       unit: displayUnit,
       setNumber: index + 1,
     }));
     setSets(newSets);
+  };
+
+  const handleSave = () => {
+    onSave(sets, date, sessionNotes);
   };
 
   // Sort sets by setNumber if available, otherwise by array index
@@ -199,16 +196,27 @@ const WorkoutSet = ({
     .sort((a, b) => a.setNumber - b.setNumber);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center overflow-y-auto p-4">
+    <div className="fixed inset-0 z-50 bg-black/50 flex sm:items-center sm:justify-center sm:p-4">
       <div
-        className="my-auto bg-white dark:bg-secondary rounded-lg w-full max-w-2xl flex flex-col"
-        style={{ maxHeight: "calc(100vh - 2rem)" }}
+        className="bg-white dark:bg-secondary w-full h-[100dvh] sm:h-auto sm:max-w-2xl sm:rounded-lg sm:max-h-[calc(100vh-2rem)] overflow-y-auto"
       >
-        {/* Fixed Header */}
-        <div className="shrink-0 p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-bold text-secondary dark:text-white">
-            {initialSets ? "Edit Workout" : "Record Sets"}
-          </h2>
+        {/* Header */}
+        <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-start justify-between gap-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-secondary dark:text-white">
+              {isEditMode ? "Edit Workout" : "Record Sets"}
+            </h2>
+            <button
+              type="button"
+              onClick={onCancel}
+              aria-label="Close"
+              className="shrink-0 -m-2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
           {/* Date Selection */}
           <div className="mt-4">
@@ -230,101 +238,109 @@ const WorkoutSet = ({
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Quick Schemes
             </h3>
-            <div className="flex gap-2">
+            <div className="flex items-end gap-2 mb-2">
+              <div className="w-28">
+                <label
+                  htmlFor="scheme-weight"
+                  className="block text-xs text-gray-500 dark:text-gray-400 mb-1"
+                >
+                  Weight ({displayUnit})
+                </label>
+                <input
+                  id="scheme-weight"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  value={schemeWeight}
+                  onChange={(e) => setSchemeWeight(e.target.value)}
+                  placeholder="0"
+                  className="input-field py-2"
+                  aria-label={`Weight to apply for quick scheme, in ${displayUnit}`}
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
               {COMMON_SCHEMES.map((scheme) => (
                 <button
                   key={scheme.name}
                   onClick={() => applyScheme(scheme)}
-                  className="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  className="min-h-[44px] px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 active:scale-95 transition-all"
                 >
                   {scheme.name}
                 </button>
               ))}
             </div>
           </div>
-
-          {/* Session Notes */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Session Notes
-            </label>
-            <textarea
-              value={sessionNotes}
-              onChange={(e) => setSessionNotes(e.target.value)}
-              className="input-field min-h-[80px] resize-y"
-              placeholder="How was your workout? Any variations or notes to remember?"
-              aria-label="Session notes"
-            />
-          </div>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 min-h-0">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        {/* Sets */}
+        <div className="p-4 sm:p-6">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Sets
           </label>
           {/* Show notice about original units when editing */}
-          {initialSets.length > 0 && displayUnit !== preferredUnit && (
-            <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          {isEditMode && displayUnit !== preferredUnit && (
+            <div className="mb-2 text-sm text-gray-600 dark:text-gray-400">
               This workout was recorded in {displayUnit}.{" "}
               {displayUnit === "kg" ? <>1 kg ≈ 2.20 lb</> : <>1 lb ≈ 0.45 kg</>}
             </div>
           )}
-          <div className="space-y-4">
+          <div className="space-y-3">
             {sortedSets.map((set, index) => (
               <div
                 key={set.id}
-                className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                className="flex items-center gap-3 p-3 sm:p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
               >
-                <span className="font-mono text-lg">{index + 1}</span>
-                <div className="flex-1 grid grid-cols-2 gap-4">
+                <span className="font-mono text-sm text-gray-500 dark:text-gray-400 w-5 shrink-0 text-center">
+                  {index + 1}
+                </span>
+                <div className="flex-1 grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label
+                      htmlFor={`weight-${set.id}`}
+                      className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
+                    >
                       Weight ({displayUnit})
                     </label>
                     <input
+                      id={`weight-${set.id}`}
                       type="number"
+                      inputMode="decimal"
                       value={set.weight}
                       onChange={(e) =>
                         handleSetUpdate(set.id, "weight", e.target.value)
                       }
-                      className="input-field"
+                      className="input-field py-2"
                       min="0"
                       aria-label={`Weight for set ${index + 1}`}
                     />
                   </div>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Reps
-                      </label>
-                      <input
-                        type="number"
-                        value={set.reps}
-                        onChange={(e) =>
-                          handleSetUpdate(set.id, "reps", e.target.value)
-                        }
-                        className="input-field"
-                        min="0"
-                        aria-label={`Reps for set ${index + 1}`}
-                      />
-                    </div>
-                    {index === sets.length - 1 && (
-                      <button
-                        onClick={handleAddSet}
-                        className="self-end h-10 w-10 flex items-center justify-center text-lg font-bold border-2 border-primary text-primary rounded hover:bg-primary hover:text-white transition-colors"
-                        aria-label="Add new set"
-                      >
-                        +
-                      </button>
-                    )}
+                  <div>
+                    <label
+                      htmlFor={`reps-${set.id}`}
+                      className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
+                    >
+                      Reps
+                    </label>
+                    <input
+                      id={`reps-${set.id}`}
+                      type="number"
+                      inputMode="numeric"
+                      value={set.reps}
+                      onChange={(e) =>
+                        handleSetUpdate(set.id, "reps", e.target.value)
+                      }
+                      className="input-field py-2"
+                      min="0"
+                      aria-label={`Reps for set ${index + 1}`}
+                    />
                   </div>
                 </div>
                 {sets.length > 1 && (
                   <button
                     onClick={() => handleRemoveSet(set.id)}
-                    className="self-end h-10 w-10 flex items-center justify-center text-lg font-bold border-2 border-red-500 text-red-500 rounded hover:bg-red-500 hover:text-white transition-colors"
-                    aria-label="Delete set"
+                    className="shrink-0 self-end h-11 w-11 flex items-center justify-center text-lg font-bold text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 active:scale-95 transition-all"
+                    aria-label={`Delete set ${index + 1}`}
                   >
                     ×
                   </button>
@@ -332,10 +348,53 @@ const WorkoutSet = ({
               </div>
             ))}
           </div>
+          <button
+            onClick={handleAddSet}
+            className="w-full mt-3 min-h-[48px] px-4 py-3 text-primary border-2 border-dashed border-primary/50 rounded-lg hover:bg-primary/5 active:scale-[0.99] transition-all font-medium"
+          >
+            + Add Set
+          </button>
         </div>
 
-        {/* Fixed Footer */}
-        <div className="shrink-0 p-6 border-t border-gray-200 dark:border-gray-700">
+        {/* Session Notes — collapsed by default, sits above the footer actions */}
+        <div className="border-t border-gray-200 dark:border-gray-700">
+          <button
+            type="button"
+            onClick={() => setNotesExpanded((expanded) => !expanded)}
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-3 text-left"
+            aria-expanded={notesExpanded}
+            aria-controls="session-notes-panel"
+          >
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Session Notes{sessionNotes && !notesExpanded ? " · added" : ""}
+            </span>
+            <svg
+              className={`w-4 h-4 text-gray-400 transition-transform ${
+                notesExpanded ? "rotate-180" : ""
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {notesExpanded && (
+            <div id="session-notes-panel" className="px-4 sm:px-6 pb-4">
+              <textarea
+                value={sessionNotes}
+                onChange={(e) => setSessionNotes(e.target.value)}
+                className="input-field min-h-[80px] resize-y"
+                placeholder="How was your workout? Any variations or notes to remember?"
+                aria-label="Session notes"
+                autoFocus
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
           {/* Total volume */}
           <div className="mb-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
             <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -349,7 +408,7 @@ const WorkoutSet = ({
           {/* Voice input feedback */}
           {voiceMessage && (
             <div
-              className="mb-4 text-sm text-gray-700 dark:text-gray-300"
+              className="mb-3 text-sm text-gray-700 dark:text-gray-300"
               role="status"
             >
               {voiceMessage}
@@ -357,57 +416,42 @@ const WorkoutSet = ({
           )}
 
           {/* Actions */}
-          <div className="flex justify-between">
-            <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {isVoiceSupported && (
               <button
-                onClick={handleAddSet}
-                className="px-4 py-2 text-primary border-2 border-primary rounded hover:bg-primary hover:text-white transition-colors"
+                type="button"
+                onClick={isListening ? stopListening : startListening}
+                aria-label={
+                  isListening ? "Stop voice input" : "Add set by voice"
+                }
+                aria-pressed={isListening}
+                className={`shrink-0 h-11 w-11 flex items-center justify-center rounded-full border-2 transition-colors ${
+                  isListening
+                    ? "border-red-500 text-red-500 animate-pulse"
+                    : "border-primary text-primary hover:bg-primary hover:text-white"
+                }`}
               >
-                Add Set
-              </button>
-              {isVoiceSupported && (
-                <button
-                  type="button"
-                  onClick={isListening ? stopListening : startListening}
-                  aria-label={
-                    isListening ? "Stop voice input" : "Add set by voice"
-                  }
-                  aria-pressed={isListening}
-                  className={`h-10 w-10 flex items-center justify-center rounded-full border-2 transition-colors ${
-                    isListening
-                      ? "border-red-500 text-red-500 animate-pulse"
-                      : "border-primary text-primary hover:bg-primary hover:text-white"
-                  }`}
+                <svg
+                  className="w-5 h-5"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path d="M12 14a3 3 0 003-3V6a3 3 0 10-6 0v5a3 3 0 003 3z" />
-                    <path d="M17 11a1 1 0 10-2 0 3 3 0 01-6 0 1 1 0 10-2 0 5 5 0 004 4.9V18H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.1a5 5 0 004-4.9z" />
-                  </svg>
-                </button>
-              )}
-            </div>
-            <div className="space-x-3">
+                  <path d="M12 14a3 3 0 003-3V6a3 3 0 10-6 0v5a3 3 0 003 3z" />
+                  <path d="M17 11a1 1 0 10-2 0 3 3 0 01-6 0 1 1 0 10-2 0 5 5 0 004 4.9V18H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.1a5 5 0 004-4.9z" />
+                </svg>
+              </button>
+            )}
+            <div className="flex-1 grid grid-cols-2 gap-2">
               <button
                 onClick={onCancel}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                className="w-full px-4 py-2.5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 font-medium"
               >
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  console.log("[WorkoutSet] Saving workout:", {
-                    sets,
-                    date,
-                    sessionNotes,
-                  });
-                  onSave(sets, date, sessionNotes);
-                }}
-                className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
+                onClick={handleSave}
+                className="w-full px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium disabled:opacity-50"
                 disabled={sets.length === 0}
               >
                 Save

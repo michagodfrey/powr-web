@@ -1,10 +1,10 @@
 # CLAUDE.md
 
-Guidance for Claude Code (and any AI agent) working in this repo. Supersedes `.cursor/rules/rules.mdc` (left in place for history, no longer authoritative).
+Guidance for Claude Code (and any AI agent) working in this repo.
 
 ## What this is
 
-POWR (Progressive Overload Workout Recorder) tracks resistance-training workouts — exercises, sets, reps, weight — and charts volume (weight × reps) over time to show progressive overload. Feature scope is defined by `docs/PRD/`; treat it as the source of truth before adding anything not already described there. `docs/PRD/planning/mobile-roadmap.md` describes an earlier native-app plan — that plan is **superseded**: the product direction is now a single installable web app (PWA), not React Native / iOS / Android.
+POWR (Progressive Overload Workout Recorder) tracks resistance-training workouts — exercises, sets, reps, weight — and charts volume (weight × reps) over time to show progressive overload. The product direction is a single installable web app (PWA).
 
 ## Tech stack
 
@@ -38,4 +38,3 @@ Web app only, made installable via PWA ("Add to Home Screen") rather than separa
 - Accessible markup — components already use `aria-label` on inputs/buttons (see `WorkoutSet.tsx`); keep that pattern for new interactive elements.
 - Light/dark mode support via Tailwind `dark:` variants — every new visible surface needs both.
 - Minimize feature creep. If asked for something not covered by `docs/PRD/`, flag that it's outside current scope and confirm before building it, rather than guessing at intent.
-- Don't resurrect the session-auth code path or plan native mobile work — both are explicitly out of scope per above.

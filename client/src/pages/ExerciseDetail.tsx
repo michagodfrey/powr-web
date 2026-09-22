@@ -398,10 +398,10 @@ const ExerciseDetail = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-4 sm:py-8">
       {/* Header */}
-      <div className="flex justify-between items-start mb-8">
-        <div className="flex-1">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6 sm:mb-8">
+        <div className="flex-1 min-w-0">
           <button
             onClick={() => navigate("/")}
             className="text-gray-600 dark:text-gray-400 mb-2 hover:text-primary"
@@ -458,8 +458,8 @@ const ExerciseDetail = () => {
             </div>
           ) : (
             <div className="flex items-start">
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-secondary dark:text-white break-words">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold text-secondary dark:text-white break-words">
                   {exercise?.name}
                 </h1>
                 {exercise?.description && (
@@ -596,10 +596,10 @@ const ExerciseDetail = () => {
             </div>
           )}
         </div>
-        <div className="ml-4">
+        <div className="sm:ml-4">
           <button
             onClick={() => setShowWorkoutModal(true)}
-            className="btn-primary"
+            className="btn-primary w-full sm:w-auto"
           >
             Record Workout
           </button>
@@ -643,10 +643,10 @@ const ExerciseDetail = () => {
             {exercise.workoutHistory.map((workout) => (
               <div
                 key={workout.id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6"
               >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
+                <div className="flex justify-between items-start mb-4 gap-2">
+                  <div className="min-w-0">
                     <h3 className="font-semibold text-secondary dark:text-white">
                       {formatDate(workout.date)}
                     </h3>
@@ -660,10 +660,10 @@ const ExerciseDetail = () => {
                       </p>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1 shrink-0">
                     <button
                       onClick={() => setWorkoutToEdit(workout)}
-                      className="text-primary hover:text-primary-dark transition-colors"
+                      className="h-10 w-10 flex items-center justify-center text-primary hover:text-primary-dark hover:bg-primary/5 rounded-lg transition-colors"
                       aria-label="Edit workout"
                     >
                       <svg
@@ -682,7 +682,7 @@ const ExerciseDetail = () => {
                     </button>
                     <button
                       onClick={() => setWorkoutToDelete(workout.id)}
-                      className="text-red-500 hover:text-red-700 transition-colors"
+                      className="h-10 w-10 flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                       aria-label="Delete workout"
                     >
                       <svg
@@ -701,7 +701,7 @@ const ExerciseDetail = () => {
                     </button>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {workout.sets.map((set, index) => (
                     <div
                       key={index}

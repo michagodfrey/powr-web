@@ -217,7 +217,7 @@ const Home = () => {
             </svg>
           </a>
           <p className="text-sm text-gray-300">
-            © 2025 POWR. All Rights Reserved.
+            © 2026 POWR. All Rights Reserved.
           </p>
         </div>
       </footer>
