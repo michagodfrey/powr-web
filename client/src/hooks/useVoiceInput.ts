@@ -93,7 +93,9 @@ export function useVoiceInput(): UseVoiceInputResult {
       if (event.error === "not-allowed" || event.error === "denied") {
         setError("Microphone access was denied.");
       } else if (event.error === "no-speech") {
-        setError("Didn't catch that, try again.");
+        setError(
+          'Didn\'t catch that. Try again — say the weight then reps, e.g. "135 for 8".'
+        );
       } else {
         setError("Voice input error, try again.");
       }

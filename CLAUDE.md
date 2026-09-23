@@ -37,4 +37,3 @@ Web app only, made installable via PWA ("Add to Home Screen") rather than separa
 - Small, single-responsibility components; keep business logic (volume calc, unit conversion, parsing) in `client/src/utils/`, not inline in components.
 - Accessible markup — components already use `aria-label` on inputs/buttons (see `WorkoutSet.tsx`); keep that pattern for new interactive elements.
 - Light/dark mode support via Tailwind `dark:` variants — every new visible surface needs both.
-- Minimize feature creep. If asked for something not covered by `docs/PRD/`, flag that it's outside current scope and confirm before building it, rather than guessing at intent.

@@ -83,7 +83,9 @@ const WorkoutSet = ({
 
     const parsed = parseVoiceInput(transcript);
     if (!parsed) {
-      setVoiceMessage(`Didn't catch that ("${transcript}"). Try again.`);
+      setVoiceMessage(
+        `Didn't catch that ("${transcript}"). Try again — say the weight then reps, e.g. "135 for 8" or "8 reps at 135".`
+      );
       return;
     }
 
@@ -235,9 +237,47 @@ const WorkoutSet = ({
 
           {/* Quick scheme selection */}
           <div className="mt-4">
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Quick Schemes
-            </h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Quick Schemes
+              </h3>
+              {isVoiceSupported && (
+                <button
+                  type="button"
+                  onClick={isListening ? stopListening : startListening}
+                  aria-label={
+                    isListening ? "Stop voice input" : "Add set by voice"
+                  }
+                  aria-pressed={isListening}
+                  className={`shrink-0 h-11 w-11 flex items-center justify-center rounded-full border-2 transition-colors ${
+                    isListening
+                      ? "border-red-500 text-red-500 animate-pulse"
+                      : "border-primary text-primary hover:bg-primary hover:text-white"
+                  }`}
+                >
+                  <svg
+                    className="w-5 h-5"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 14a3 3 0 003-3V6a3 3 0 10-6 0v5a3 3 0 003 3z" />
+                    <path d="M17 11a1 1 0 10-2 0 3 3 0 01-6 0 1 1 0 10-2 0 5 5 0 004 4.9V18H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.1a5 5 0 004-4.9z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Voice input feedback */}
+            {voiceMessage && (
+              <div
+                className="mb-2 text-sm text-gray-700 dark:text-gray-300"
+                role="status"
+              >
+                {voiceMessage}
+              </div>
+            )}
+
             <div className="flex items-end gap-2 mb-2">
               <div className="w-28">
                 <label
@@ -405,43 +445,8 @@ const WorkoutSet = ({
             </div>
           </div>
 
-          {/* Voice input feedback */}
-          {voiceMessage && (
-            <div
-              className="mb-3 text-sm text-gray-700 dark:text-gray-300"
-              role="status"
-            >
-              {voiceMessage}
-            </div>
-          )}
-
           {/* Actions */}
           <div className="flex items-center gap-2">
-            {isVoiceSupported && (
-              <button
-                type="button"
-                onClick={isListening ? stopListening : startListening}
-                aria-label={
-                  isListening ? "Stop voice input" : "Add set by voice"
-                }
-                aria-pressed={isListening}
-                className={`shrink-0 h-11 w-11 flex items-center justify-center rounded-full border-2 transition-colors ${
-                  isListening
-                    ? "border-red-500 text-red-500 animate-pulse"
-                    : "border-primary text-primary hover:bg-primary hover:text-white"
-                }`}
-              >
-                <svg
-                  className="w-5 h-5"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path d="M12 14a3 3 0 003-3V6a3 3 0 10-6 0v5a3 3 0 003 3z" />
-                  <path d="M17 11a1 1 0 10-2 0 3 3 0 01-6 0 1 1 0 10-2 0 5 5 0 004 4.9V18H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.1a5 5 0 004-4.9z" />
-                </svg>
-              </button>
-            )}
             <div className="flex-1 grid grid-cols-2 gap-2">
               <button
                 onClick={onCancel}
