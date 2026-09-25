@@ -2,6 +2,7 @@
 // this just serves (and lazily creates) the app-specific profile row for the
 // authenticated Supabase user.
 import { Request, Response, NextFunction } from "express";
+import { UniqueConstraintError } from "sequelize";
 import { AppError } from "../middleware/errorHandler";
 import { User } from "../models/User";
 
@@ -18,13 +19,21 @@ export const getCurrentUser = async (
     let user = await User.findByPk(req.jwtUser.id);
     if (!user) {
       // First authenticated request for this Supabase user — create their profile row.
-      user = await User.create({
-        id: req.jwtUser.id,
-        email: req.jwtUser.email,
-        name: req.jwtUser.name || req.jwtUser.email.split("@")[0],
-        picture: req.jwtUser.picture,
-        preferredUnit: "kg",
-      });
+      // The client can fire several /me requests concurrently right after sign-in,
+      // so if another request won the insert, fall back to reading its row.
+      try {
+        user = await User.create({
+          id: req.jwtUser.id,
+          email: req.jwtUser.email,
+          name: req.jwtUser.name || req.jwtUser.email.split("@")[0],
+          picture: req.jwtUser.picture,
+          preferredUnit: "kg",
+        });
+      } catch (createError) {
+        if (!(createError instanceof UniqueConstraintError)) throw createError;
+        user = await User.findByPk(req.jwtUser.id);
+        if (!user) throw createError;
+      }
     }
 
     res.json({

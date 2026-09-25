@@ -5,6 +5,7 @@ import { Exercise } from "../types";
 import ExerciseForm from "../components/ExerciseForm";
 import { useNavigate } from "react-router-dom";
 import ErrorToast from "../components/ErrorToast";
+import InstallBanner from "../components/InstallBanner";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../utils/api";
 
@@ -149,6 +150,8 @@ const Dashboard = () => {
           duration={5000}
         />
       )}
+
+      <InstallBanner />
     </div>
   );
 };

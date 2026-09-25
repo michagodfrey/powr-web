@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useAuthHandlers } from "../hooks/useAuthHandlers";
 import ErrorToast from "../components/ErrorToast";
+import InstallBanner from "../components/InstallBanner";
 
 const Home = () => {
   const { isAuthenticated } = useAuth();
@@ -64,16 +65,31 @@ const Home = () => {
                 </button>
               )}
             </div>
-            {isAuthenticated && (
-              <div className="flex md:hidden items-center">
+            <div className="flex md:hidden items-center">
+              {isAuthenticated ? (
                 <Link
                   to="/"
                   className="bg-primary text-white px-3 py-2 rounded-md hover:bg-primary-dark text-sm"
                 >
                   Dashboard
                 </Link>
-              </div>
-            )}
+              ) : (
+                <button
+                  onClick={handleGoogleAuth}
+                  disabled={isLoading}
+                  aria-label="Sign in with Google"
+                  title="Sign in with Google"
+                  className="p-2 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                >
+                  <img
+                    src="/google-icon.svg"
+                    alt=""
+                    aria-hidden="true"
+                    className="w-5 h-5"
+                  />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </nav>
@@ -82,7 +98,14 @@ const Home = () => {
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="lg:grid lg:grid-cols-2 lg:gap-8 items-center">
-            <div>
+            <div className="lg:mt-0">
+              <img
+                src="/powr-logo.jpg"
+                alt="POWR - Progressive Overload Workout Recorder"
+                className="w-full rounded-lg shadow-md"
+              />
+            </div>
+            <div className="mt-12 lg:mt-0 lg:ml-12">
               <h1 className="text-4xl sm:text-5xl font-bold text-secondary dark:text-white mb-6">
                 Elevate Your Strength
               </h1>
@@ -118,13 +141,7 @@ const Home = () => {
                 </button>
               </div>
             </div>
-            <div className="mt-12 lg:mt-0">
-              <img
-                src="/powr-logo.jpg"
-                alt="POWR - Progressive Overload Workout Recorder"
-                className="w-full rounded-lg shadow-md"
-              />
-            </div>
+            
           </div>
         </div>
       </section>
@@ -229,6 +246,8 @@ const Home = () => {
           duration={5000}
         />
       )}
+
+      <InstallBanner />
     </div>
   );
 };

@@ -18,6 +18,7 @@ import {
 import { WorkoutSession, DateRangeState } from "../types";
 import { useState, useMemo } from "react";
 import { normalizeVolume, convertWeight } from "../utils/volumeCalculation";
+import { parseWorkoutDate } from "../utils/workoutDate";
 import { Slider } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
@@ -31,7 +32,7 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
 );
 
 interface VolumeChartProps {
@@ -93,9 +94,11 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
   const sortedWorkouts = useMemo(
     () =>
       [...workouts].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        (a, b) =>
+          parseWorkoutDate(a.date).getTime() -
+          parseWorkoutDate(b.date).getTime(),
       ),
-    [workouts]
+    [workouts],
   );
 
   // Get date range for slider
@@ -109,8 +112,10 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
       };
     }
 
-    const min = new Date(sortedWorkouts[0].date);
-    const max = new Date(sortedWorkouts[sortedWorkouts.length - 1].date);
+    const min = parseWorkoutDate(sortedWorkouts[0].date);
+    const max = parseWorkoutDate(
+      sortedWorkouts[sortedWorkouts.length - 1].date,
+    );
     return {
       minDate: min,
       maxDate: max,
@@ -150,13 +155,13 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
   const filteredWorkouts = useMemo(
     () =>
       sortedWorkouts.filter((workout) => {
-        const workoutDate = new Date(workout.date);
+        const workoutDate = parseWorkoutDate(workout.date);
         return (
           workoutDate >= selectedDateRange.startDate &&
           workoutDate <= selectedDateRange.endDate
         );
       }),
-    [sortedWorkouts, selectedDateRange]
+    [sortedWorkouts, selectedDateRange],
   );
 
   // Calculate statistics with proper volume handling
@@ -182,14 +187,14 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
             workout.unit === unit
               ? normalizedVolume
               : convertWeight(normalizedVolume, workout.unit, unit),
-          date: new Date(workout.date),
+          date: parseWorkoutDate(workout.date),
         };
       });
 
       const total = volumes.reduce((sum, { volume }) => sum + volume, 0);
       const maxVolumeEntry = volumes.reduce(
         (max, current) => (current.volume > max.volume ? current : max),
-        volumes[0]
+        volumes[0],
       );
       const avg = total / volumes.length;
 
@@ -203,14 +208,14 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
 
       // Calculate days trained and days in range
       const uniqueDays = new Set(
-        filteredWorkouts.map((w) => new Date(w.date).toDateString())
+        filteredWorkouts.map((w) => parseWorkoutDate(w.date).toDateString()),
       ).size;
       const msInDay = 1000 * 60 * 60 * 24;
       const daysInRange =
         Math.ceil(
           (selectedDateRange.endDate.getTime() -
             selectedDateRange.startDate.getTime()) /
-            msInDay
+            msInDay,
         ) + 1;
 
       return {
@@ -256,10 +261,10 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
   // Prepare line chart data
   const lineChartData: ChartData<"line"> = {
     labels: filteredWorkouts.map((workout) => {
-      const date = new Date(workout.date);
-      const firstDate = new Date(filteredWorkouts[0].date);
-      const lastDate = new Date(
-        filteredWorkouts[filteredWorkouts.length - 1].date
+      const date = parseWorkoutDate(workout.date);
+      const firstDate = parseWorkoutDate(filteredWorkouts[0].date);
+      const lastDate = parseWorkoutDate(
+        filteredWorkouts[filteredWorkouts.length - 1].date,
       );
       const spanMoreThanYear =
         lastDate.getFullYear() - firstDate.getFullYear() > 0;
@@ -283,10 +288,10 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
   // Prepare bar chart data
   const barChartData: ChartData<"bar"> = {
     labels: filteredWorkouts.map((workout) => {
-      const date = new Date(workout.date);
-      const firstDate = new Date(filteredWorkouts[0].date);
-      const lastDate = new Date(
-        filteredWorkouts[filteredWorkouts.length - 1].date
+      const date = parseWorkoutDate(workout.date);
+      const firstDate = parseWorkoutDate(filteredWorkouts[0].date);
+      const lastDate = parseWorkoutDate(
+        filteredWorkouts[filteredWorkouts.length - 1].date,
       );
       const spanMoreThanYear =
         lastDate.getFullYear() - firstDate.getFullYear() > 0;

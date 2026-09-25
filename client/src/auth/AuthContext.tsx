@@ -10,6 +10,7 @@ import React, {
   useEffect,
   ReactNode,
   useCallback,
+  useRef,
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
@@ -60,47 +61,61 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setError(null);
   }, []);
 
-  // Fetch the app-specific profile for the current Supabase session
-  const loadProfile = useCallback(async () => {
-    try {
-      const response = await api.get("/api/auth/me");
-      if (!response.ok) {
-        throw new Error("Failed to fetch user data");
-      }
-      setUser(await response.json());
-    } catch (err) {
-      console.error("Failed to load profile:", err);
-      setUser(null);
+  // Supabase user id whose profile is loaded (or loading), and the in-flight
+  // request for it. Right after an OAuth redirect Supabase emits both
+  // INITIAL_SESSION and SIGNED_IN; without de-duping, the concurrent /me
+  // calls race to create the profile row on first login.
+  const profileUserIdRef = useRef<string | null>(null);
+  const profileRequestRef = useRef<Promise<void> | null>(null);
+
+  // Fetch the app-specific profile for the given Supabase user (once per user)
+  const loadProfile = useCallback((supabaseUserId: string) => {
+    if (profileUserIdRef.current === supabaseUserId && profileRequestRef.current) {
+      return profileRequestRef.current;
     }
+    profileUserIdRef.current = supabaseUserId;
+
+    const request = (async () => {
+      try {
+        const response = await api.get("/api/auth/me");
+        if (!response.ok) {
+          throw new Error("Failed to fetch user data");
+        }
+        setUser(await response.json());
+      } catch (err) {
+        console.error("Failed to load profile:", err);
+        setUser(null);
+        // Allow a later auth event to retry
+        profileUserIdRef.current = null;
+        profileRequestRef.current = null;
+      }
+    })();
+    profileRequestRef.current = request;
+    return request;
   }, []);
 
-  // On mount: pick up any existing Supabase session, then react to sign-in/out
+  // onAuthStateChange emits INITIAL_SESSION on subscribe (after any OAuth
+  // redirect in the URL has been processed), so it covers the existing-session
+  // case as well as later sign-in/out.
   useEffect(() => {
-    let isMounted = true;
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isMounted) return;
-      if (session) {
-        loadProfile().finally(() => isMounted && setIsLoading(false));
-      } else {
-        setIsLoading(false);
-      }
-    });
-
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        loadProfile();
-      } else {
+      if (!session) {
+        profileUserIdRef.current = null;
+        profileRequestRef.current = null;
         setUser(null);
+        setIsLoading(false);
+        return;
       }
+      // Deferred: supabase-js advises against calling its own methods (which
+      // api.get does, via getSession) from inside this callback.
+      setTimeout(() => {
+        loadProfile(session.user.id).finally(() => setIsLoading(false));
+      }, 0);
     });
 
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [loadProfile]);
 
   const login = useCallback(async () => {

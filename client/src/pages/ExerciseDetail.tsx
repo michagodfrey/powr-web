@@ -10,6 +10,7 @@ import VolumeChart from "../components/VolumeChart";
 import ErrorToast from "../components/ErrorToast";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { api } from "../utils/api";
+import { parseWorkoutDate } from "../utils/workoutDate";
 
 const MAX_NAME_LENGTH = 25;
 const MAX_DESCRIPTION_LENGTH = 200;
@@ -346,7 +347,7 @@ const ExerciseDetail = () => {
 
   // Formats date for display in workout history
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    return parseWorkoutDate(dateString).toLocaleDateString("en-US", {
       weekday: "short",
       year: "numeric",
       month: "short",

@@ -5,6 +5,7 @@ import { Set } from "../types";
 import { calculateTotalVolume } from "../utils/volumeCalculation";
 import { useVoiceInput } from "../hooks/useVoiceInput";
 import { parseVoiceInput } from "../utils/parseVoiceInput";
+import { todayLocal, toDateInputValue } from "../utils/workoutDate";
 
 interface WorkoutSetProps {
   onSave: (sets: Set[], date: string, sessionNotes: string) => void;
@@ -53,7 +54,7 @@ const WorkoutSet = ({
 
   // Initialize with provided date or current date in YYYY-MM-DD format
   const [date, setDate] = useState(
-    initialDate || new Date().toISOString().split("T")[0]
+    initialDate ? toDateInputValue(initialDate) : todayLocal()
   );
 
   // Session notes are collapsed by default unless there's already something to show
@@ -230,7 +231,7 @@ const WorkoutSet = ({
               value={date}
               onChange={(e) => setDate(e.target.value)}
               className="input-field"
-              max={new Date().toISOString().split("T")[0]}
+              max={todayLocal()}
               aria-label="Workout date"
             />
           </div>
