@@ -9,8 +9,8 @@ import WorkoutSet from "../components/WorkoutSet";
 import VolumeChart from "../components/VolumeChart";
 import ErrorToast from "../components/ErrorToast";
 import ConfirmDialog from "../components/ConfirmDialog";
+import WorkoutHistoryRow from "../components/WorkoutHistoryRow";
 import { api } from "../utils/api";
-import { parseWorkoutDate } from "../utils/workoutDate";
 
 const MAX_NAME_LENGTH = 25;
 const MAX_DESCRIPTION_LENGTH = 200;
@@ -345,16 +345,6 @@ const ExerciseDetail = () => {
     }
   };
 
-  // Formats date for display in workout history
-  const formatDate = (dateString: string) => {
-    return parseWorkoutDate(dateString).toLocaleDateString("en-US", {
-      weekday: "short",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   // Handles exercise name input changes with character limit
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value.slice(0, MAX_NAME_LENGTH);
@@ -640,82 +630,14 @@ const ExerciseDetail = () => {
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {exercise.workoutHistory.map((workout) => (
-              <div
+              <WorkoutHistoryRow
                 key={workout.id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6"
-              >
-                <div className="flex justify-between items-start mb-4 gap-2">
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-secondary dark:text-white">
-                      {formatDate(workout.date)}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {workout.sets.length} sets · Total Volume:{" "}
-                      {workout.totalVolume.toFixed(1)} {workout.unit}
-                    </p>
-                    {workout.notes && (
-                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 break-words">
-                        {workout.notes}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <button
-                      onClick={() => setWorkoutToEdit(workout)}
-                      className="h-10 w-10 flex items-center justify-center text-primary hover:text-primary-dark hover:bg-primary/5 rounded-lg transition-colors"
-                      aria-label="Edit workout"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => setWorkoutToDelete(workout.id)}
-                      className="h-10 w-10 flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                      aria-label="Delete workout"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {workout.sets.map((set, index) => (
-                    <div
-                      key={index}
-                      className="bg-gray-50 dark:bg-gray-700 p-3 rounded"
-                    >
-                      <div className="text-sm font-medium">Set {index + 1}</div>
-                      <div className="text-gray-600 dark:text-gray-300">
-                        {set.weight} {set.unit} × {set.reps} reps
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                workout={workout}
+                onEdit={setWorkoutToEdit}
+                onDelete={setWorkoutToDelete}
+              />
             ))}
           </div>
         )}

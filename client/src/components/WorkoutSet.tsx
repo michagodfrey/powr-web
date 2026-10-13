@@ -6,6 +6,13 @@ import { calculateTotalVolume } from "../utils/volumeCalculation";
 import { useVoiceInput } from "../hooks/useVoiceInput";
 import { parseVoiceInput } from "../utils/parseVoiceInput";
 import { todayLocal, toDateInputValue } from "../utils/workoutDate";
+import {
+  MIN_REPS,
+  MIN_WEIGHT,
+  SetInputErrors,
+  parseInputOrZero,
+  validateSetInputs,
+} from "../utils/setInputValidation";
 
 interface WorkoutSetProps {
   onSave: (sets: Set[], date: string, sessionNotes: string) => void;
@@ -15,6 +22,10 @@ interface WorkoutSetProps {
   initialNotes?: string;
   preferredUnit?: "kg" | "lb";
 }
+
+// Weight/reps are held as raw input text while editing so fields can be cleared
+// and retyped freely; they're validated and converted to numbers on save
+type SetDraft = Omit<Set, "weight" | "reps"> & { weight: string; reps: string };
 
 // Common set/rep schemes for quick selection
 const COMMON_SCHEMES = [
@@ -36,20 +47,25 @@ const WorkoutSet = ({
   // Use the original unit from the first set when editing, otherwise use preferred unit
   const displayUnit = isEditMode ? initialSets[0].unit : preferredUnit;
 
-  const [sets, setSets] = useState<Set[]>(
+  const [sets, setSets] = useState<SetDraft[]>(
     isEditMode
       ? initialSets.map((set, index) => ({
           ...set,
           id: Date.now() * 1000 + index, // Ensure unique ID for each initial set
-          weight:
-            typeof set.weight === "string"
-              ? parseFloat(set.weight)
-              : set.weight,
-          reps:
-            typeof set.reps === "string" ? parseInt(set.reps, 10) : set.reps,
+          weight: String(parseFloat(String(set.weight))),
+          reps: String(parseInt(String(set.reps), 10)),
           unit: set.unit || displayUnit, // Ensure unit is set
         }))
-      : [{ id: Date.now(), weight: 0, reps: 0, unit: displayUnit }]
+      : [{ id: Date.now(), weight: "", reps: "", unit: displayUnit }]
+  );
+
+  // Inline errors only appear after a save attempt, then update live as the user fixes them
+  const [showErrors, setShowErrors] = useState(false);
+  const errorsById: Record<number, SetInputErrors> = Object.fromEntries(
+    sets.map((set) => [set.id, validateSetInputs(set)])
+  );
+  const hasErrors = Object.values(errorsById).some(
+    (errors) => errors.weight || errors.reps
   );
 
   // Initialize with provided date or current date in YYYY-MM-DD format
@@ -94,8 +110,8 @@ const WorkoutSet = ({
       ...prev,
       {
         id: Date.now() * 1000 + prev.length,
-        weight: parsed.weight,
-        reps: parsed.reps,
+        weight: String(parsed.weight),
+        reps: String(parsed.reps),
         unit: displayUnit,
         setNumber: prev.length + 1,
       },
@@ -119,7 +135,13 @@ const WorkoutSet = ({
   // Calculate total volume using the utility function
   const getTotalVolume = () => {
     try {
-      return calculateTotalVolume(sets, preferredUnit);
+      // Blank or partially typed fields count as 0 so the preview never errors mid-edit
+      const numericSets = sets.map((set) => ({
+        ...set,
+        weight: parseInputOrZero(set.weight),
+        reps: Math.trunc(parseInputOrZero(set.reps)),
+      }));
+      return calculateTotalVolume(numericSets, preferredUnit);
     } catch (error) {
       console.error("Error calculating volume:", error);
       return 0;
@@ -134,8 +156,8 @@ const WorkoutSet = ({
       ...sets,
       {
         id: newId,
-        weight: lastSet?.weight || 0,
-        reps: lastSet?.reps || 0,
+        weight: lastSet?.weight ?? "",
+        reps: lastSet?.reps ?? "",
         unit: displayUnit,
         setNumber: sets.length + 1,
       },
@@ -148,38 +170,24 @@ const WorkoutSet = ({
   };
 
   // Update a set's values
-  const handleSetUpdate = (
-    id: number,
-    field: "weight" | "reps",
-    value: number | string
-  ) => {
-    // Convert value to appropriate type
-    const numericValue =
-      field === "weight"
-        ? parseFloat(value.toString())
-        : parseInt(value.toString(), 10);
-
-    // Only update if it's a valid number
-    if (!isNaN(numericValue)) {
-      setSets(
-        sets.map((set) =>
-          set.id === id ? { ...set, [field]: numericValue } : set
-        )
-      );
-    }
+  // Store the raw text so the field can be emptied and retyped without snapping back to 0
+  const handleSetUpdate = (id: number, field: "weight" | "reps", value: string) => {
+    setSets(
+      sets.map((set) => (set.id === id ? { ...set, [field]: value } : set))
+    );
   };
 
   // Apply a common set/rep scheme, using the entered weight (falling back to the current first-set weight)
   const applyScheme = (scheme: { sets: number; reps: number }) => {
-    const parsedWeight = parseFloat(schemeWeight);
-    const weight = schemeWeight.trim() !== "" && !isNaN(parsedWeight)
-      ? parsedWeight
-      : sets[0]?.weight || 0;
+    const weight =
+      schemeWeight.trim() !== "" && !isNaN(parseFloat(schemeWeight))
+        ? schemeWeight.trim()
+        : sets[0]?.weight ?? "";
     const baseTimestamp = Date.now() * 1000;
-    const newSets: Set[] = Array.from({ length: scheme.sets }, (_, index) => ({
+    const newSets: SetDraft[] = Array.from({ length: scheme.sets }, (_, index) => ({
       id: baseTimestamp + index, // Use index as offset for uniqueness
       weight,
-      reps: scheme.reps,
+      reps: String(scheme.reps),
       unit: displayUnit,
       setNumber: index + 1,
     }));
@@ -187,7 +195,16 @@ const WorkoutSet = ({
   };
 
   const handleSave = () => {
-    onSave(sets, date, sessionNotes);
+    if (hasErrors) {
+      setShowErrors(true);
+      return;
+    }
+    const numericSets: Set[] = sets.map((set) => ({
+      ...set,
+      weight: parseFloat(set.weight),
+      reps: parseInt(set.reps, 10),
+    }));
+    onSave(numericSets, date, sessionNotes);
   };
 
   // Sort sets by setNumber if available, otherwise by array index
@@ -351,10 +368,27 @@ const WorkoutSet = ({
                       onChange={(e) =>
                         handleSetUpdate(set.id, "weight", e.target.value)
                       }
-                      className="input-field py-2"
-                      min="0"
+                      onFocus={(e) => e.target.select()}
+                      placeholder="0"
+                      className={`input-field py-2 ${
+                        showErrors && errorsById[set.id]?.weight
+                          ? "border-red-500 dark:border-red-400"
+                          : ""
+                      }`}
+                      min={MIN_WEIGHT}
+                      step="any"
                       aria-label={`Weight for set ${index + 1}`}
+                      aria-invalid={showErrors && !!errorsById[set.id]?.weight}
+                      aria-describedby={`weight-error-${set.id}`}
                     />
+                    {showErrors && errorsById[set.id]?.weight && (
+                      <p
+                        id={`weight-error-${set.id}`}
+                        className="mt-1 text-xs text-red-600 dark:text-red-400"
+                      >
+                        {errorsById[set.id].weight}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label
@@ -371,10 +405,27 @@ const WorkoutSet = ({
                       onChange={(e) =>
                         handleSetUpdate(set.id, "reps", e.target.value)
                       }
-                      className="input-field py-2"
-                      min="0"
+                      onFocus={(e) => e.target.select()}
+                      placeholder="0"
+                      className={`input-field py-2 ${
+                        showErrors && errorsById[set.id]?.reps
+                          ? "border-red-500 dark:border-red-400"
+                          : ""
+                      }`}
+                      min={MIN_REPS}
+                      step="1"
                       aria-label={`Reps for set ${index + 1}`}
+                      aria-invalid={showErrors && !!errorsById[set.id]?.reps}
+                      aria-describedby={`reps-error-${set.id}`}
                     />
+                    {showErrors && errorsById[set.id]?.reps && (
+                      <p
+                        id={`reps-error-${set.id}`}
+                        className="mt-1 text-xs text-red-600 dark:text-red-400"
+                      >
+                        {errorsById[set.id].reps}
+                      </p>
+                    )}
                   </div>
                 </div>
                 {sets.length > 1 && (
@@ -445,6 +496,15 @@ const WorkoutSet = ({
               {getTotalVolume().toFixed(2)} {preferredUnit}
             </div>
           </div>
+
+          {showErrors && hasErrors && (
+            <div
+              className="mb-3 text-sm text-red-600 dark:text-red-400"
+              role="alert"
+            >
+              Every set needs weight and reps of at least 1.
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex items-center gap-2">
