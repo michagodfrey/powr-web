@@ -15,6 +15,7 @@ interface CreateExerciseOptions {
   description?: string;
   userId: string;
   isArchived?: boolean;
+  exerciseType?: "weighted" | "reps" | "timed";
 }
 
 interface CreateWorkoutOptions {

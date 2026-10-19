@@ -1,8 +1,16 @@
 // Modal component for recording or editing workout sets
-// Manages set/rep tracking with weight units and session notes
+// Manages set tracking for weighted (weight × reps), reps-only, and timed exercises,
+// with weight units and session notes
 import { useEffect, useRef, useState } from "react";
-import { Set } from "../types";
+import { ExerciseType, Set } from "../types";
 import { calculateTotalVolume } from "../utils/volumeCalculation";
+import {
+  formatDuration,
+  longestHold,
+  repsPerSet,
+  sumDuration,
+  sumReps,
+} from "../utils/exerciseMetrics";
 import { useVoiceInput } from "../hooks/useVoiceInput";
 import { parseVoiceInput } from "../utils/parseVoiceInput";
 import { todayLocal, toDateInputValue } from "../utils/workoutDate";
@@ -10,6 +18,7 @@ import {
   MIN_REPS,
   MIN_WEIGHT,
   SetInputErrors,
+  parseDurationInput,
   parseInputOrZero,
   validateSetInputs,
 } from "../utils/setInputValidation";
@@ -21,18 +30,59 @@ interface WorkoutSetProps {
   initialDate?: string;
   initialNotes?: string;
   preferredUnit?: "kg" | "lb";
+  exerciseType?: ExerciseType;
 }
 
-// Weight/reps are held as raw input text while editing so fields can be cleared
-// and retyped freely; they're validated and converted to numbers on save
-type SetDraft = Omit<Set, "weight" | "reps"> & { weight: string; reps: string };
+// Weight/reps/duration are held as raw input text while editing so fields can be
+// cleared and retyped freely; they're validated and converted to numbers on save.
+// Only the fields for the exercise's type are shown and saved.
+type SetDraft = Omit<Set, "weight" | "reps" | "durationSeconds"> & {
+  weight: string;
+  reps: string;
+  minutes: string;
+  seconds: string;
+};
 
-// Common set/rep schemes for quick selection
-const COMMON_SCHEMES = [
-  { name: "5x5", sets: 5, reps: 5 },
-  { name: "3x12", sets: 3, reps: 12 },
-  { name: "4x8", sets: 4, reps: 8 },
-];
+interface Scheme {
+  name: string;
+  sets: number;
+  reps?: number;
+  seconds?: number;
+}
+
+// Common schemes for quick selection, per exercise type
+const COMMON_SCHEMES: Record<ExerciseType, Scheme[]> = {
+  weighted: [
+    { name: "5x5", sets: 5, reps: 5 },
+    { name: "3x12", sets: 3, reps: 12 },
+    { name: "4x8", sets: 4, reps: 8 },
+  ],
+  reps: [
+    { name: "3x10", sets: 3, reps: 10 },
+    { name: "3x15", sets: 3, reps: 15 },
+    { name: "3x20", sets: 3, reps: 20 },
+  ],
+  timed: [
+    { name: "3 × 0:30", sets: 3, seconds: 30 },
+    { name: "3 × 0:45", sets: 3, seconds: 45 },
+    { name: "3 × 1:00", sets: 3, seconds: 60 },
+  ],
+};
+
+const SAVE_ERROR_MESSAGES: Record<ExerciseType, string> = {
+  weighted: "Every set needs weight and reps of at least 1.",
+  reps: "Every set needs at least 1 rep.",
+  timed: "Every set needs a time of at least 0:01.",
+};
+
+// Splits stored seconds into the minutes/seconds input text
+const toDurationDraft = (durationSeconds?: number | null) => {
+  if (!durationSeconds) return { minutes: "", seconds: "" };
+  return {
+    minutes: String(Math.floor(durationSeconds / 60)),
+    seconds: String(durationSeconds % 60),
+  };
+};
 
 const WorkoutSet = ({
   onSave,
@@ -41,8 +91,11 @@ const WorkoutSet = ({
   initialDate,
   initialNotes = "",
   preferredUnit = "kg",
+  exerciseType = "weighted",
 }: WorkoutSetProps) => {
   const isEditMode = initialSets.length > 0;
+  const isWeighted = exerciseType === "weighted";
+  const isTimed = exerciseType === "timed";
 
   // Use the original unit from the first set when editing, otherwise use preferred unit
   const displayUnit = isEditMode ? initialSets[0].unit : preferredUnit;
@@ -52,20 +105,30 @@ const WorkoutSet = ({
       ? initialSets.map((set, index) => ({
           ...set,
           id: Date.now() * 1000 + index, // Ensure unique ID for each initial set
-          weight: String(parseFloat(String(set.weight))),
-          reps: String(parseInt(String(set.reps), 10)),
+          weight: set.weight == null ? "" : String(parseFloat(String(set.weight))),
+          reps: set.reps == null ? "" : String(parseInt(String(set.reps), 10)),
+          ...toDurationDraft(set.durationSeconds),
           unit: set.unit || displayUnit, // Ensure unit is set
         }))
-      : [{ id: Date.now(), weight: "", reps: "", unit: displayUnit }]
+      : [
+          {
+            id: Date.now(),
+            weight: "",
+            reps: "",
+            minutes: "",
+            seconds: "",
+            unit: displayUnit,
+          },
+        ]
   );
 
   // Inline errors only appear after a save attempt, then update live as the user fixes them
   const [showErrors, setShowErrors] = useState(false);
   const errorsById: Record<number, SetInputErrors> = Object.fromEntries(
-    sets.map((set) => [set.id, validateSetInputs(set)])
+    sets.map((set) => [set.id, validateSetInputs(set, exerciseType)])
   );
   const hasErrors = Object.values(errorsById).some(
-    (errors) => errors.weight || errors.reps
+    (errors) => errors.weight || errors.reps || errors.duration
   );
 
   // Initialize with provided date or current date in YYYY-MM-DD format
@@ -112,6 +175,8 @@ const WorkoutSet = ({
         id: Date.now() * 1000 + prev.length,
         weight: String(parsed.weight),
         reps: String(parsed.reps),
+        minutes: "",
+        seconds: "",
         unit: displayUnit,
         setNumber: prev.length + 1,
       },
@@ -148,6 +213,12 @@ const WorkoutSet = ({
     }
   };
 
+  // Live numeric view of the drafts for the reps/time summaries (blank counts as 0)
+  const previewSets = sets.map((set) => ({
+    reps: Math.trunc(parseInputOrZero(set.reps)),
+    durationSeconds: parseDurationInput(set.minutes, set.seconds),
+  }));
+
   // Add a new set
   const handleAddSet = () => {
     const lastSet = sets[sets.length - 1];
@@ -158,6 +229,8 @@ const WorkoutSet = ({
         id: newId,
         weight: lastSet?.weight ?? "",
         reps: lastSet?.reps ?? "",
+        minutes: lastSet?.minutes ?? "",
+        seconds: lastSet?.seconds ?? "",
         unit: displayUnit,
         setNumber: sets.length + 1,
       },
@@ -171,14 +244,18 @@ const WorkoutSet = ({
 
   // Update a set's values
   // Store the raw text so the field can be emptied and retyped without snapping back to 0
-  const handleSetUpdate = (id: number, field: "weight" | "reps", value: string) => {
+  const handleSetUpdate = (
+    id: number,
+    field: "weight" | "reps" | "minutes" | "seconds",
+    value: string
+  ) => {
     setSets(
       sets.map((set) => (set.id === id ? { ...set, [field]: value } : set))
     );
   };
 
-  // Apply a common set/rep scheme, using the entered weight (falling back to the current first-set weight)
-  const applyScheme = (scheme: { sets: number; reps: number }) => {
+  // Apply a common scheme, using the entered weight (falling back to the current first-set weight)
+  const applyScheme = (scheme: Scheme) => {
     const weight =
       schemeWeight.trim() !== "" && !isNaN(parseFloat(schemeWeight))
         ? schemeWeight.trim()
@@ -186,8 +263,9 @@ const WorkoutSet = ({
     const baseTimestamp = Date.now() * 1000;
     const newSets: SetDraft[] = Array.from({ length: scheme.sets }, (_, index) => ({
       id: baseTimestamp + index, // Use index as offset for uniqueness
-      weight,
-      reps: String(scheme.reps),
+      weight: isWeighted ? weight : "",
+      reps: scheme.reps ? String(scheme.reps) : "",
+      ...toDurationDraft(scheme.seconds),
       unit: displayUnit,
       setNumber: index + 1,
     }));
@@ -199,11 +277,14 @@ const WorkoutSet = ({
       setShowErrors(true);
       return;
     }
-    const numericSets: Set[] = sets.map((set) => ({
-      ...set,
-      weight: parseFloat(set.weight),
-      reps: parseInt(set.reps, 10),
-    }));
+    const numericSets: Set[] = sets.map(
+      ({ minutes, seconds, weight, reps, ...set }) => ({
+        ...set,
+        weight: isWeighted ? parseFloat(weight) : null,
+        reps: isTimed ? null : parseInt(reps, 10),
+        durationSeconds: isTimed ? parseDurationInput(minutes, seconds) : null,
+      })
+    );
     onSave(numericSets, date, sessionNotes);
   };
 
@@ -259,7 +340,8 @@ const WorkoutSet = ({
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Quick Schemes
               </h3>
-              {isVoiceSupported && (
+              {/* Voice parsing expects "weight for reps", so it's weighted-only */}
+              {isVoiceSupported && isWeighted && (
                 <button
                   type="button"
                   onClick={isListening ? stopListening : startListening}
@@ -296,29 +378,31 @@ const WorkoutSet = ({
               </div>
             )}
 
-            <div className="flex items-end gap-2 mb-2">
-              <div className="w-28">
-                <label
-                  htmlFor="scheme-weight"
-                  className="block text-xs text-gray-500 dark:text-gray-400 mb-1"
-                >
-                  Weight ({displayUnit})
-                </label>
-                <input
-                  id="scheme-weight"
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  value={schemeWeight}
-                  onChange={(e) => setSchemeWeight(e.target.value)}
-                  placeholder="0"
-                  className="input-field py-2"
-                  aria-label={`Weight to apply for quick scheme, in ${displayUnit}`}
-                />
+            {isWeighted && (
+              <div className="flex items-end gap-2 mb-2">
+                <div className="w-28">
+                  <label
+                    htmlFor="scheme-weight"
+                    className="block text-xs text-gray-500 dark:text-gray-400 mb-1"
+                  >
+                    Weight ({displayUnit})
+                  </label>
+                  <input
+                    id="scheme-weight"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    value={schemeWeight}
+                    onChange={(e) => setSchemeWeight(e.target.value)}
+                    placeholder="0"
+                    className="input-field py-2"
+                    aria-label={`Weight to apply for quick scheme, in ${displayUnit}`}
+                  />
+                </div>
               </div>
-            </div>
+            )}
             <div className="flex flex-wrap gap-2">
-              {COMMON_SCHEMES.map((scheme) => (
+              {COMMON_SCHEMES[exerciseType].map((scheme) => (
                 <button
                   key={scheme.name}
                   onClick={() => applyScheme(scheme)}
@@ -337,7 +421,7 @@ const WorkoutSet = ({
             Sets
           </label>
           {/* Show notice about original units when editing */}
-          {isEditMode && displayUnit !== preferredUnit && (
+          {isWeighted && isEditMode && displayUnit !== preferredUnit && (
             <div className="mb-2 text-sm text-gray-600 dark:text-gray-400">
               This workout was recorded in {displayUnit}.{" "}
               {displayUnit === "kg" ? <>1 kg ≈ 2.20 lb</> : <>1 lb ≈ 0.45 kg</>}
@@ -352,81 +436,137 @@ const WorkoutSet = ({
                 <span className="font-mono text-sm text-gray-500 dark:text-gray-400 w-5 shrink-0 text-center">
                   {index + 1}
                 </span>
-                <div className="flex-1 grid grid-cols-2 gap-3">
-                  <div>
-                    <label
-                      htmlFor={`weight-${set.id}`}
-                      className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
-                    >
-                      Weight ({displayUnit})
-                    </label>
-                    <input
-                      id={`weight-${set.id}`}
-                      type="number"
-                      inputMode="decimal"
-                      value={set.weight}
-                      onChange={(e) =>
-                        handleSetUpdate(set.id, "weight", e.target.value)
-                      }
-                      onFocus={(e) => e.target.select()}
-                      placeholder="0"
-                      className={`input-field py-2 ${
-                        showErrors && errorsById[set.id]?.weight
-                          ? "border-red-500 dark:border-red-400"
-                          : ""
-                      }`}
-                      min={MIN_WEIGHT}
-                      step="any"
-                      aria-label={`Weight for set ${index + 1}`}
-                      aria-invalid={showErrors && !!errorsById[set.id]?.weight}
-                      aria-describedby={`weight-error-${set.id}`}
-                    />
-                    {showErrors && errorsById[set.id]?.weight && (
-                      <p
-                        id={`weight-error-${set.id}`}
-                        className="mt-1 text-xs text-red-600 dark:text-red-400"
+                <div
+                  className={`flex-1 grid gap-3 ${
+                    exerciseType === "reps" ? "grid-cols-1" : "grid-cols-2"
+                  }`}
+                >
+                  {isTimed && (
+                    <>
+                      {(["minutes", "seconds"] as const).map((part) => (
+                        <div key={part}>
+                          <label
+                            htmlFor={`${part}-${set.id}`}
+                            className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
+                          >
+                            {part === "minutes" ? "Min" : "Sec"}
+                          </label>
+                          <input
+                            id={`${part}-${set.id}`}
+                            type="number"
+                            inputMode="numeric"
+                            value={set[part]}
+                            onChange={(e) =>
+                              handleSetUpdate(set.id, part, e.target.value)
+                            }
+                            onFocus={(e) => e.target.select()}
+                            placeholder={part === "minutes" ? "0" : "00"}
+                            className={`input-field py-2 ${
+                              showErrors && errorsById[set.id]?.duration
+                                ? "border-red-500 dark:border-red-400"
+                                : ""
+                            }`}
+                            min="0"
+                            max={part === "seconds" ? 59 : undefined}
+                            step="1"
+                            aria-label={`${
+                              part === "minutes" ? "Minutes" : "Seconds"
+                            } for set ${index + 1}`}
+                            aria-invalid={
+                              showErrors && !!errorsById[set.id]?.duration
+                            }
+                            aria-describedby={`duration-error-${set.id}`}
+                          />
+                        </div>
+                      ))}
+                      {showErrors && errorsById[set.id]?.duration && (
+                        <p
+                          id={`duration-error-${set.id}`}
+                          className="col-span-2 -mt-2 text-xs text-red-600 dark:text-red-400"
+                        >
+                          {errorsById[set.id].duration}
+                        </p>
+                      )}
+                    </>
+                  )}
+                  {isWeighted && (
+                    <div>
+                      <label
+                        htmlFor={`weight-${set.id}`}
+                        className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
                       >
-                        {errorsById[set.id].weight}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label
-                      htmlFor={`reps-${set.id}`}
-                      className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
-                    >
-                      Reps
-                    </label>
-                    <input
-                      id={`reps-${set.id}`}
-                      type="number"
-                      inputMode="numeric"
-                      value={set.reps}
-                      onChange={(e) =>
-                        handleSetUpdate(set.id, "reps", e.target.value)
-                      }
-                      onFocus={(e) => e.target.select()}
-                      placeholder="0"
-                      className={`input-field py-2 ${
-                        showErrors && errorsById[set.id]?.reps
-                          ? "border-red-500 dark:border-red-400"
-                          : ""
-                      }`}
-                      min={MIN_REPS}
-                      step="1"
-                      aria-label={`Reps for set ${index + 1}`}
-                      aria-invalid={showErrors && !!errorsById[set.id]?.reps}
-                      aria-describedby={`reps-error-${set.id}`}
-                    />
-                    {showErrors && errorsById[set.id]?.reps && (
-                      <p
-                        id={`reps-error-${set.id}`}
-                        className="mt-1 text-xs text-red-600 dark:text-red-400"
+                        Weight ({displayUnit})
+                      </label>
+                      <input
+                        id={`weight-${set.id}`}
+                        type="number"
+                        inputMode="decimal"
+                        value={set.weight}
+                        onChange={(e) =>
+                          handleSetUpdate(set.id, "weight", e.target.value)
+                        }
+                        onFocus={(e) => e.target.select()}
+                        placeholder="0"
+                        className={`input-field py-2 ${
+                          showErrors && errorsById[set.id]?.weight
+                            ? "border-red-500 dark:border-red-400"
+                            : ""
+                        }`}
+                        min={MIN_WEIGHT}
+                        step="any"
+                        aria-label={`Weight for set ${index + 1}`}
+                        aria-invalid={showErrors && !!errorsById[set.id]?.weight}
+                        aria-describedby={`weight-error-${set.id}`}
+                      />
+                      {showErrors && errorsById[set.id]?.weight && (
+                        <p
+                          id={`weight-error-${set.id}`}
+                          className="mt-1 text-xs text-red-600 dark:text-red-400"
+                        >
+                          {errorsById[set.id].weight}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {!isTimed && (
+                    <div>
+                      <label
+                        htmlFor={`reps-${set.id}`}
+                        className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
                       >
-                        {errorsById[set.id].reps}
-                      </p>
-                    )}
-                  </div>
+                        Reps
+                      </label>
+                      <input
+                        id={`reps-${set.id}`}
+                        type="number"
+                        inputMode="numeric"
+                        value={set.reps}
+                        onChange={(e) =>
+                          handleSetUpdate(set.id, "reps", e.target.value)
+                        }
+                        onFocus={(e) => e.target.select()}
+                        placeholder="0"
+                        className={`input-field py-2 ${
+                          showErrors && errorsById[set.id]?.reps
+                            ? "border-red-500 dark:border-red-400"
+                            : ""
+                        }`}
+                        min={MIN_REPS}
+                        step="1"
+                        aria-label={`Reps for set ${index + 1}`}
+                        aria-invalid={showErrors && !!errorsById[set.id]?.reps}
+                        aria-describedby={`reps-error-${set.id}`}
+                      />
+                      {showErrors && errorsById[set.id]?.reps && (
+                        <p
+                          id={`reps-error-${set.id}`}
+                          className="mt-1 text-xs text-red-600 dark:text-red-400"
+                        >
+                          {errorsById[set.id].reps}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 {sets.length > 1 && (
                   <button
@@ -487,14 +627,25 @@ const WorkoutSet = ({
 
         {/* Footer */}
         <div className="p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
-          {/* Total volume */}
+          {/* Running total: volume, reps (with reps-per-set ratio), or time */}
           <div className="mb-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
             <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Total Volume
+              {isWeighted ? "Total Volume" : isTimed ? "Total Time" : "Total Reps"}
             </div>
             <div className="text-2xl font-bold text-primary">
-              {getTotalVolume().toFixed(2)} {preferredUnit}
+              {isWeighted && <>{getTotalVolume().toFixed(2)} {preferredUnit}</>}
+              {exerciseType === "reps" && sumReps(previewSets)}
+              {isTimed &&
+                formatDuration(sumDuration(previewSets))}
             </div>
+            {!isWeighted && (
+              <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                {sets.length} {sets.length === 1 ? "set" : "sets"} ·{" "}
+                {isTimed
+                  ? `longest ${formatDuration(longestHold(previewSets))}`
+                  : `${repsPerSet(previewSets).toFixed(1)} reps/set`}
+              </div>
+            )}
           </div>
 
           {showErrors && hasErrors && (
@@ -502,7 +653,7 @@ const WorkoutSet = ({
               className="mb-3 text-sm text-red-600 dark:text-red-400"
               role="alert"
             >
-              Every set needs weight and reps of at least 1.
+              {SAVE_ERROR_MESSAGES[exerciseType]}
             </div>
           )}
 

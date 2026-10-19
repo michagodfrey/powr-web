@@ -14,7 +14,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "setup:db": "ts-node src/scripts/setup-database.ts"
+    "setup:db": "ts-node src/scripts/setup-database.ts",
+    "migrate": "ts-node src/scripts/migrate.ts"
   },
   "keywords": [],
   "author": "",

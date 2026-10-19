@@ -1,5 +1,6 @@
 // Individual set model representing a single set within a workout session
-// Tracks weight, reps, and calculated volume with unit conversion support
+// Tracks weight, reps, and/or duration depending on the exercise type, plus the
+// set's contribution to its session total
 import { Model, DataTypes, Sequelize } from "sequelize";
 import { WorkoutSession } from "./WorkoutSession";
 
@@ -7,10 +8,11 @@ export interface SetAttributes {
   id: number;
   sessionId: number; // References the parent workout session
   setNumber: number; // Order of the set within the session
-  weight: number; // Weight used in the set
-  reps: number; // Number of repetitions performed
+  weight: number | null; // Weight used in the set (weighted exercises only)
+  reps: number | null; // Number of repetitions performed (weighted and reps exercises)
+  durationSeconds?: number | null; // Time held (timed exercises only)
   unit: "kg" | "lb"; // Weight unit (kilograms or pounds)
-  volume: number; // Calculated volume (weight * reps)
+  volume: number; // Set's metric: weight * reps, reps, or seconds by exercise type
   notes?: string; // Optional notes for the set
   createdAt?: Date;
   updatedAt?: Date;
@@ -26,8 +28,9 @@ class Set
   public id!: number;
   public sessionId!: number;
   public setNumber!: number;
-  public weight!: number;
-  public reps!: number;
+  public weight!: number | null;
+  public reps!: number | null;
+  public durationSeconds!: number | null;
   public unit!: "kg" | "lb";
   public volume!: number;
   public notes!: string;
@@ -59,11 +62,16 @@ class Set
         },
         weight: {
           type: DataTypes.DECIMAL(6, 2),
-          allowNull: false,
+          allowNull: true,
         },
         reps: {
           type: DataTypes.INTEGER,
-          allowNull: false,
+          allowNull: true,
+        },
+        durationSeconds: {
+          type: DataTypes.INTEGER,
+          allowNull: true,
+          field: "duration_seconds",
         },
         unit: {
           type: DataTypes.STRING(2),

@@ -128,8 +128,13 @@ const Dashboard = () => {
                   {exercise.description}
                 </p>
               )}
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                {exercise.workoutHistory?.length || 0} workout sessions
+              <div className="flex items-center justify-between gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <span>{exercise.workoutHistory?.length || 0} workout sessions</span>
+                {exercise.exerciseType && exercise.exerciseType !== "weighted" && (
+                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary dark:bg-primary/20">
+                    {exercise.exerciseType === "timed" ? "Timed" : "Reps"}
+                  </span>
+                )}
               </div>
             </div>
           ))

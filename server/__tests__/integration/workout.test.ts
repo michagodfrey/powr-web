@@ -60,6 +60,95 @@ describe("Workout Flow Integration", () => {
     });
   });
 
+  describe("Exercise Types", () => {
+    const authHeaderFor = (user: { id: string; email: string; preferredUnit: string }) => ({
+      "x-test-auth": JSON.stringify({
+        id: user.id,
+        email: user.email,
+        preferredUnit: user.preferredUnit,
+      }),
+    });
+
+    it("should total reps for a reps exercise and drop any weight", async () => {
+      const user = await createTestUser();
+      const exercise = await createTestExercise({
+        userId: user.id,
+        exerciseType: "reps",
+      });
+
+      const res = await request(app)
+        .post("/api/workouts")
+        .set(authHeaderFor(user))
+        .send({
+          exerciseId: exercise.id,
+          date: new Date().toISOString(),
+          sets: [
+            { reps: 20, unit: "kg" },
+            { reps: 15, weight: 10, unit: "kg" },
+          ],
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.workoutSession.totalVolume).toBe(35);
+      expect(
+        res.body.data.workoutSession.sets.every((set: any) => set.weight === null)
+      ).toBe(true);
+    });
+
+    it("should total seconds for a timed exercise", async () => {
+      const user = await createTestUser();
+      const exercise = await createTestExercise({
+        userId: user.id,
+        exerciseType: "timed",
+      });
+
+      const res = await request(app)
+        .post("/api/workouts")
+        .set(authHeaderFor(user))
+        .send({
+          exerciseId: exercise.id,
+          date: new Date().toISOString(),
+          sets: [
+            { durationSeconds: 60, unit: "kg" },
+            { durationSeconds: 45, unit: "kg" },
+          ],
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.workoutSession.totalVolume).toBe(105);
+    });
+
+    it("should reject sets missing the field their type requires", async () => {
+      const user = await createTestUser();
+      const exercise = await createTestExercise({
+        userId: user.id,
+        exerciseType: "timed",
+      });
+
+      const res = await request(app)
+        .post("/api/workouts")
+        .set(authHeaderFor(user))
+        .send({
+          exerciseId: exercise.id,
+          date: new Date().toISOString(),
+          sets: [{ reps: 10, unit: "kg" }],
+        });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("should reject an unknown exercise type", async () => {
+      const user = await createTestUser();
+
+      const res = await request(app)
+        .post("/api/exercises")
+        .set(authHeaderFor(user))
+        .send({ name: `Plank ${Date.now()}`, exerciseType: "distance" });
+
+      expect(res.status).toBe(400);
+    });
+  });
+
   describe("Error Handling", () => {
     it("should handle invalid exercise creation", async () => {
       const user = await createTestUser();

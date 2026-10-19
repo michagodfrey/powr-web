@@ -6,20 +6,17 @@ import { AppError } from "../middleware/errorHandler";
 import { Exercise } from "../models/Exercise";
 import { WorkoutSession } from "../models/WorkoutSession";
 import { Set } from "../models/Set";
-import { SetCreationAttributes } from "../models/Set";
+import { buildSetsForExercise } from "../utils/exerciseMetrics";
 
-interface SetData {
-  weight: number;
-  reps: number;
-  notes?: string;
-  unit: "kg" | "lb";
-}
-
-interface SetWithVolume extends SetData {
-  volume: number;
-  setNumber: number;
-  sessionId: number;
-}
+const SET_ATTRIBUTES = [
+  "weight",
+  "reps",
+  "durationSeconds",
+  "notes",
+  "unit",
+  "volume",
+  "setNumber",
+];
 
 // Create a new workout
 export const createWorkout = async (
@@ -60,19 +57,14 @@ export const createWorkout = async (
       timestamp: new Date().toISOString(),
     });
 
-    // Calculate total volume and ensure all sets have units
+    // Keep the fields this exercise type uses, calculate the session total,
+    // and ensure all sets have units
     const unit = (req.jwtUser as any)?.preferredUnit || "kg";
-    let totalVolume = 0;
-    const setsWithVolume = sets.map((set: SetData, index: number) => {
-      const volume = set.weight * set.reps;
-      totalVolume += volume;
-      return {
-        ...set,
-        unit: set.unit || unit,
-        volume,
-        setNumber: index + 1,
-      };
-    });
+    const { sets: setsWithVolume, total: totalVolume } = buildSetsForExercise(
+      exercise.exerciseType,
+      sets,
+      unit
+    );
 
     console.log("[Workout] Calculated volume:", {
       totalVolume,
@@ -99,16 +91,8 @@ export const createWorkout = async (
 
     // Create sets
     await Promise.all(
-      setsWithVolume.map((setData: SetWithVolume) =>
-        Set.create({
-          sessionId: workoutSession.id,
-          weight: setData.weight,
-          reps: setData.reps,
-          unit: setData.unit,
-          volume: setData.volume,
-          setNumber: setData.setNumber,
-          notes: setData.notes,
-        })
+      setsWithVolume.map((setData) =>
+        Set.create({ ...setData, sessionId: workoutSession.id })
       )
     );
 
@@ -124,14 +108,7 @@ export const createWorkout = async (
         {
           model: Set,
           as: "sets",
-          attributes: [
-            "weight",
-            "reps",
-            "notes",
-            "unit",
-            "volume",
-            "setNumber",
-          ],
+          attributes: SET_ATTRIBUTES,
         },
       ],
     });
@@ -200,14 +177,7 @@ export const getWorkouts = async (
         {
           model: Set,
           as: "sets",
-          attributes: [
-            "weight",
-            "reps",
-            "notes",
-            "unit",
-            "volume",
-            "setNumber",
-          ],
+          attributes: SET_ATTRIBUTES,
         },
       ],
       order: [["date", "DESC"]],
@@ -251,14 +221,7 @@ export const getWorkout = async (
         {
           model: Set,
           as: "sets",
-          attributes: [
-            "weight",
-            "reps",
-            "notes",
-            "unit",
-            "volume",
-            "setNumber",
-          ],
+          attributes: SET_ATTRIBUTES,
         },
       ],
     });
@@ -308,37 +271,28 @@ export const updateWorkout = async (
 
     // Update sets if provided
     if (sets && sets.length > 0) {
+      const exercise = await Exercise.findByPk(workoutSession.exerciseId);
+      if (!exercise) {
+        throw new AppError("Exercise not found", 404);
+      }
+
+      // Calculate new total before touching existing sets, so an invalid
+      // payload can't leave the session with its sets deleted
+      const { sets: setsWithVolume, total: totalVolume } = buildSetsForExercise(
+        exercise.exerciseType,
+        sets,
+        workoutSession.unit
+      );
+
       // Delete existing sets
       await Set.destroy({
         where: { sessionId: workoutSession.id },
       });
 
-      // Calculate new total volume
-      let totalVolume = 0;
-      const setsWithVolume = sets.map((set: SetData, index: number) => {
-        const volume = set.weight * set.reps;
-        totalVolume += volume;
-        return {
-          ...set,
-          unit: set.unit || workoutSession.unit,
-          volume,
-          setNumber: index + 1,
-          sessionId: workoutSession.id,
-        };
-      });
-
       // Create new sets
       await Promise.all(
-        setsWithVolume.map((setData: SetWithVolume) =>
-          Set.create({
-            sessionId: workoutSession.id,
-            weight: setData.weight,
-            reps: setData.reps,
-            unit: setData.unit,
-            volume: setData.volume,
-            setNumber: setData.setNumber,
-            notes: setData.notes,
-          })
+        setsWithVolume.map((setData) =>
+          Set.create({ ...setData, sessionId: workoutSession.id })
         )
       );
 
@@ -356,14 +310,7 @@ export const updateWorkout = async (
         {
           model: Set,
           as: "sets",
-          attributes: [
-            "weight",
-            "reps",
-            "notes",
-            "unit",
-            "volume",
-            "setNumber",
-          ],
+          attributes: SET_ATTRIBUTES,
         },
       ],
     });
@@ -444,14 +391,7 @@ export const getWorkoutsByExercise = async (
         {
           model: Set,
           as: "sets",
-          attributes: [
-            "weight",
-            "reps",
-            "notes",
-            "unit",
-            "volume",
-            "setNumber",
-          ],
+          attributes: SET_ATTRIBUTES,
         },
       ],
       order: [["date", "DESC"]],

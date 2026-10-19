@@ -11,6 +11,7 @@ import ErrorToast from "../components/ErrorToast";
 import ConfirmDialog from "../components/ConfirmDialog";
 import WorkoutHistoryRow from "../components/WorkoutHistoryRow";
 import { api } from "../utils/api";
+import { getExerciseType } from "../utils/exerciseMetrics";
 
 const MAX_NAME_LENGTH = 25;
 const MAX_DESCRIPTION_LENGTH = 200;
@@ -205,6 +206,7 @@ const ExerciseDetail = () => {
         sets: sets.map((set) => ({
           weight: set.weight,
           reps: set.reps,
+          durationSeconds: set.durationSeconds,
           notes: set.notes,
           unit: set.unit || preferences.preferredUnit,
         })),
@@ -265,6 +267,7 @@ const ExerciseDetail = () => {
         sets: sets.map((set) => ({
           weight: set.weight,
           reps: set.reps,
+          durationSeconds: set.durationSeconds,
           notes: set.notes,
           unit: set.unit,
         })),
@@ -388,6 +391,8 @@ const ExerciseDetail = () => {
     );
   }
 
+  const exerciseType = getExerciseType(exercise);
+
   return (
     <div className="container mx-auto px-4 py-4 sm:py-8">
       {/* Header */}
@@ -453,6 +458,11 @@ const ExerciseDetail = () => {
                 <h1 className="text-2xl sm:text-3xl font-bold text-secondary dark:text-white break-words">
                   {exercise?.name}
                 </h1>
+                {exerciseType !== "weighted" && (
+                  <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary dark:bg-primary/20">
+                    {exerciseType === "timed" ? "Timed" : "Reps"}
+                  </span>
+                )}
                 {exercise?.description && (
                   <p className="text-gray-600 dark:text-gray-400 mt-2 break-words overflow-wrap-anywhere">
                     {exercise.description}
@@ -608,6 +618,7 @@ const ExerciseDetail = () => {
           <VolumeChart
             workouts={exercise.workoutHistory}
             unit={preferences.preferredUnit}
+            exerciseType={exerciseType}
           />
         </div>
       )}
@@ -635,6 +646,7 @@ const ExerciseDetail = () => {
               <WorkoutHistoryRow
                 key={workout.id}
                 workout={workout}
+                exerciseType={exerciseType}
                 onEdit={setWorkoutToEdit}
                 onDelete={setWorkoutToDelete}
               />
@@ -652,6 +664,7 @@ const ExerciseDetail = () => {
           initialDate={workoutToEdit?.date}
           initialNotes={workoutToEdit?.notes}
           preferredUnit={preferences.preferredUnit}
+          exerciseType={exerciseType}
         />
       )}
 

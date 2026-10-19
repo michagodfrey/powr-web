@@ -69,10 +69,13 @@ CREATE TABLE exercises (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
+    -- weighted: weight × reps (volume); reps: bodyweight reps only; timed: holds measured in seconds
+    exercise_type VARCHAR(10) NOT NULL DEFAULT 'weighted',
     is_archived BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT exercises_user_id_name_unique UNIQUE (user_id, name)
+    CONSTRAINT exercises_user_id_name_unique UNIQUE (user_id, name),
+    CONSTRAINT chk_exercise_type CHECK (exercise_type IN ('weighted', 'reps', 'timed'))
 );
 
 ALTER TABLE exercises ENABLE ROW LEVEL SECURITY;
@@ -93,6 +96,7 @@ CREATE TABLE workout_sessions (
     exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
     date DATE NOT NULL,
     notes TEXT,
+    -- Session headline metric by exercise type: volume (weighted), total reps (reps), total seconds (timed)
     total_volume DECIMAL(10,2) NOT NULL,
     unit VARCHAR(2) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -116,16 +120,21 @@ CREATE TABLE sets (
     id SERIAL PRIMARY KEY,
     session_id INTEGER NOT NULL REFERENCES workout_sessions(id) ON DELETE CASCADE,
     set_number INTEGER NOT NULL,
-    weight DECIMAL(6,2) NOT NULL,
-    reps INTEGER NOT NULL,
+    -- Which of weight/reps/duration_seconds are filled depends on the exercise's type
+    weight DECIMAL(6,2),
+    reps INTEGER,
+    duration_seconds INTEGER,
     unit VARCHAR(2) NOT NULL,
+    -- The set's contribution to its session total: weight × reps, reps, or seconds
     volume DECIMAL(10,2) NOT NULL,
     notes TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_unit CHECK (unit IN ('kg', 'lb')),
-    CONSTRAINT chk_weight_positive CHECK (weight > 0),
-    CONSTRAINT chk_reps_positive CHECK (reps > 0)
+    CONSTRAINT chk_weight_positive CHECK (weight IS NULL OR weight > 0),
+    CONSTRAINT chk_reps_positive CHECK (reps IS NULL OR reps > 0),
+    CONSTRAINT chk_duration_positive CHECK (duration_seconds IS NULL OR duration_seconds > 0),
+    CONSTRAINT chk_reps_or_duration CHECK (reps IS NOT NULL OR duration_seconds IS NOT NULL)
 );
 
 ALTER TABLE sets ENABLE ROW LEVEL SECURITY;

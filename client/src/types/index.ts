@@ -1,11 +1,17 @@
 // TypeScript allows us to define interfaces - blueprints for object shapes
 // This is similar to PropTypes in JavaScript, but with compile-time checking
 
+// How an exercise's sets are measured:
+// weighted = weight × reps (volume), reps = bodyweight reps only, timed = holds in seconds
+export type ExerciseType = "weighted" | "reps" | "timed";
+
 // Represents a single exercise set
+// Which of weight/reps/durationSeconds are filled depends on the exercise type
 export interface Set {
   id: number;
-  weight: number;
-  reps: number;
+  weight: number | null;
+  reps: number | null;
+  durationSeconds?: number | null;
   // The '?' makes this property optional
   notes?: string;
   // Union type: can be either 'kg' or 'lb'
@@ -23,6 +29,7 @@ export interface WorkoutSession {
   exerciseId: number;
   date: string;
   notes?: string;
+  // Headline metric by exercise type: volume, total reps, or total seconds
   totalVolume: number;
   unit: "kg" | "lb";
   sets: Set[];
@@ -35,6 +42,8 @@ export interface Exercise {
   id: number;
   name: string;
   description?: string;
+  // Older API responses may omit this; treat missing as "weighted"
+  exerciseType?: ExerciseType;
   // Generic type Array<WorkoutSession> is equivalent to WorkoutSession[]
   workoutHistory: Array<WorkoutSession>;
 }

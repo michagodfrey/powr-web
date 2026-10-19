@@ -12,15 +12,18 @@ export const createExercise = async (
   next: NextFunction
 ) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, exerciseType } = req.body;
     if (!req.jwtUser) {
       throw new AppError("Not authenticated", 401);
     }
     const userId = req.jwtUser.id;
 
+    // Type is fixed at creation — updateExercise ignores it, since changing it
+    // would orphan the meaning of already-recorded sets
     const exercise = await Exercise.create({
       name,
       description,
+      exerciseType: exerciseType || "weighted",
       userId,
       isArchived: false,
     });

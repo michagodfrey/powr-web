@@ -1,14 +1,53 @@
 // Collapsible row in an exercise's workout history
-// Shows date and total volume; expands to reveal notes and per-set weight/reps
+// Shows date and the session total (volume, reps, or time by exercise type);
+// expands to reveal notes and per-set details
 import { useState } from "react";
-import { WorkoutSession } from "../types";
+import { ExerciseType, Set, WorkoutSession } from "../types";
 import { parseWorkoutDate } from "../utils/workoutDate";
+import {
+  formatDuration,
+  repsPerSet,
+  sumDuration,
+  sumReps,
+} from "../utils/exerciseMetrics";
 
 interface WorkoutHistoryRowProps {
   workout: WorkoutSession;
+  exerciseType?: ExerciseType;
   onEdit: (workout: WorkoutSession) => void;
   onDelete: (workoutId: number) => void;
 }
+
+// One-line session total for the collapsed row
+const formatSessionSummary = (
+  workout: WorkoutSession,
+  exerciseType: ExerciseType
+) => {
+  switch (exerciseType) {
+    case "reps":
+      return `Total Reps: ${sumReps(workout.sets)} · ${repsPerSet(
+        workout.sets
+      ).toFixed(1)} reps/set`;
+    case "timed":
+      return `Total Time: ${formatDuration(sumDuration(workout.sets))}`;
+    case "weighted":
+    default:
+      return `Total Volume: ${workout.totalVolume.toFixed(1)} ${workout.unit}`;
+  }
+};
+
+// Per-set detail for the expanded row
+const formatSetDetail = (set: Set, exerciseType: ExerciseType) => {
+  switch (exerciseType) {
+    case "reps":
+      return `${set.reps} reps`;
+    case "timed":
+      return formatDuration(set.durationSeconds ?? 0);
+    case "weighted":
+    default:
+      return `${set.weight} ${set.unit} × ${set.reps} reps`;
+  }
+};
 
 // Formats date for display in workout history
 const formatDate = (dateString: string) =>
@@ -21,6 +60,7 @@ const formatDate = (dateString: string) =>
 
 const WorkoutHistoryRow = ({
   workout,
+  exerciseType = "weighted",
   onEdit,
   onDelete,
 }: WorkoutHistoryRowProps) => {
@@ -59,7 +99,7 @@ const WorkoutHistoryRow = ({
               {formatDate(workout.date)}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Total Volume: {workout.totalVolume.toFixed(1)} {workout.unit}
+              {formatSessionSummary(workout, exerciseType)}
               <span className="text-gray-400 dark:text-gray-500">
                 {" "}
                 · {workout.sets.length}{" "}
@@ -130,7 +170,7 @@ const WorkoutHistoryRow = ({
                   Set {index + 1}
                 </span>
                 <span className="text-gray-600 dark:text-gray-300">
-                  {set.weight} {set.unit} × {set.reps} reps
+                  {formatSetDetail(set, exerciseType)}
                 </span>
               </li>
             ))}

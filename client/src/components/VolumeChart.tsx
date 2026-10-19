@@ -1,4 +1,5 @@
-// Interactive chart component for visualizing workout volume over time
+// Interactive chart component for visualizing progress over time: volume for
+// weighted exercises, total reps for reps exercises, total time for timed ones
 // Supports line/bar views and provides statistical analysis of progress
 import { Line, Bar } from "react-chartjs-2";
 import {
@@ -15,9 +16,17 @@ import {
   ChartOptions,
   Filler,
 } from "chart.js";
-import { WorkoutSession, DateRangeState } from "../types";
+import { WorkoutSession, DateRangeState, ExerciseType } from "../types";
 import { useState, useMemo } from "react";
-import { normalizeVolume, convertWeight } from "../utils/volumeCalculation";
+import {
+  formatDuration,
+  formatMetric,
+  getMetricName,
+  getSessionValue,
+  longestHold,
+  maxRepsInSet,
+  repsPerSet,
+} from "../utils/exerciseMetrics";
 import { parseWorkoutDate } from "../utils/workoutDate";
 import { Slider } from "@mui/material";
 import { styled } from "@mui/material/styles";
@@ -38,11 +47,18 @@ ChartJS.register(
 interface VolumeChartProps {
   workouts: WorkoutSession[];
   unit: "kg" | "lb";
+  exerciseType?: ExerciseType;
 }
 
 type ChartType = "line" | "bar";
 
+// "Volume" here is the exercise type's headline value: volume, total reps, or seconds
 interface Stats {
+  // Reps exercises: average reps per set; timed: longest single hold (seconds)
+  setMetric: number;
+  // Reps exercises: highest reps in any single set, and when it happened
+  bestSet: number;
+  bestSetDate: Date | null;
   totalVolume: number;
   averageVolume: number;
   maxVolume: number;
@@ -86,7 +102,11 @@ const CustomSlider = styled(Slider)(() => ({
   },
 }));
 
-const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
+const VolumeChart = ({
+  workouts,
+  unit,
+  exerciseType = "weighted",
+}: VolumeChartProps) => {
   const [chartType, setChartType] = useState<ChartType>("line");
   const [showStats, setShowStats] = useState(true);
 
@@ -168,6 +188,9 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
   const stats: Stats = useMemo(() => {
     if (filteredWorkouts.length === 0) {
       return {
+        setMetric: 0,
+        bestSet: 0,
+        bestSetDate: null,
         totalVolume: 0,
         averageVolume: 0,
         maxVolume: 0,
@@ -179,17 +202,26 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
     }
 
     try {
-      // Normalize volumes and convert to target unit if needed
-      const volumes = filteredWorkouts.map((workout) => {
-        const normalizedVolume = normalizeVolume(workout.totalVolume);
-        return {
-          volume:
-            workout.unit === unit
-              ? normalizedVolume
-              : convertWeight(normalizedVolume, workout.unit, unit),
-          date: parseWorkoutDate(workout.date),
-        };
-      });
+      // Each session's headline value (volume in the target unit, reps, or seconds)
+      const volumes = filteredWorkouts.map((workout) => ({
+        volume: getSessionValue(workout, exerciseType, unit),
+        date: parseWorkoutDate(workout.date),
+      }));
+
+      const allSets = filteredWorkouts.flatMap((workout) => workout.sets);
+      const setMetric =
+        exerciseType === "timed" ? longestHold(allSets) : repsPerSet(allSets);
+
+      // Session holding the highest single-set rep count (first one wins ties)
+      const bestSetEntry = filteredWorkouts.reduce(
+        (best, workout) => {
+          const reps = maxRepsInSet(workout.sets);
+          return reps > best.reps
+            ? { reps, date: parseWorkoutDate(workout.date) }
+            : best;
+        },
+        { reps: 0, date: parseWorkoutDate(filteredWorkouts[0].date) },
+      );
 
       const total = volumes.reduce((sum, { volume }) => sum + volume, 0);
       const maxVolumeEntry = volumes.reduce(
@@ -219,6 +251,9 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
         ) + 1;
 
       return {
+        setMetric,
+        bestSet: bestSetEntry.reps,
+        bestSetDate: bestSetEntry.reps > 0 ? bestSetEntry.date : null,
         totalVolume: Number(total.toFixed(2)),
         averageVolume: Number(avg.toFixed(2)),
         maxVolume: Number(maxVolumeEntry.volume.toFixed(2)),
@@ -230,6 +265,9 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
     } catch (error) {
       console.error("Error calculating stats:", error);
       return {
+        setMetric: 0,
+        bestSet: 0,
+        bestSetDate: null,
         totalVolume: 0,
         averageVolume: 0,
         maxVolume: 0,
@@ -239,17 +277,17 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
         daysInRange: 0,
       };
     }
-  }, [filteredWorkouts, unit, selectedDateRange]);
+  }, [filteredWorkouts, unit, selectedDateRange, exerciseType]);
+
+  const metricName = getMetricName(exerciseType);
+  const isWeighted = exerciseType === "weighted";
 
   // Prepare base chart data with proper volume handling
   const baseDataset = {
-    label: `Volume (${unit})`,
+    label: isWeighted ? `Volume (${unit})` : metricName,
     data: filteredWorkouts.map((workout) => {
       try {
-        const normalizedVolume = normalizeVolume(workout.totalVolume);
-        return workout.unit === unit
-          ? normalizedVolume
-          : convertWeight(normalizedVolume, workout.unit, unit);
+        return getSessionValue(workout, exerciseType, unit);
       } catch (error) {
         console.error("Error processing volume:", error);
         return 0;
@@ -328,7 +366,11 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
         displayColors: false,
         callbacks: {
           label: (context) => {
-            return `Volume: ${context.parsed.y.toFixed(1)} ${unit}`;
+            return `${metricName}: ${formatMetric(
+              context.parsed.y,
+              exerciseType,
+              unit,
+            )}`;
           },
         },
       },
@@ -349,6 +391,11 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
         },
         ticks: {
           color: "#666",
+          // Timed exercises read better as m:ss than raw seconds; reps are whole numbers
+          ...(exerciseType === "timed" && {
+            callback: (value: string | number) => formatDuration(Number(value)),
+          }),
+          ...(exerciseType === "reps" && { precision: 0 }),
         },
       },
     },
@@ -416,29 +463,37 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
 
       {/* Stats Display */}
       {showStats && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg">
+        <div
+          className={`grid grid-cols-2 gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg ${
+            isWeighted
+              ? "md:grid-cols-5"
+              : exerciseType === "reps"
+                ? "md:grid-cols-4 lg:grid-cols-7"
+                : "md:grid-cols-3 lg:grid-cols-6"
+          }`}
+        >
           <div className="text-center">
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Total Volume
+              Total {metricName}
             </div>
             <div className="text-xl font-bold">
-              {stats.totalVolume.toFixed(2)} {unit}
+              {formatMetric(stats.totalVolume, exerciseType, unit, 2)}
             </div>
           </div>
           <div className="text-center">
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Average Volume
+              Average {metricName}
             </div>
             <div className="text-xl font-bold">
-              {stats.averageVolume.toFixed(2)} {unit}
+              {formatMetric(stats.averageVolume, exerciseType, unit, 2)}
             </div>
           </div>
           <div className="text-center">
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Max Volume
+              Max {metricName}
             </div>
             <div className="text-xl font-bold">
-              {stats.maxVolume.toFixed(2)} {unit}
+              {formatMetric(stats.maxVolume, exerciseType, unit, 2)}
             </div>
             {stats.maxVolumeDate && (
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -463,6 +518,37 @@ const VolumeChart = ({ workouts, unit }: VolumeChartProps) => {
               )}
             </div>
           </div>
+          {!isWeighted && (
+            <div className="text-center">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                {exerciseType === "timed" ? "Longest Hold" : "Avg Reps/Set"}
+              </div>
+              <div className="text-xl font-bold">
+                {exerciseType === "timed"
+                  ? formatDuration(stats.setMetric)
+                  : stats.setMetric.toFixed(1)}
+              </div>
+            </div>
+          )}
+          {exerciseType === "reps" && (
+            <div className="text-center">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Best Set
+              </div>
+              <div className="text-xl font-bold">
+                {formatMetric(stats.bestSet, exerciseType, unit)}
+              </div>
+              {stats.bestSetDate && (
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {stats.bestSetDate.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "2-digit",
+                  })}
+                </div>
+              )}
+            </div>
+          )}
           <div className="text-center">
             <div className="text-sm text-gray-600 dark:text-gray-400">
               Progress

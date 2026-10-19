@@ -3,6 +3,7 @@
 import { Request, Response, NextFunction } from "express";
 import xss from "xss";
 import { AppError } from "./errorHandler";
+import { EXERCISE_TYPES } from "../models/Exercise";
 
 /**
  * Sanitizes a string value by removing XSS and malicious URLs
@@ -51,22 +52,50 @@ const validateExercise = (data: any): void => {
   if (!data.name || typeof data.name !== "string" || data.name.trim() === "") {
     throw new AppError("Exercise name is required", 400);
   }
+
+  if (
+    data.exerciseType !== undefined &&
+    !EXERCISE_TYPES.includes(data.exerciseType)
+  ) {
+    throw new AppError(
+      `Exercise type must be one of: ${EXERCISE_TYPES.join(", ")}`,
+      400
+    );
+  }
 };
 
+const isPresent = (value: unknown) => value !== undefined && value !== null;
+
 /**
- * Validates set data
+ * Validates set data shape. Which fields are required depends on the
+ * exercise's type, which is checked in the controller once it's loaded
+ * (see buildSetsForExercise)
  */
 const validateSet = (set: any): void => {
   if (!set || typeof set !== "object") {
     throw new AppError("Invalid set data", 400);
   }
 
-  if (typeof set.weight !== "number" || set.weight < 0) {
+  if (
+    isPresent(set.weight) &&
+    (typeof set.weight !== "number" || set.weight < 0)
+  ) {
     throw new AppError("Weight must be a non-negative number", 400);
   }
 
-  if (typeof set.reps !== "number" || set.reps <= 0) {
+  if (isPresent(set.reps) && (typeof set.reps !== "number" || set.reps <= 0)) {
     throw new AppError("Reps must be a positive number", 400);
+  }
+
+  if (
+    isPresent(set.durationSeconds) &&
+    (typeof set.durationSeconds !== "number" || set.durationSeconds <= 0)
+  ) {
+    throw new AppError("Duration must be a positive number of seconds", 400);
+  }
+
+  if (!isPresent(set.reps) && !isPresent(set.durationSeconds)) {
+    throw new AppError("Each set needs reps or a duration", 400);
   }
 
   if (set.unit && !["kg", "lb"].includes(set.unit)) {

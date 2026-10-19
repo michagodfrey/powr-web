@@ -21,6 +21,8 @@ Two-package split repo (not a monorepo tool, no Turborepo/Nx), not Next.js:
 - An `Exercise` has many `WorkoutSession`s (one per date performed).
 - A `WorkoutSession` has many `Set`s (weight, reps, unit).
 - Volume = weight × reps, summed per session; unit is kg/lb per-set, with conversion helpers in `client/src/utils/volumeCalculation.ts`. Keep volume math there rather than re-deriving it elsewhere.
+- Each `Exercise` has an `exerciseType` (fixed at creation): `weighted` (weight × reps), `reps` (bodyweight, reps only — tracks total reps and reps/set), or `timed` (holds, `Set.durationSeconds`). `WorkoutSession.totalVolume` stores that type's headline number (volume / total reps / total seconds). Server-side set normalization is in `server/src/utils/exerciseMetrics.ts`; client-side reps/time metrics and formatting are in `client/src/utils/exerciseMetrics.ts`.
+- Schema changes go in both `server/scripts/init-database.sql` (fresh installs) and an idempotent file in `server/scripts/migrations/` (applied to existing DBs with `npm run migrate`).
 
 ## Auth
 

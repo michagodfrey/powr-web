@@ -5,11 +5,15 @@ import { Set } from "./Set";
 import { WorkoutSession } from "./WorkoutSession";
 
 // Base attributes required for an Exercise instance
+export type ExerciseType = "weighted" | "reps" | "timed";
+export const EXERCISE_TYPES: ExerciseType[] = ["weighted", "reps", "timed"];
+
 interface ExerciseAttributes {
   id: number;
   userId: string; // References the user who created the exercise
   name: string; // Name of the exercise (unique per user)
   description?: string; // Optional description of the exercise
+  exerciseType: ExerciseType; // How sets are measured: weight × reps, reps only, or time
   isArchived: boolean; // Soft deletion flag
   createdAt?: Date;
   updatedAt?: Date;
@@ -17,7 +21,10 @@ interface ExerciseAttributes {
 }
 
 // Attributes required when creating a new Exercise (excludes auto-generated fields)
-interface ExerciseCreationAttributes extends Omit<ExerciseAttributes, "id"> {}
+interface ExerciseCreationAttributes
+  extends Omit<ExerciseAttributes, "id" | "exerciseType"> {
+  exerciseType?: ExerciseType;
+}
 
 class Exercise
   extends Model<ExerciseAttributes, ExerciseCreationAttributes>
@@ -28,6 +35,7 @@ class Exercise
   public userId!: string;
   public name!: string;
   public description!: string;
+  public exerciseType!: ExerciseType;
   public isArchived!: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -58,6 +66,15 @@ class Exercise
         description: {
           type: DataTypes.TEXT,
           allowNull: true,
+        },
+        exerciseType: {
+          type: DataTypes.STRING(10),
+          allowNull: false,
+          defaultValue: "weighted",
+          field: "exercise_type",
+          validate: {
+            isIn: [EXERCISE_TYPES],
+          },
         },
         isArchived: {
           type: DataTypes.BOOLEAN,
